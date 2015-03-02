@@ -48,6 +48,7 @@ WriteMakefile(
     LICENSE           => 'gpl',
     LIBS              => [''],
     DEFINE            => '',
+    OBJECT            => 'GNU$(OBJ_EXT) regex$(OBJ_EXT)',
     INC               => '-I' . File::Spec->curdir,
 );
 

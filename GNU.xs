@@ -5,8 +5,8 @@
 
 #include "ppport.h"
 
-#include <regex.c>
-
+#include "regex.h"
+#include "GNU.h"
 
 MODULE = re::engine::GNU		PACKAGE = re::engine::GNU		
 
