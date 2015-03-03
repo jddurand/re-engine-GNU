@@ -121,7 +121,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       STRLEN plen;
       char  *exp = SvPV((SV*)pattern, plen);
 
-      sv_pattern = sv;
+      sv_pattern = pattern;
 
       /* Enable split optimizations */
 #ifdef RXf_SPLIT
@@ -136,15 +136,15 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       SV **h_syntax  = hv_fetch(hv, "syntax", 6, 0);
       SV **h_pattern = hv_fetch(hv, "pattern", 7, 0);
 
-      if (get_type(h_syntax) != SCALARREF || get_type(*h_syntax) != SCALAR) {
+      if (h_syntax == NULL || get_type(*h_syntax) != SCALAR) {
         croak("re::engine::GNU: hash ref must contain key 'syntax' pointing to a scalar");
       }
-      if (get_type(h_pattern) != SCALARREF || get_type(*h_pattern) != SCALAR) {
+      if (h_pattern == NULL || get_type(*h_pattern) != SCALAR) {
         croak("re::engine::GNU: hash ref must contain key 'pattern' pointing to a scalar");
       }
 
-      sv_syntax  = h_syntax;
-      sv_pattern = h_pattern;
+      sv_syntax  = *h_syntax;
+      sv_pattern = *h_pattern;
 
     } else if (pattern_type == ARRAYREF) {
       AV *av = (AV *)pattern;
@@ -157,15 +157,15 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       a_syntax  = av_fetch(av, 0, 0);
       a_pattern = av_fetch(av, 1, 0);
 
-      if (get_type(a_syntax) != SCALARREF || get_type(*a_syntax) != SCALAR) {
+      if (a_syntax == NULL || get_type(*a_syntax) != SCALAR) {
         croak("re::engine::GNU: array ref must have a scalar as first element");
       }
-      if (get_type(a_pattern) != SCALARREF || get_type(*a_pattern) != SCALAR) {
+      if (a_pattern == NULL || get_type(*a_pattern) != SCALAR) {
         croak("re::engine::GNU: array ref must have a scalar as second element");
       }
 
-      sv_syntax  = a_syntax;
-      sv_pattern = a_pattern;
+      sv_syntax  = *a_syntax;
+      sv_pattern = *a_pattern;
 
     } else {
       croak("re::engine::GNU: pattern must be a scalar, an array ref [syntax,pattern] or a hash ref {'syntax' => syntax, 'pattern' => pattern}");
