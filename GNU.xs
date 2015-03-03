@@ -85,11 +85,11 @@ get_type(SV* sv) {
   return UNKNOWN;
 }
 
-MODULE = re::engine::GNU		PACKAGE = re::engine::GNU		
-PROTOTYPES: ENABLE
-
-REGEXP *
-GNU_comp(pTHX_ const SV * const pattern, const U32 flags)
+#if PERL_VERSION <= 10
+REGEXP * GNU_comp(pTHX_ const SV * const pattern, const U32 flags)
+#else
+REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
+#endif
 {
     REGEXP  *rx;
     regex_t *re;
@@ -239,6 +239,9 @@ GNU_comp(pTHX_ const SV * const pattern, const U32 flags)
     /* return the regexp structure to perl */
     return rx;
 }
+
+MODULE = re::engine::GNU		PACKAGE = re::engine::GNU		
+PROTOTYPES: ENABLE
 
 void
 ENGINE(...)

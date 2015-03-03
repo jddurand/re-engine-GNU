@@ -5,11 +5,9 @@ START_EXTERN_C
 EXTERN_C const regexp_engine engine_gnu;
 
 #if PERL_VERSION <= 10
-EXTERN_C REGEXP * GNU_comp10(pTHX_ const SV * const, const U32);
-#define GNU_COMP GNU_comp10
+EXTERN_C REGEXP * GNU_comp(pTHX_ const SV * const, const U32);
 #else
 EXTERN_C REGEXP * GNU_comp(pTHX_ SV * const, U32);
-#define GNU_COMP GNU_comp
 #endif
 #if PERL_VERSION >= 19
 EXTERN_C char *   GNU_intuit(pTHX_ REGEXP * const, SV *, const char *, char *, char *, U32, re_scream_pos_data *);
@@ -33,7 +31,7 @@ END_EXTERN_C
 char *get_regerror(int, regex_t *);
 
 const regexp_engine engine_GNU = {
-  GNU_COMP,
+  GNU_comp,
   GNU_exec,
   GNU_intuit,
   GNU_checkstr,
