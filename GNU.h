@@ -28,7 +28,6 @@ EXTERN_C SV *     GNU_package(pTHX_ REGEXP * const);
 EXTERN_C void *   GNU_dupe(pTHX_ REGEXP * const, CLONE_PARAMS *);
 #endif
 END_EXTERN_C
-char *get_regerror(int, regex_t *);
 
 const regexp_engine engine_GNU = {
   GNU_comp,
