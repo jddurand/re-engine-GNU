@@ -3,9 +3,16 @@ use 5.010000;
 use strict;
 use diagnostics;
 use Config::AutoConf;
+BEGIN {
+  no warnings 'redefine';
+  *Config::AutoConf::check_member = \&my_check_member;
+  *Config::AutoConf::check_members = \&my_check_members;
+}
 use POSIX qw/EXIT_SUCCESS/;
 use ExtUtils::MakeMaker;
 use File::Spec;
+
+
 
 #
 # config to handle changes of REGEXP structure
@@ -151,8 +158,7 @@ int testrestrict() {
 # Until this is fixed in Config::AutoConf
 #
 no warnings 'redefine';
-*Config::AutoConf::check_member = sub
-{
+sub my_check_member {
     my $options = {};
     scalar @_ > 2 and ref $_[-1] eq "HASH" and $options = pop @_;
     my ( $self, $member ) = @_;
@@ -182,7 +188,7 @@ ACEOF
             }
         );
         $self->define_var(
-            _have_member_define_name("$type.$member"),
+            Config::AutoConf::_have_member_define_name("$type.$member"),
             $have_member ? $have_member : undef,
             "defined when $type.$member is available"
         );
@@ -200,8 +206,7 @@ ACEOF
     );
 };
 
-*Config::AutoConf::check_members = sub
-{
+sub my_check_members {
     my $options = {};
     scalar @_ > 2 and ref $_[-1] eq "HASH" and $options = pop @_;
     my ( $self, $members ) = @_;

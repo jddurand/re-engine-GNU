@@ -8,86 +8,8 @@
 #include "GNU.h"
 #include "config_REGEXP.h"
 
-/* Particularly dirty, but we do not want to perturb XS with all regexp #define's */
-/* This structure is totally known in advance since we provide it in the dist */
-typedef size_t __re_idx_t;
-typedef size_t __re_size_t;
-typedef size_t __re_long_size_t;
-typedef long int s_reg_t;
-typedef unsigned long int active_reg_t;
-typedef unsigned long int reg_syntax_t;
-#define __REPB_PREFIX(name) name
-#ifndef RE_TRANSLATE_TYPE
-# define __RE_TRANSLATE_TYPE unsigned char *
-# ifdef __USE_GNU
-#  define RE_TRANSLATE_TYPE __RE_TRANSLATE_TYPE
-# endif
-#endif
-
-struct re_pattern_buffer
-{
-  /* Space that holds the compiled pattern.  The type
-     'struct re_dfa_t' is private and is not declared here.  */
-  struct re_dfa_t *__REPB_PREFIX(buffer);
-
-  /* Number of bytes to which 'buffer' points.  */
-  __re_long_size_t __REPB_PREFIX(allocated);
-
-  /* Number of bytes actually used in 'buffer'.  */
-  __re_long_size_t __REPB_PREFIX(used);
-
-  /* Syntax setting with which the pattern was compiled.  */
-  reg_syntax_t __REPB_PREFIX(syntax);
-
-  /* Pointer to a fastmap, if any, otherwise zero.  re_search uses the
-     fastmap, if there is one, to skip over impossible starting points
-     for matches.  */
-  char *__REPB_PREFIX(fastmap);
-
-  /* Either a translate table to apply to all characters before
-     comparing them, or zero for no translation.  The translation is
-     applied to a pattern when it is compiled and to a string when it
-     is matched.  */
-  __RE_TRANSLATE_TYPE __REPB_PREFIX(translate);
-
-  /* Number of subexpressions found by the compiler.  */
-  size_t re_nsub;
-
-  /* Zero if this pattern cannot match the empty string, one else.
-     Well, in truth it's used only in 're_search_2', to see whether or
-     not we should use the fastmap, so we don't set this absolutely
-     perfectly; see 're_compile_fastmap' (the "duplicate" case).  */
-  unsigned __REPB_PREFIX(can_be_null) : 1;
-
-  /* If REGS_UNALLOCATED, allocate space in the 'regs' structure
-     for 'max (RE_NREGS, re_nsub + 1)' groups.
-     If REGS_REALLOCATE, reallocate space if necessary.
-     If REGS_FIXED, use what's there.  */
-#ifdef __USE_GNU
-# define REGS_UNALLOCATED 0
-# define REGS_REALLOCATE 1
-# define REGS_FIXED 2
-#endif
-  unsigned __REPB_PREFIX(regs_allocated) : 2;
-
-  /* Set to zero when 're_compile_pattern' compiles a pattern; set to
-     one by 're_compile_fastmap' if it updates the fastmap.  */
-  unsigned __REPB_PREFIX(fastmap_accurate) : 1;
-
-  /* If set, 're_match_2' does not return information about
-     subexpressions.  */
-  unsigned __REPB_PREFIX(no_sub) : 1;
-
-  /* If set, a beginning-of-line anchor doesn't match at the beginning
-     of the string.  */
-  unsigned __REPB_PREFIX(not_bol) : 1;
-
-  /* Similarly for an end-of-line anchor.  */
-  unsigned __REPB_PREFIX(not_eol) : 1;
-
-  /* If true, an anchor at a newline matches.  */
-  unsigned __REPB_PREFIX(newline_anchor) : 1;
-};
+#include "gnu-regex/config.h"
+#include "gnu-regex/regex.h"
 
 /******************************************************************/
 /* Copy of DROLSKY/Params-Validate-1.18/lib/Params/Validate/XS.xs */
@@ -179,19 +101,16 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     IV pattern_type = get_type(pattern);
     SV *sv_pattern;
     SV *sv_syntax = NULL;
+    UV uv_syntax;
+
+    STRLEN plen;
+    char  *exp;
 
     char *utf8pattern;
     STRLEN utf8pattern_len;
 
     /* Explicit stringification to please split(' ') optimization */
     U32 extflags = flags;
-
-    /* pregcomp vars */
-    int cflags = 0;
-    int err;
-#define ERR_STR_LENGTH 512
-    char err_str[ERR_STR_LENGTH];
-    size_t err_str_length;
 
     /**********************************************************************/
     /* We accept in input:                                                */
@@ -200,18 +119,8 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     /* - a hash with with at least the keys 'syntax' and 'pattern'        */
     /**********************************************************************/
     if (pattern_type == SCALAR) {
-      STRLEN plen;
-      char  *exp = SvPV((SV*)pattern, plen);
 
       sv_pattern = pattern;
-
-      /* Enable split optimizations */
-#ifdef RXf_SPLIT
-      if (flags & RXf_SPLIT && plen == 1 && exp[0] == ' ') {
-        extflags |= (RXf_SKIPWHITE|RXf_WHITE);
-      }
-#endif
-      /* We take over all other cases: /^/, /\s+/, etc */
 
     } else if (pattern_type == HASHREF) {
       HV  *hv        = (HV *)pattern;
@@ -253,6 +162,39 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       croak("re::engine::GNU: pattern must be a scalar, an array ref [syntax,pattern] or a hash ref {'syntax' => syntax, 'pattern' => pattern}");
     }
 
+
+    uv_syntax = SvUV(sv_syntax);
+
+    exp = SvPV((SV*)pattern, plen);
+
+    /* split optimizations - copied from re-engine-xxx by avar  */
+#if (defined(RXf_SPLIT) && defined(RXf_SKIPWHITE) && defined(RXf_WHITE))
+    /* C<split " ">, bypass the PCRE engine alltogether and act as perl does */
+    if (flags & RXf_SPLIT && plen == 1 && exp[0] == ' ')
+        extflags |= (RXf_SKIPWHITE|RXf_WHITE);
+#endif
+
+#ifdef RXf_NULL
+    /* RXf_NULL - Have C<split //> split by characters */
+    if (plen == 0) {
+        extflags |= RXf_NULL;
+    }
+#endif
+
+#ifdef RXf_START_ONLY
+    /* RXf_START_ONLY - Have C<split /^/> split on newlines */
+    if (plen == 1 && exp[0] == '^') {
+        extflags |= RXf_START_ONLY;
+    }
+#endif
+
+#ifdef RXf_WHITE
+    /* RXf_WHITE - Have C<split /\s+/> split on whitespace */
+    if (plen == 3 && strnEQ("\\s+", exp, 3)) {
+        extflags |= RXf_WHITE;
+    }
+#endif
+
     /* Make sure sv_pattern is an UTF8 thingy */
     if (! SvUTF8(sv_pattern)) {
       /* copy to new SV and promote to utf8 */
@@ -263,6 +205,38 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     } else {
       utf8pattern = SvPV((SV*)sv_pattern, utf8pattern_len);
     }
+
+    /* /msixp flags */
+#ifdef RXf_PMf_MULTILINE
+    /* /m */
+    if ((flags & RXf_PMf_MULTILINE) == RXf_PMf_MULTILINE) {
+      uv_syntax |= REG_NEWLINE;
+    }
+#endif
+#ifdef RXf_PMf_SINGLELINE
+    /* /s */
+    if ((flags & RXf_PMf_SINGLELINE) == RXf_PMf_SINGLELINE) {
+      cflags |= RE_DOT_NEWLINE;
+    }
+#endif
+#ifdef RXf_PMf_FOLD
+    /* /i */
+    if ((flags & RXf_PMf_FOLD) == RXf_PMf_FOLD) {
+      cflags |= REG_ICASE;
+    }
+#endif
+#ifdef RXf_PMf_EXTENDED
+    /* /x */
+    if ((flags & RXf_PMf_EXTENDED) == RXf_PMf_EXTENDED) {
+      croak("re::engine::GNU: /x modifier is not supported");
+    }
+#endif
+#ifdef RXf_PMf_KEEPCOPY
+    /* /p */
+    if ((flags & RXf_PMf_KEEPCOPY) == RXf_PMf_KEEPCOPY) {
+      croak("re::engine::GNU: /p modifier is not supported");
+    }
+#endif
 
     /* REGEX structure for perl */
     Newxz(rx, 1, regexp);
