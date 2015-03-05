@@ -130,10 +130,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     SV *sv_pattern;
     SV *sv_syntax = NULL;
 
-#define ERR_STR_LENGTH 512
-    reg_errcode_t err;
-    char err_str[ERR_STR_LENGTH+1];
-    size_t err_str_length;
+    reg_errcode_t ret;
 
     {
       /************************************************************/
@@ -267,13 +264,15 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #ifdef RXf_PMf_EXTENDED
     /* /x */
     if ((flags & RXf_PMf_EXTENDED) == RXf_PMf_EXTENDED) {
-      croak("re::engine::GNU: /x modifier is not supported");
+      /* Not supported: explicitely removed */
+      extflags &= ~RXf_PMf_EXTENDED;
     }
 #endif
 #ifdef RXf_PMf_KEEPCOPY
     /* /p */
     if ((flags & RXf_PMf_KEEPCOPY) == RXf_PMf_KEEPCOPY) {
-      croak("re::engine::GNU: /p modifier is not supported");
+      /* Not supported: explicitely removed */
+      extflags &= ~RXf_PMf_KEEPCOPY;
     }
 #endif
 
@@ -309,27 +308,21 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif
 #endif
 
-    err = re_compile_internal (&(ri->regex), ri->pattern_utf8, ri->len_pattern_utf8, ri->regex.syntax);
-
-    if (err != _REG_NOERROR) {
-        /* note: we do not call regfree() when regncomp returns an error */
-        err_str_length = regerror(err, &(ri->regex), err_str, ERR_STR_LENGTH);
-        err_str[ERR_STR_LENGTH] = '\0';
-        if (err_str_length > ERR_STR_LENGTH) {
-            croak("error compiling `%s': %s (error message truncated)", exp, err_str);
-        } else {
-            croak("error compiling `%s': %s", exp, err_str);
-        }
+    ret = re_compile_internal (&(ri->regex), ri->pattern_utf8, ri->len_pattern_utf8, ri->regex.syntax);
+    if (ret != _REG_NOERROR) {
+      extern const char __re_error_msgid[];
+      extern const size_t __re_error_msgid_idx[];
+      croak("error compiling `%s': %s (error message truncated)", exp, __re_error_msgid + __re_error_msgid_idx[(int) ret]);
     }
 
-#ifdef HAVE_REGEXP_PPRIVATE
-    /* Save for later */
+/* #ifdef HAVE_REGEXP_PPRIVATE* / /* pprivate must always exist */
     re->pprivate = ri;
-#endif
+/* #endif */
 
 #ifdef HAVE_REGEXP_NPARENS
     re->nparens = (U32)ri->regex.re_nsub; /* cast from size_t */
 #endif
+
     /*
       Tell perl how many match vars we have and allocate space for
       them, at least one is always allocated for $&
@@ -338,6 +331,60 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 
     /* return the regexp structure to perl */
     return rx;
+}
+
+I32
+GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I32 minend, SV * sv, void *data, U32 flags)
+{
+    regexp        *re = RegSV(rx);
+    GNU_private_t *ri = re->pprivate;
+    regmatch_t    *matches;
+    regoff_t       offs;
+    int            err;
+    char          *err_msg;
+    int            i;
+    struct re_registers regs;     /* for subexpression matches */
+
+    regs.start = NULL;
+    regs.end = NULL;
+
+    offs = re_search(&(ri->regex), stringarg, strend - stringarg, strbeg - stringarg, strend - strbeg, &regs);
+
+    if (offs <= -2) {
+      croak("Internal error matching regular expression");
+    } else if (offs == -1) {
+      return 0;
+    }
+
+#ifdef HAVE_REGEXP_SUBBEG
+    re->subbeg = strbeg;
+#endif
+#ifdef HAVE_REGEXP_SUBLEN
+    re->sublen = strend - strbeg;
+#endif
+    /*
+      re_search returns offsets from the start of `stringarg' but perl expects
+      them to count from `strbeg'.
+    */
+    offs = stringarg - strbeg;
+
+#ifdef HAVE_REGEXP_OFFS
+    for (i = 0; i < regs.num_regs; i++) {
+      re->offs[i].start = regs.start[i];
+      re->offs[i].end = regs.end[i];
+    }
+    if (regs.num_regs < ri->regex.re_nsub) {
+      for (i = regs.num_regs; i < ri->regex.re_nsub + 1; i++) {
+        re->offs[i].start = -1;
+        re->offs[i].end = -1;
+      }
+    }
+#endif
+#ifdef HAVE_REGEXP_LASTPAREN
+    re->lastparen = i;
+#endif
+
+    return 1;
 }
 
 MODULE = re::engine::GNU		PACKAGE = re::engine::GNU		
