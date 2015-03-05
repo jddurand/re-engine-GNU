@@ -8,8 +8,8 @@
 #include "GNU.h"
 #include "config_REGEXP.h"
 
-#include "gnu-regex/config.h"
-#include "gnu-regex/regex.h"
+#include "config.h"
+#include "regex.h"
 
 #if PERL_VERSION > 10
 #define RegSV(p) SvANY(p)
