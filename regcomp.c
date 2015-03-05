@@ -22,7 +22,7 @@
 /* use Encode;                                                           */
 /* my $octets = encode_utf8($string);                                    */
 
-static reg_errcode_t re_compile_internal (regex_t *preg, const char * pattern,
+/* static */ reg_errcode_t re_compile_internal (regex_t *preg, const char * pattern,
 					  size_t length, reg_syntax_t syntax);
 static void re_compile_fastmap_iter (regex_t *bufp,
 				     const re_dfastate_t *init_state,
@@ -758,7 +758,7 @@ libc_freeres_fn (free_mem)
    Compile the regular expression PATTERN, whose length is LENGTH.
    SYNTAX indicate regular expression's syntax.  */
 
-static reg_errcode_t
+/* static */ reg_errcode_t
 re_compile_internal (regex_t *preg, const char * pattern, size_t length,
 		     reg_syntax_t syntax)
 {

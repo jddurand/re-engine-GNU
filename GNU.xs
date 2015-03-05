@@ -11,6 +11,12 @@
 #include "gnu-regex/config.h"
 #include "gnu-regex/regex.h"
 
+#if PERL_VERSION > 10
+#define RegSV(p) SvANY(p)
+#else
+#define RegSV(p) (p)
+#endif
+
 typedef struct GNU_private {
   SV *sv_pattern_copy;
   SV *sv_victim_copy;
@@ -108,9 +114,9 @@ REGEXP * GNU_comp(pTHX_ const SV * const pattern, const U32 flags)
 REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif
 {
-    regexp                   *rx;
-    struct re_pattern_buffer *re;
-    GNU_private_t            *GNU_private;
+    REGEXP                   *rx;
+    regexp                   *re;
+    GNU_private_t            *ri;
 
     /* Copy of flags in input */
     U32 extflags = flags;
@@ -119,7 +125,11 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     IV pattern_type = get_type(pattern);
     SV *sv_pattern;
     SV *sv_syntax = NULL;
-    SV *sv_flavour = NULL;
+
+#define ERR_STR_LENGTH 512
+    reg_errcode_t err;
+    char err_str[ERR_STR_LENGTH+1];
+    size_t err_str_length;
 
     {
       /************************************************************/
@@ -159,12 +169,12 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     /********************/
     /* GNU engine setup */
     /********************/
-    Newxz(GNU_private, 1, GNU_private_t);
+    Newxz(ri, 1, GNU_private_t);
 
     /* We accept in input:                                                  */
     /* - a scalar                                                           */
     /* - an arrayref with at least 2 members: the syntax and the pattern    */
-    /* - a hash with with at least the keys 'syntax', flavour' and 'pattern'*/
+    /* - a hash with with at least the key 'pattern', eventually 'syntax'   */
 
     if (pattern_type == SCALAR) {
 
@@ -173,115 +183,84 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     } else if (pattern_type == ARRAYREF) {
       AV *av = (AV *)pattern;
       SV **a_pattern;
-      SV **a_flavour;
+      SV **a_syntax;
 
       if (av_top_index(av) < 1) {
-        croak("re::engine::GNU: array ref must have at least two elements, i.e. [flavour => pattern]");
+        croak("re::engine::GNU: array ref must have at least two elements, i.e. [syntax => pattern]");
       }
       a_pattern = av_fetch(av, 1, 0);
-      a_flavour = av_fetch(av, 0, 0);
+      a_syntax = av_fetch(av, 0, 0);
 
       if (a_pattern == NULL || get_type(*a_pattern) != SCALAR) {
         croak("re::engine::GNU: array ref must have a scalar as second element");
       }
-      if (a_flavour == NULL || get_type(*a_flavour) != SCALAR) {
+      if (a_syntax == NULL || get_type(*a_syntax) != SCALAR) {
         croak("re::engine::GNU: array ref must have a scalar as first element");
       }
 
       sv_pattern = *a_pattern;
-      sv_flavour  = *a_flavour;
+      sv_syntax  = *a_syntax;
 
     } else if (pattern_type == HASHREF) {
       HV  *hv        = (HV *)pattern;
       SV **h_pattern = hv_fetch(hv, "pattern", 7, 0);
-      SV **h_flavour = hv_fetch(hv, "flavour", 7, 0);
       SV **h_syntax  = hv_fetch(hv, "syntax", 6, 0);
 
       if (h_pattern == NULL || get_type(*h_pattern) != SCALAR) {
         croak("re::engine::GNU: hash ref key must have a key 'pattern' refering to a scalar");
       }
-
-      if (h_flavour != NULL && h_syntax != NULL) {
-        croak("re::engine::GNU: hash ref keys 'flavour' and 'syntax' are exclusive");
-      }
-      if (h_flavour != NULL && get_type(*h_flavour) != SCALAR) {
-        croak("re::engine::GNU: hash ref key 'flavour' must point to a scalar");
-      }
-      if (h_syntax != NULL && get_type(*h_syntax) != SCALAR) {
-        croak("re::engine::GNU: hash ref key 'syntax' must point to a scalar");
-      }
-
-      if (h_flavour != NULL) {
-        STRLEN flavour_len;
-        char *flavour = SvPV((SV*)*h_flavour, flavour_len);
-
-        if (flavour_len == 5 && strncmp(flavour, "emacs", 5) == 0) {
-          GNU_private->regex.syntax = RE_SYNTAX_EMACS;
-        }
-        else if (flavour_len == 3 && strncmp(flavour, "awk", 3) == 0) {
-          GNU_private->regex.syntax = RE_SYNTAX_AWK;
-        }
-        else if (flavour_len == 7 && strncmp(flavour, "GNU awk", 7) == 0) {
-          GNU_private->regex.syntax = RE_SYNTAX_GNU_AWK;
-        }
-        else if (flavour_len == 9 && strncmp(flavour, "POSIX awk", 9) == 0) {
-          GNU_private->regex.syntax = RE_SYNTAX_POSIX_AWK;
-        }
-        else if (flavour_len == 4 && strncmp(flavour, "egrep", 4) == 0) {
-          GNU_private->regex.syntax = RE_SYNTAX_EGREP;
-        }
-
+      if (h_syntax == NULL || get_type(*h_syntax) != SCALAR) {
+        croak("re::engine::GNU: hash ref key must have a key 'syntax' refering to a scalar");
       }
 
       sv_pattern = *h_pattern;
-      sv_flavour = *h_flavour;
       sv_syntax  = *h_syntax;
 
     } else {
-      croak("re::engine::GNU: pattern must be a scalar, an array ref [flavour => pattern], or a hash ref {'syntax' => syntax, 'flavour' => flavour, 'pattern' => pattern} where syntax and flavour are exclusive");
+      croak("re::engine::GNU: pattern must be a scalar, an array ref [syntax => pattern], or a hash ref {'syntax' => syntax, 'pattern' => pattern} where syntax and flavour are exclusive");
     }
 
-    GNU_private->sv_pattern_copy = newSVsv(sv_pattern);
-    GNU_private->pattern_utf8    = SvPVutf8(GNU_private->sv_pattern_copy, GNU_private->len_pattern_utf8);
+    ri->sv_pattern_copy        = newSVsv(sv_pattern);
+    ri->pattern_utf8           = SvPVutf8(ri->sv_pattern_copy, ri->len_pattern_utf8);
 
-    GNU_private->regex.buffer           = NULL;
-    GNU_private->regex.allocated        = 0;
-    GNU_private->regex.used             = 0;
-    GNU_private->regex.syntax           = (sv_syntax != NULL) ? SvUV(sv_syntax) : 0;
-    GNU_private->regex.fastmap          = NULL;
-    GNU_private->regex.translate        = NULL;
-    GNU_private->regex.re_nsub          = 0;
-    GNU_private->regex.can_be_null      = 1;
-    GNU_private->regex.regs_allocated   = 2;
-    GNU_private->regex.fastmap_accurate = 2;
-    GNU_private->regex.no_sub           = 1;
-    GNU_private->regex.not_bol          = 1;
-    GNU_private->regex.not_eol          = 1;
-    GNU_private->regex.newline_anchor   = 1;
-
-    if (char  *exp = SvPV((SV*)pattern, plen);
+    ri->regex.buffer           = NULL;
+    ri->regex.allocated        = 0;
+    ri->regex.used             = 0;
+    ri->regex.syntax           = (sv_syntax != NULL) ? SvUV(sv_syntax) : 0;
+    ri->regex.fastmap          = NULL;
+    ri->regex.translate        = NULL;
+    ri->regex.re_nsub          = 0;
+    ri->regex.can_be_null      = 0;
+    ri->regex.regs_allocated   = 0;
+    ri->regex.fastmap_accurate = 0;
+    ri->regex.no_sub           = 0;
+    ri->regex.not_bol          = 0;
+    ri->regex.not_eol          = 0;
+    ri->regex.newline_anchor   = 0;
 
     /* /msixp flags */
 #ifdef RXf_PMf_MULTILINE
     /* /m */
     if ((flags & RXf_PMf_MULTILINE) == RXf_PMf_MULTILINE) {
-      GNU_private->regex.newline_anchor = 1;
+      ri->regex.newline_anchor = 1;
     } else {
-      GNU_private->regex.newline_anchor = 0;
+      ri->regex.newline_anchor = 0;
     }
 #endif
 #ifdef RXf_PMf_SINGLELINE
     /* /s */
     if ((flags & RXf_PMf_SINGLELINE) == RXf_PMf_SINGLELINE) {
-      GNU_private->regex.syntax |= RE_DOT_NEWLINE;
+      ri->regex.syntax |= RE_DOT_NEWLINE;
     } else {
-      GNU_private->regex.syntax &= ~RE_DOT_NEWLINE;
+      ri->regex.syntax &= ~RE_DOT_NEWLINE;
     }
 #endif
 #ifdef RXf_PMf_FOLD
     /* /i */
     if ((flags & RXf_PMf_FOLD) == RXf_PMf_FOLD) {
-      uv_syntax |= REG_ICASE;
+      ri->regex.syntax |= RE_ICASE;
+    } else {
+      ri->regex.syntax &= ~RE_ICASE;
     }
 #endif
 #ifdef RXf_PMf_EXTENDED
@@ -298,43 +277,43 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif
 
     /* REGEX structure for perl */
-    Newxz(rx, 1, regexp);
-
+    Newxz(rx, 1, REGEXP);
 #ifdef HAVE_REGEXP_REFCNT
     rx->refcnt = 1;
 #endif
+
+    re = RegSV(rx);
 #ifdef HAVE_REGEXP_EXTFLAGS
-    rx->extflags = extflags;
+    re->extflags = extflags;
 #endif
 #ifdef HAVE_REGEXP_ENGINE
-    rx->engine = &engine_GNU;
+    re->engine = &engine_GNU;
 #endif
     /* Precompiled regexp for pp_regcomp to use */
 #ifdef HAVE_REGEXP_PRELEN
-    rx->prelen = (I32)plen;
+    re->prelen = (I32)plen;
 #endif
 #ifdef HAVE_REGEXP_PRECOMP
-    rx->precomp = SAVEPVN(exp, rx->prelen);
+    re->precomp = SAVEPVN(exp, re->prelen);
 #endif
     /* qr// stringification, reuse the space */
 #ifdef HAVE_REGEXP_WRAPLEN
 #ifdef HAVE_REGEXP_PRELEN
-    rx->wraplen = rx->prelen;
+    re->wraplen = re->prelen;
 #endif
 #endif
 #ifdef HAVE_REGEXP_WRAPPED
 #ifdef HAVE_REGEXP_PRECOMP
-    rx->wrapped = (char *)rx->precomp; /* from const char* */
+    re->wrapped = (char *)re->precomp; /* from const char* */
 #endif
 #endif
 
-    Newxz(re, 1, regex_t);
+    err = re_compile_internal (&(ri->regex), ri->pattern_utf8, ri->len_pattern_utf8, ri->regex.syntax);
 
-    err = regncomp(re, exp, plen, cflags);
-
-    if (err != 0) {
+    if (err != _REG_NOERROR) {
         /* note: we do not call regfree() when regncomp returns an error */
-        err_str_length = regerror(err, re, err_str, ERR_STR_LENGTH);
+        err_str_length = regerror(err, &(ri->regex), err_str, ERR_STR_LENGTH);
+        err_str[ERR_STR_LENGTH] = '\0';
         if (err_str_length > ERR_STR_LENGTH) {
             croak("error compiling `%s': %s (error message truncated)", exp, err_str);
         } else {
@@ -342,15 +321,19 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
         }
     }
 
+#ifdef HAVE_REGEXP_PPRIVATE
     /* Save for later */
-    rx->pprivate = GNU_private;
+    re->pprivate = ri;
+#endif
 
+#ifdef HAVE_REGEXP_NPARENS
+    re->nparens = (U32)ri->regex.re_nsub; /* cast from size_t */
+#endif
     /*
       Tell perl how many match vars we have and allocate space for
       them, at least one is always allocated for $&
      */
-    rx->nparens = (U32)re->re_nsub; /* cast from size_t */
-    Newxz(rx->offs, rx->nparens + 1, regexp_paren_pair);
+    Newxz(re->offs, re->nparens + 1, regexp_paren_pair);
 
     /* return the regexp structure to perl */
     return rx;

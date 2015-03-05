@@ -20,11 +20,11 @@ use File::Spec;
 do_config_REGEXP();
 
 #
-# config for gnu-regex
+# config for gnu regex
 #
 do_config_GNU();
 
-my $regexo = File::Spec->catfile('gnu-regex', 'regex$(OBJ_EXT)');
+my $regexo = 'regex$(OBJ_EXT)';
 WriteMakefile(
     NAME              => 're::engine::GNU',
     VERSION_FROM      => 'lib/re/engine/GNU.pm',
@@ -57,8 +57,8 @@ sub do_config_REGEXP {
 }
 
 sub do_config_GNU {
-    my $config = File::Spec->catfile('gnu-regex', 'config_autoconf.h');
-    my $log = File::Spec->catfile('gnu-regex', 'config_autoconf.log');
+    my $config = File::Spec->catfile('config_autoconf.h');
+    my $log = File::Spec->catfile('config_autoconf.log');
 
     print STDERR "...\n";
     print STDERR "... GNU REGEX configuration\n";

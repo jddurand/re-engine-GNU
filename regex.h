@@ -659,6 +659,11 @@ extern size_t regerror (int __errcode, const regex_t *_Restrict_ __preg,
 
 extern void regfree (regex_t *__preg);
 
+/* GNU entry point is forcing newline_anchor                       */
+/* I do not want, so I force externalization of                    */
+/* the internal implementation - this has another                  */
+/* advantage: getting rid of the global variable re_syntax_options */
+extern reg_errcode_t re_compile_internal (regex_t *preg, const char * pattern, size_t length, reg_syntax_t syntax);
 
 #ifdef __cplusplus
 }
