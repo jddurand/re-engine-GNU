@@ -11,6 +11,19 @@
 #include "gnu-regex/config.h"
 #include "gnu-regex/regex.h"
 
+typedef struct GNU_private {
+  SV *sv_pattern_copy;
+  SV *sv_victim_copy;
+
+  char *pattern_utf8;
+  char *victim_utf8;
+
+  STRLEN len_pattern_utf8;
+  STRLEN len__victim_utf8;
+
+  regex_t regex;
+} GNU_private_t;
+
 /******************************************************************/
 /* Copy of DROLSKY/Params-Validate-1.18/lib/Params/Validate/XS.xs */
 /******************************************************************/
@@ -97,132 +110,178 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 {
     regexp                   *rx;
     struct re_pattern_buffer *re;
+    GNU_private_t            *GNU_private;
 
+    /* Copy of flags in input */
+    U32 extflags = flags;
+
+    /* SVs that are in input */
     IV pattern_type = get_type(pattern);
     SV *sv_pattern;
     SV *sv_syntax = NULL;
-    UV uv_syntax;
+    SV *sv_flavour = NULL;
 
-    STRLEN plen;
-    char  *exp;
+    {
+      /************************************************************/
+      /* split optimizations - copied from re-engine-xxx by avar  */
+      /************************************************************/
+      STRLEN plen;
+      char  *exp = SvPV((SV*)pattern, plen);
 
-    char *utf8pattern;
-    STRLEN utf8pattern_len;
-
-    /* Explicit stringification to please split(' ') optimization */
-    U32 extflags = flags;
-
-    /**********************************************************************/
-    /* We accept in input:                                                */
-    /* - a scalar                                                         */
-    /* - an arrayref with at least 2 members: the syntax and the pattern  */
-    /* - a hash with with at least the keys 'syntax' and 'pattern'        */
-    /**********************************************************************/
-    if (pattern_type == SCALAR) {
-
-      sv_pattern = pattern;
-
-    } else if (pattern_type == HASHREF) {
-      HV  *hv        = (HV *)pattern;
-      SV **h_syntax  = hv_fetch(hv, "syntax", 6, 0);
-      SV **h_pattern = hv_fetch(hv, "pattern", 7, 0);
-
-      if (h_syntax == NULL || get_type(*h_syntax) != SCALAR) {
-        croak("re::engine::GNU: hash ref must contain key 'syntax' pointing to a scalar");
-      }
-      if (h_pattern == NULL || get_type(*h_pattern) != SCALAR) {
-        croak("re::engine::GNU: hash ref must contain key 'pattern' pointing to a scalar");
-      }
-
-      sv_syntax  = *h_syntax;
-      sv_pattern = *h_pattern;
-
-    } else if (pattern_type == ARRAYREF) {
-      AV *av = (AV *)pattern;
-      SV **a_syntax;
-      SV **a_pattern;
-
-      if (av_top_index(av) < 1) {
-        croak("re::engine::GNU: array ref must have at least two elements, i.e. [syntax,pattern]");
-      }
-      a_syntax  = av_fetch(av, 0, 0);
-      a_pattern = av_fetch(av, 1, 0);
-
-      if (a_syntax == NULL || get_type(*a_syntax) != SCALAR) {
-        croak("re::engine::GNU: array ref must have a scalar as first element");
-      }
-      if (a_pattern == NULL || get_type(*a_pattern) != SCALAR) {
-        croak("re::engine::GNU: array ref must have a scalar as second element");
-      }
-
-      sv_syntax  = *a_syntax;
-      sv_pattern = *a_pattern;
-
-    } else {
-      croak("re::engine::GNU: pattern must be a scalar, an array ref [syntax,pattern] or a hash ref {'syntax' => syntax, 'pattern' => pattern}");
-    }
-
-
-    uv_syntax = SvUV(sv_syntax);
-
-    exp = SvPV((SV*)pattern, plen);
-
-    /* split optimizations - copied from re-engine-xxx by avar  */
 #if (defined(RXf_SPLIT) && defined(RXf_SKIPWHITE) && defined(RXf_WHITE))
-    /* C<split " ">, bypass the PCRE engine alltogether and act as perl does */
-    if (flags & RXf_SPLIT && plen == 1 && exp[0] == ' ')
+      /* C<split " ">, bypass the PCRE engine alltogether and act as perl does */
+      if (flags & RXf_SPLIT && plen == 1 && exp[0] == ' ')
         extflags |= (RXf_SKIPWHITE|RXf_WHITE);
 #endif
 
 #ifdef RXf_NULL
-    /* RXf_NULL - Have C<split //> split by characters */
-    if (plen == 0) {
+      /* RXf_NULL - Have C<split //> split by characters */
+      if (plen == 0) {
         extflags |= RXf_NULL;
-    }
+      }
 #endif
 
 #ifdef RXf_START_ONLY
-    /* RXf_START_ONLY - Have C<split /^/> split on newlines */
-    if (plen == 1 && exp[0] == '^') {
+      /* RXf_START_ONLY - Have C<split /^/> split on newlines */
+      if (plen == 1 && exp[0] == '^') {
         extflags |= RXf_START_ONLY;
-    }
+      }
 #endif
 
 #ifdef RXf_WHITE
-    /* RXf_WHITE - Have C<split /\s+/> split on whitespace */
-    if (plen == 3 && strnEQ("\\s+", exp, 3)) {
+      /* RXf_WHITE - Have C<split /\s+/> split on whitespace */
+      if (plen == 3 && strnEQ("\\s+", exp, 3)) {
         extflags |= RXf_WHITE;
-    }
+      }
 #endif
-
-    /* Make sure sv_pattern is an UTF8 thingy */
-    if (! SvUTF8(sv_pattern)) {
-      /* copy to new SV and promote to utf8 */
-      SV *utf8sv = sv_mortalcopy(sv_pattern);
-
-      /* get string and length out of utf8 */
-      utf8pattern = SvPVutf8(utf8sv, utf8pattern_len);
-    } else {
-      utf8pattern = SvPV((SV*)sv_pattern, utf8pattern_len);
     }
+
+    /********************/
+    /* GNU engine setup */
+    /********************/
+    Newxz(GNU_private, 1, GNU_private_t);
+
+    /* We accept in input:                                                  */
+    /* - a scalar                                                           */
+    /* - an arrayref with at least 2 members: the syntax and the pattern    */
+    /* - a hash with with at least the keys 'syntax', flavour' and 'pattern'*/
+
+    if (pattern_type == SCALAR) {
+
+      sv_pattern = pattern;
+
+    } else if (pattern_type == ARRAYREF) {
+      AV *av = (AV *)pattern;
+      SV **a_pattern;
+      SV **a_flavour;
+
+      if (av_top_index(av) < 1) {
+        croak("re::engine::GNU: array ref must have at least two elements, i.e. [flavour => pattern]");
+      }
+      a_pattern = av_fetch(av, 1, 0);
+      a_flavour = av_fetch(av, 0, 0);
+
+      if (a_pattern == NULL || get_type(*a_pattern) != SCALAR) {
+        croak("re::engine::GNU: array ref must have a scalar as second element");
+      }
+      if (a_flavour == NULL || get_type(*a_flavour) != SCALAR) {
+        croak("re::engine::GNU: array ref must have a scalar as first element");
+      }
+
+      sv_pattern = *a_pattern;
+      sv_flavour  = *a_flavour;
+
+    } else if (pattern_type == HASHREF) {
+      HV  *hv        = (HV *)pattern;
+      SV **h_pattern = hv_fetch(hv, "pattern", 7, 0);
+      SV **h_flavour = hv_fetch(hv, "flavour", 7, 0);
+      SV **h_syntax  = hv_fetch(hv, "syntax", 6, 0);
+
+      if (h_pattern == NULL || get_type(*h_pattern) != SCALAR) {
+        croak("re::engine::GNU: hash ref key must have a key 'pattern' refering to a scalar");
+      }
+
+      if (h_flavour != NULL && h_syntax != NULL) {
+        croak("re::engine::GNU: hash ref keys 'flavour' and 'syntax' are exclusive");
+      }
+      if (h_flavour != NULL && get_type(*h_flavour) != SCALAR) {
+        croak("re::engine::GNU: hash ref key 'flavour' must point to a scalar");
+      }
+      if (h_syntax != NULL && get_type(*h_syntax) != SCALAR) {
+        croak("re::engine::GNU: hash ref key 'syntax' must point to a scalar");
+      }
+
+      if (h_flavour != NULL) {
+        STRLEN flavour_len;
+        char *flavour = SvPV((SV*)*h_flavour, flavour_len);
+
+        if (flavour_len == 5 && strncmp(flavour, "emacs", 5) == 0) {
+          GNU_private->regex.syntax = RE_SYNTAX_EMACS;
+        }
+        else if (flavour_len == 3 && strncmp(flavour, "awk", 3) == 0) {
+          GNU_private->regex.syntax = RE_SYNTAX_AWK;
+        }
+        else if (flavour_len == 7 && strncmp(flavour, "GNU awk", 7) == 0) {
+          GNU_private->regex.syntax = RE_SYNTAX_GNU_AWK;
+        }
+        else if (flavour_len == 9 && strncmp(flavour, "POSIX awk", 9) == 0) {
+          GNU_private->regex.syntax = RE_SYNTAX_POSIX_AWK;
+        }
+        else if (flavour_len == 4 && strncmp(flavour, "egrep", 4) == 0) {
+          GNU_private->regex.syntax = RE_SYNTAX_EGREP;
+        }
+
+      }
+
+      sv_pattern = *h_pattern;
+      sv_flavour = *h_flavour;
+      sv_syntax  = *h_syntax;
+
+    } else {
+      croak("re::engine::GNU: pattern must be a scalar, an array ref [flavour => pattern], or a hash ref {'syntax' => syntax, 'flavour' => flavour, 'pattern' => pattern} where syntax and flavour are exclusive");
+    }
+
+    GNU_private->sv_pattern_copy = newSVsv(sv_pattern);
+    GNU_private->pattern_utf8    = SvPVutf8(GNU_private->sv_pattern_copy, GNU_private->len_pattern_utf8);
+
+    GNU_private->regex.buffer           = NULL;
+    GNU_private->regex.allocated        = 0;
+    GNU_private->regex.used             = 0;
+    GNU_private->regex.syntax           = (sv_syntax != NULL) ? SvUV(sv_syntax) : 0;
+    GNU_private->regex.fastmap          = NULL;
+    GNU_private->regex.translate        = NULL;
+    GNU_private->regex.re_nsub          = 0;
+    GNU_private->regex.can_be_null      = 1;
+    GNU_private->regex.regs_allocated   = 2;
+    GNU_private->regex.fastmap_accurate = 2;
+    GNU_private->regex.no_sub           = 1;
+    GNU_private->regex.not_bol          = 1;
+    GNU_private->regex.not_eol          = 1;
+    GNU_private->regex.newline_anchor   = 1;
+
+    if (char  *exp = SvPV((SV*)pattern, plen);
 
     /* /msixp flags */
 #ifdef RXf_PMf_MULTILINE
     /* /m */
     if ((flags & RXf_PMf_MULTILINE) == RXf_PMf_MULTILINE) {
-      uv_syntax |= REG_NEWLINE;
+      GNU_private->regex.newline_anchor = 1;
+    } else {
+      GNU_private->regex.newline_anchor = 0;
     }
 #endif
 #ifdef RXf_PMf_SINGLELINE
     /* /s */
     if ((flags & RXf_PMf_SINGLELINE) == RXf_PMf_SINGLELINE) {
-      cflags |= RE_DOT_NEWLINE;
+      GNU_private->regex.syntax |= RE_DOT_NEWLINE;
+    } else {
+      GNU_private->regex.syntax &= ~RE_DOT_NEWLINE;
     }
 #endif
 #ifdef RXf_PMf_FOLD
     /* /i */
     if ((flags & RXf_PMf_FOLD) == RXf_PMf_FOLD) {
-      cflags |= REG_ICASE;
+      uv_syntax |= REG_ICASE;
     }
 #endif
 #ifdef RXf_PMf_EXTENDED
@@ -269,21 +328,6 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif
 #endif
 
-    /* Catch invalid modifiers, the rest of the flags are ignored */
-    if (flags & (RXf_PMf_SINGLELINE|RXf_PMf_KEEPCOPY))
-        if (flags & RXf_PMf_SINGLELINE) /* /s */
-            croak("The `s' modifier is not supported by re::engine::TRE");
-        else if (flags & RXf_PMf_KEEPCOPY) /* /p */
-            croak("The `p' modifier is not supported by re::engine::TRE");
-
-    /* Modifiers valid, munge to TRE cflags */
-    if (flags & PMf_EXTENDED) /* /x */
-        cflags |= REG_EXTENDED;
-    if (flags & PMf_MULTILINE) /* /m */
-        cflags |= REG_NEWLINE;
-    if (flags & PMf_FOLD) /* /i */
-        cflags |= REG_ICASE;
-
     Newxz(re, 1, regex_t);
 
     err = regncomp(re, exp, plen, cflags);
@@ -299,7 +343,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     }
 
     /* Save for later */
-    rx->pprivate = re;
+    rx->pprivate = GNU_private;
 
     /*
       Tell perl how many match vars we have and allocate space for
