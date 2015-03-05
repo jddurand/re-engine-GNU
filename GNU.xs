@@ -381,6 +381,13 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     re->lastparen = i;
 #endif
 
+    if (regs.start != NULL) {
+      free(regs.start);
+    }
+    if (regs.end != NULL) {
+      free(regs.end);
+    }
+
     return 1;
 }
 
