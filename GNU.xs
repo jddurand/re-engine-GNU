@@ -410,6 +410,33 @@ GNU_checkstr(pTHX_ REGEXP * const rx)
   return NULL;
 }
 
+void
+GNU_free(pTHX_ REGEXP * const rx)
+{
+  regexp             *re = RegSV(rx);
+  GNU_private_t      *ri = re->pprivate;
+
+  regfree(&(ri->regex));
+}
+
+#ifdef USE_ITHREADS
+void *
+GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
+{
+  PERL_UNUSED_ARG(param);
+  regexp             *re = RegSV(rx);
+
+  return re->pprivate;
+}
+#endif
+
+SV *
+GNU_package(pTHX_ REGEXP * const rx)
+{
+  PERL_UNUSED_ARG(rx);
+  return newSVpvs("re::engine::GNU");
+}
+
 MODULE = re::engine::GNU		PACKAGE = re::engine::GNU		
 PROTOTYPES: ENABLE
 
