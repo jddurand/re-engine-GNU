@@ -336,13 +336,10 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 I32
 GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I32 minend, SV * sv, void *data, U32 flags)
 {
-    regexp        *re = RegSV(rx);
-    GNU_private_t *ri = re->pprivate;
-    regmatch_t    *matches;
-    regoff_t       offs;
-    int            err;
-    char          *err_msg;
-    int            i;
+    regexp             *re = RegSV(rx);
+    GNU_private_t      *ri = re->pprivate;
+    regoff_t            offs;
+    int                 i;
     struct re_registers regs;     /* for subexpression matches */
 
     regs.start = NULL;
