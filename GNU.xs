@@ -277,9 +277,13 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif
 
     /* REGEX structure for perl */
+#if PERL_VERSION > 10
+    rx = (REGEXP*) newSV_type(SVt_REGEXP);
+#else
     Newxz(rx, 1, REGEXP);
 #ifdef HAVE_REGEXP_REFCNT
     rx->refcnt = 1;
+#endif
 #endif
 
     re = RegSV(rx);

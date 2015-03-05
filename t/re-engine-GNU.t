@@ -15,4 +15,11 @@ BEGIN { use_ok('re::engine::GNU') };
 
 # Insert your test code below, the Test::More module is use()ed here so read
 # its man page ( perldoc Test::More ) for help writing this test script.
-
+{
+  use re 'debug';
+  use re::engine::GNU;
+  my $r = qr {x => 'test'};
+  if ('test' =~ $r) {
+    print STDERR "OK\n";
+  }
+}
