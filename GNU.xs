@@ -183,7 +183,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       SV **a_pattern;
       SV **a_syntax;
 
-      if (av_top_index(av) < 1) {
+      if (av_len(av) < 1) {
         croak("re::engine::GNU: array ref must have at least two elements, i.e. [syntax => pattern]");
       }
       a_pattern = av_fetch(av, 1, 0);
