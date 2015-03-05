@@ -391,6 +391,25 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     return 1;
 }
 
+char *
+GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, char *strpos, char *strend, U32 flags, re_scream_pos_data *data)
+{
+  PERL_UNUSED_ARG(rx);
+  PERL_UNUSED_ARG(sv);
+  PERL_UNUSED_ARG(strpos);
+  PERL_UNUSED_ARG(strend);
+  PERL_UNUSED_ARG(flags);
+  PERL_UNUSED_ARG(data);
+  return NULL;
+}
+
+SV *
+GNU_checkstr(pTHX_ REGEXP * const rx)
+{
+  PERL_UNUSED_ARG(rx);
+  return NULL;
+}
+
 MODULE = re::engine::GNU		PACKAGE = re::engine::GNU		
 PROTOTYPES: ENABLE
 
