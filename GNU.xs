@@ -118,6 +118,10 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     regexp                   *re;
     GNU_private_t            *ri;
 
+    /* Input as char * */
+    STRLEN plen;
+    char  *exp = SvPV((SV*)pattern, plen);
+
     /* Copy of flags in input */
     U32 extflags = flags;
 
@@ -135,9 +139,6 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       /************************************************************/
       /* split optimizations - copied from re-engine-xxx by avar  */
       /************************************************************/
-      STRLEN plen;
-      char  *exp = SvPV((SV*)pattern, plen);
-
 #if (defined(RXf_SPLIT) && defined(RXf_SKIPWHITE) && defined(RXf_WHITE))
       /* C<split " ">, bypass the PCRE engine alltogether and act as perl does */
       if (flags & RXf_SPLIT && plen == 1 && exp[0] == ' ')
@@ -222,11 +223,13 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 
     ri->sv_pattern_copy        = newSVsv(sv_pattern);
     ri->pattern_utf8           = SvPVutf8(ri->sv_pattern_copy, ri->len_pattern_utf8);
+    ri->sv_victim_copy         = NULL;
+    ri->victim_utf8            = NULL;
 
     ri->regex.buffer           = NULL;
     ri->regex.allocated        = 0;
     ri->regex.used             = 0;
-    ri->regex.syntax           = (sv_syntax != NULL) ? SvUV(sv_syntax) : 0;
+    ri->regex.syntax           = (sv_syntax != NULL) ? SvUV(sv_syntax) : 0; /* == RE_SYNTAX_EMACS */
     ri->regex.fastmap          = NULL;
     ri->regex.translate        = NULL;
     ri->regex.re_nsub          = 0;
@@ -243,8 +246,6 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     /* /m */
     if ((flags & RXf_PMf_MULTILINE) == RXf_PMf_MULTILINE) {
       ri->regex.newline_anchor = 1;
-    } else {
-      ri->regex.newline_anchor = 0;
     }
 #endif
 #ifdef RXf_PMf_SINGLELINE
