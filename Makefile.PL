@@ -46,10 +46,13 @@ sub do_config_REGEXP {
     my $ac = Config::AutoConf->new(logfile => $log);
 
     print STDERR "...\n";
+    print STDERR "... Compiler\n";
+    print STDERR "...\n";
+    $ac->check_cc;
+    print STDERR "...\n";
     print STDERR "... regexp structure configuration\n";
     print STDERR "...\n";
     my @members = qw/engine mother_re extflags minlen minlenret gofs substrs nparens intflags pprivate lastparen lastcloseparen swap offs subbeg saved_copy sublen suboffset subcoffset prelen precomp wrapped wraplen seen_evals paren_names refcnt/;
-    $ac->check_cc;
     $ac->check_members([ map {"regexp.$_"} @members], { prologue => "#include \"EXTERN.h\"
 #include \"perl.h\"
 #include \"XSUB.h\"" });
