@@ -18,8 +18,7 @@ BEGIN { use_ok('re::engine::GNU') };
 {
   use re 'debug';
   use re::engine::GNU;
-  my $r = qr {x => 'test'};
-  if ('test' =~ $r) {
-    print STDERR "OK\n";
+  if ('test' =~ [ 0, '\(tes\)t' ]) {
+    print STDERR "====> OK <$&> <$1>\n";
   }
 }

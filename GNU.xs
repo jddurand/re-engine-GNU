@@ -19,13 +19,9 @@
 
 typedef struct GNU_private {
   SV *sv_pattern_copy;
-  SV *sv_victim_copy;
 
   char *pattern_utf8;
-  char *victim_utf8;
-
   STRLEN len_pattern_utf8;
-  STRLEN len__victim_utf8;
 
   regex_t regex;
 } GNU_private_t;
@@ -176,52 +172,50 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 
     if (pattern_type == SCALAR) {
 
-      sv_pattern = pattern;
+      sv_pattern = newSVsv(pattern);
 
     } else if (pattern_type == ARRAYREF) {
-      AV *av = (AV *)pattern;
+      AV *av = (AV *)SvRV(pattern);
       SV **a_pattern;
       SV **a_syntax;
 
       if (av_len(av) < 1) {
         croak("re::engine::GNU: array ref must have at least two elements, i.e. [syntax => pattern]");
       }
-      a_pattern = av_fetch(av, 1, 0);
-      a_syntax = av_fetch(av, 0, 0);
+      a_pattern = av_fetch(av, 1, 1);
+      a_syntax = av_fetch(av, 0, 1);
 
-      if (a_pattern == NULL || get_type(*a_pattern) != SCALAR) {
-        croak("re::engine::GNU: array ref must have a scalar as second element");
+      if (a_pattern == NULL || get_type((SV *)*a_pattern) != SCALAR) {
+        croak("re::engine::GNU: array ref must have a scalar as second element, got %d", get_type((SV *)a_pattern));
       }
-      if (a_syntax == NULL || get_type(*a_syntax) != SCALAR) {
-        croak("re::engine::GNU: array ref must have a scalar as first element");
+      if (a_syntax == NULL || get_type((SV *)*a_syntax) != SCALAR) {
+        croak("re::engine::GNU: array ref must have a scalar as first element, got %d", get_type((SV *)a_syntax));
       }
 
-      sv_pattern = *a_pattern;
-      sv_syntax  = *a_syntax;
+      sv_pattern = newSVsv(*a_pattern);
+      sv_syntax  = newSVsv(*a_syntax);
 
     } else if (pattern_type == HASHREF) {
-      HV  *hv        = (HV *)pattern;
+      HV  *hv        = (HV *)SvRV(pattern);
       SV **h_pattern = hv_fetch(hv, "pattern", 7, 0);
       SV **h_syntax  = hv_fetch(hv, "syntax", 6, 0);
 
-      if (h_pattern == NULL || get_type(*h_pattern) != SCALAR) {
+      if (h_pattern == NULL || get_type((SV *)*h_pattern) != SCALARREF) {
         croak("re::engine::GNU: hash ref key must have a key 'pattern' refering to a scalar");
       }
-      if (h_syntax == NULL || get_type(*h_syntax) != SCALAR) {
+      if (h_syntax == NULL || get_type((SV *)*h_syntax) != SCALARREF) {
         croak("re::engine::GNU: hash ref key must have a key 'syntax' refering to a scalar");
       }
 
-      sv_pattern = *h_pattern;
-      sv_syntax  = *h_syntax;
+      sv_pattern = newSVsv(*h_pattern);
+      sv_syntax  = newSVsv(*h_syntax);
 
     } else {
       croak("re::engine::GNU: pattern must be a scalar, an array ref [syntax => pattern], or a hash ref {'syntax' => syntax, 'pattern' => pattern} where syntax and flavour are exclusive");
     }
 
-    ri->sv_pattern_copy        = newSVsv(sv_pattern);
+    ri->sv_pattern_copy        = sv_pattern;
     ri->pattern_utf8           = SvPVutf8(ri->sv_pattern_copy, ri->len_pattern_utf8);
-    ri->sv_victim_copy         = NULL;
-    ri->victim_utf8            = NULL;
 
     ri->regex.buffer           = NULL;
     ri->regex.allocated        = 0;
@@ -237,6 +231,12 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     ri->regex.not_bol          = 0;
     ri->regex.not_eol          = 0;
     ri->regex.newline_anchor   = 0;
+
+    if (sv_syntax != NULL) {
+      SvREFCNT_dec(sv_syntax);
+      sv_syntax = NULL;
+    }
+   
 
     /* /msixp flags */
 #ifdef RXf_PMf_MULTILINE
@@ -420,6 +420,7 @@ GNU_free(pTHX_ REGEXP * const rx)
   regexp             *re = RegSV(rx);
   GNU_private_t      *ri = re->pprivate;
 
+  SvREFCNT_dec(ri->sv_pattern_copy);
   regfree(&(ri->regex));
 }
 
