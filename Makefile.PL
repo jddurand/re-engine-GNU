@@ -53,6 +53,13 @@ sub do_config_REGEXP {
     $ac->check_members([ map {"regexp.$_"} @members], { prologue => "#include \"EXTERN.h\"
 #include \"perl.h\"
 #include \"XSUB.h\"" });
+    print STDERR "...\n";
+    print STDERR "... regexp_engine structure configuration\n";
+    print STDERR "...\n";
+    @members = qw/comp exec intuit checkstr free numbered_buff_FETCH numbered_buff_STORE numbered_buff_LENGTH named_buff named_buff_iter qr_package dupe op_comp/;
+    $ac->check_members([ map {"regexp_engine.$_"} @members], { prologue => "#include \"EXTERN.h\"
+#include \"perl.h\"
+#include \"XSUB.h\"" });
     $ac->write_config_h($config);
 }
 
