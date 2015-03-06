@@ -2,7 +2,7 @@
 use 5.010000;
 use strict;
 use diagnostics;
-use Config::AutoConf;
+use Config::AutoConf 0.310;
 BEGIN {
   no warnings 'redefine';
   *Config::AutoConf::check_member = \&my_check_member;
