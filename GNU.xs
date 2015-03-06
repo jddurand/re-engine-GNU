@@ -5,17 +5,20 @@
 
 #include "ppport.h"
 
-#include "GNU.h"
 #include "config_REGEXP.h"
 
 #include "config.h"
 #include "regex.h"
 
 #if PERL_VERSION > 10
-#define RegSV(p) SvANY(p)
+#define _RegSV(p) SvANY(p)
 #else
-#define RegSV(p) (p)
+#define _RegSV(p) (p)
 #endif
+
+#define _SAVEPVN(p,n) ((p) ? savepvn(p,n) : NULL)
+
+static regexp_engine engine_GNU;
 
 typedef struct GNU_private {
   SV *sv_pattern_copy;
@@ -104,6 +107,7 @@ get_type(SV* sv) {
   return UNKNOWN;
 }
 
+#ifdef HAVE_REGEXP_ENGINE_COMP
 #if PERL_VERSION <= 10
 REGEXP * GNU_comp(pTHX_ const SV * const pattern, const U32 flags)
 #else
@@ -286,7 +290,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif
 #endif
 
-    re = RegSV(rx);
+    re = _RegSV(rx);
 #ifdef HAVE_REGEXP_EXTFLAGS
     re->extflags = extflags;
 #endif
@@ -298,7 +302,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     re->prelen = (I32)plen;
 #endif
 #ifdef HAVE_REGEXP_PRECOMP
-    re->precomp = SAVEPVN(exp, re->prelen);
+    re->precomp = _SAVEPVN(exp, re->prelen);
 #endif
     /* qr// stringification, reuse the space */
 #ifdef HAVE_REGEXP_WRAPLEN
@@ -336,11 +340,17 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     /* return the regexp structure to perl */
     return rx;
 }
+#endif /* HAVE_REGEXP_ENGINE_COMP */
 
+#ifdef HAVE_REGEXP_ENGINE_EXEC
 I32
+#if PERL_VERSION >= 19
+GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, SSize_t minend, SV * sv, void *data, U32 flags)
+#else
 GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I32 minend, SV * sv, void *data, U32 flags)
+#endif
 {
-    regexp             *re = RegSV(rx);
+    regexp             *re = _RegSV(rx);
     GNU_private_t      *ri = re->pprivate;
     regoff_t            offs;
     int                 i;
@@ -394,56 +404,130 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 
     return 1;
 }
+#endif /* HAVE_REGEXP_ENGINE_EXEC */
 
+#ifdef HAVE_REGEXP_ENGINE_INTUIT
 char *
+#if PERL_VERSION >= 19
+GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, const char *strbeg, char *strpos, char *strend, U32 flags, re_scream_pos_data *data)
+#else
 GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, char *strpos, char *strend, U32 flags, re_scream_pos_data *data)
+#endif
 {
   PERL_UNUSED_ARG(rx);
   PERL_UNUSED_ARG(sv);
+#if PERL_VERSION >= 19
+  PERL_UNUSED_ARG(strbeg);
+#endif
   PERL_UNUSED_ARG(strpos);
   PERL_UNUSED_ARG(strend);
   PERL_UNUSED_ARG(flags);
   PERL_UNUSED_ARG(data);
   return NULL;
 }
+#endif
 
+#ifdef HAVE_REGEXP_ENGINE_CHECKSTR
 SV *
 GNU_checkstr(pTHX_ REGEXP * const rx)
 {
   PERL_UNUSED_ARG(rx);
   return NULL;
 }
+#endif
 
+#ifdef HAVE_REGEXP_ENGINE_FREE
 void
 GNU_free(pTHX_ REGEXP * const rx)
 {
-  regexp             *re = RegSV(rx);
+  regexp             *re = _RegSV(rx);
   GNU_private_t      *ri = re->pprivate;
 
   SvREFCNT_dec(ri->sv_pattern_copy);
   regfree(&(ri->regex));
 }
+#endif
 
-#ifdef USE_ITHREADS
+#ifdef HAVE_REGEXP_ENGINE_QR_PACKAGE
+SV *
+GNU_qr_package(pTHX_ REGEXP * const rx)
+{
+  PERL_UNUSED_ARG(rx);
+  return newSVpvs("re::engine::GNU");
+}
+#endif
+
+#ifdef HAVE_REGEXP_ENGINE_DUPE
 void *
 GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
 {
   PERL_UNUSED_ARG(param);
-  regexp             *re = RegSV(rx);
+  regexp             *re = _RegSV(rx);
 
   return re->pprivate;
 }
 #endif
 
-SV *
-GNU_package(pTHX_ REGEXP * const rx)
-{
-  PERL_UNUSED_ARG(rx);
-  return newSVpvs("re::engine::GNU");
-}
-
 MODULE = re::engine::GNU		PACKAGE = re::engine::GNU		
 PROTOTYPES: ENABLE
+
+BOOT:
+#ifdef HAVE_REGEXP_ENGINE_COMP
+  engine_GNU.comp = GNU_comp;
+#endif
+#ifdef HAVE_REGEXP_ENGINE_EXEC
+  engine_GNU.exec = GNU_exec;
+#endif
+#ifdef HAVE_REGEXP_ENGINE_INTUIT
+  engine_GNU.intuit = GNU_intuit;
+#endif
+#ifdef HAVE_REGEXP_ENGINE_CHECKSTR
+  engine_GNU.checkstr = GNU_checkstr;
+#endif
+#ifdef HAVE_REGEXP_ENGINE_FREE
+  engine_GNU.free = GNU_free;
+#endif
+#ifdef HAVE_REGEXP_ENGINE_NUMBERED_BUFF_FETCH
+#ifdef HAVE_PERL_REG_NUMBERED_BUFF_FETCH
+  engine_GNU.numbered_buff_FETCH = Perl_reg_numbered_buff_fetch;
+#else
+  engine_GNU.numbered_buff_FETCH = NULL;
+#endif
+#endif
+#ifdef HAVE_REGEXP_ENGINE_NUMBERED_BUFF_STORE
+#ifdef HAVE_PERL_REG_NUMBERED_BUFF_STORE
+  engine_GNU.numbered_buff_STORE = Perl_reg_numbered_buff_store;
+#else
+  engine_GNU.numbered_buff_STORE = NULL;
+#endif
+#endif
+#ifdef HAVE_REGEXP_ENGINE_NUMBERED_BUFF_LENGTH
+#ifdef HAVE_PERL_REG_NUMBERED_BUFF_LENGTH
+  engine_GNU.numbered_buff_LENGTH = Perl_reg_numbered_buff_length;
+#else
+  engine_GNU.numbered_buff_LENGTH = NULL;
+#endif
+#endif
+#ifdef HAVE_REGEXP_ENGINE_NAMED_BUFF
+#ifdef HAVE_PERL_REG_NAMED_BUFF
+  engine_GNU.named_buff = Perl_reg_named_buff;
+#else
+  engine_GNU.named_buff = NULL;
+#endif
+#endif
+#ifdef HAVE_REGEXP_ENGINE_NAMED_BUFF_ITER
+#ifdef HAVE_PERL_REG_NAMED_BUFF_ITER
+  engine_GNU.named_buff_iter = Perl_reg_named_buff_iter;
+#else
+  engine_GNU.named_buff_iter = NULL;
+#endif
+#endif
+#ifdef HAVE_REGEXP_ENGINE_QR_PACKAGE
+  engine_GNU.qr_package = GNU_qr_package;
+#endif
+#ifdef HAVE_REGEXP_ENGINE_DUPE
+  engine_GNU.dupe = GNU_dupe;
+#endif
 
 void
 ENGINE(...)

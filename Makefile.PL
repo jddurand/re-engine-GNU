@@ -63,6 +63,19 @@ sub do_config_REGEXP {
     $ac->check_members([ map {"regexp_engine.$_"} @members], { prologue => "#include \"EXTERN.h\"
 #include \"perl.h\"
 #include \"XSUB.h\"" });
+    print STDERR "...\n";
+    print STDERR "... regexp_engine perl functions\n";
+    print STDERR "...\n";
+    my @funcs = qw/Perl_reg_numbered_buff_fetch Perl_reg_numbered_buff_store Perl_reg_numbered_buff_length Perl_reg_named_buff Perl_reg_named_buff_iter/;
+    foreach (@funcs) {
+        my $func = $_;
+        $ac->check_decl($func, { action_on_true => sub {
+            $ac->define_var('HAVE_' . uc($func), 1);
+                                 },
+                                 prologue => "#include \"EXTERN.h\"
+#include \"perl.h\"
+#include \"XSUB.h\"" });
+    }
     $ac->write_config_h($config);
 }
 
