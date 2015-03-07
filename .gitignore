@@ -225,3 +225,6 @@ pm_to_blib
 re-engine-GNU-*
 re-engine-GNU-*.tar.gz
 .build
+config*h
+GNU.o
+GNU.c
