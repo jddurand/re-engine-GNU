@@ -1,5 +1,4 @@
 #!perl
-use 5.010000;
 use strict;
 use diagnostics;
 use Config::AutoConf 0.310;
@@ -9,75 +8,14 @@ BEGIN {
   *Config::AutoConf::check_members = \&my_check_members;
 }
 use POSIX qw/EXIT_SUCCESS/;
-use ExtUtils::MakeMaker;
 use File::Spec;
-
-
-
-#
-# config to handle changes of REGEXP structure
-#
-do_config_REGEXP();
-
 #
 # config for gnu regex
 #
 do_config_GNU();
 
-my $regexo = 'regex$(OBJ_EXT)';
-WriteMakefile(
-    NAME              => 're::engine::GNU',
-    VERSION_FROM      => 'lib/re/engine/GNU.pm',
-    PREREQ_PM         => {},
-    ABSTRACT_FROM     => 'lib/re/engine/GNU.pm', # retrieve abstract from module
-    AUTHOR            => 'Jean-Damien.Durand@free.fr>',
-    LICENSE           => 'gpl',
-    LIBS              => [''],
-    DEFINE            => '',
-    OBJECT            => $regexo. ' GNU$(OBJ_EXT)',
-);
 
 exit(EXIT_SUCCESS);
-
-sub do_config_REGEXP {
-    my $config = File::Spec->catfile('config_REGEXP.h');
-    my $log = File::Spec->catfile('config_REGEXP.log');
-
-    my $ac = Config::AutoConf->new(logfile => $log);
-
-    print STDERR "...\n";
-    print STDERR "... Compiler\n";
-    print STDERR "...\n";
-    $ac->check_cc;
-    print STDERR "...\n";
-    print STDERR "... regexp structure configuration\n";
-    print STDERR "...\n";
-    my @members = qw/engine mother_re extflags minlen minlenret gofs substrs nparens intflags pprivate lastparen lastcloseparen swap offs subbeg saved_copy sublen suboffset subcoffset prelen precomp wrapped wraplen seen_evals paren_names refcnt/;
-    $ac->check_members([ map {"regexp.$_"} @members], { prologue => "#include \"EXTERN.h\"
-#include \"perl.h\"
-#include \"XSUB.h\"" });
-    print STDERR "...\n";
-    print STDERR "... regexp_engine structure configuration\n";
-    print STDERR "...\n";
-    @members = qw/comp exec intuit checkstr free numbered_buff_FETCH numbered_buff_STORE numbered_buff_LENGTH named_buff named_buff_iter qr_package dupe op_comp/;
-    $ac->check_members([ map {"regexp_engine.$_"} @members], { prologue => "#include \"EXTERN.h\"
-#include \"perl.h\"
-#include \"XSUB.h\"" });
-    print STDERR "...\n";
-    print STDERR "... regexp_engine perl functions\n";
-    print STDERR "...\n";
-    my @funcs = qw/Perl_reg_numbered_buff_fetch Perl_reg_numbered_buff_store Perl_reg_numbered_buff_length Perl_reg_named_buff Perl_reg_named_buff_iter/;
-    foreach (@funcs) {
-        my $func = $_;
-        $ac->check_decl($func, { action_on_true => sub {
-            $ac->define_var('HAVE_' . uc($func), 1);
-                                 },
-                                 prologue => "#include \"EXTERN.h\"
-#include \"perl.h\"
-#include \"XSUB.h\"" });
-    }
-    $ac->write_config_h($config);
-}
 
 sub do_config_GNU {
     my $config = File::Spec->catfile('config_autoconf.h');
