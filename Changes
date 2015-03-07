@@ -1,6 +1,24 @@
 Revision history for Perl extension re::engine::GNU.
 
-0.01  Mon Mar  2 17:32:54 2015
-	- original version; created by h2xs 1.23 with options
-		-n re::engine::GNU -A -O -x -b 5.10.0 regex.h
+0.01 2015-03-02T17:32:54Z
+ - original version; created by h2xs 1.23 with options -n re::engine::GNU
+   -A -O -x -b 5.10.0 regex.h
+
+0.001 2015-03-07T18:59:33Z
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - dzil
+ - GNU.xs: free@libc fix
+ - GNU.xs: fix setting of offsets
+ - GNU.h removal
+ - use Config::AutoConf 0.310
+ - Makefile.PL: cc check first
+ - Makefile.PL: regexp_engine config
+ - XS fixes and first working version -;
+ - t+
+ - av_len instead of av_top_index
+ - dev+
+ - GNU_intuit and GNU_checkstr
+ - GNU_exec: free regs
+ - GNU_exec: dev+
+ - GNU_exec
 

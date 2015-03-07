@@ -2,15 +2,16 @@ package re::engine::GNU;
 use 5.010000;
 use XSLoader ();
 
-# AUTHORITY
+# ABSTRACT: GNU Regular Expression Engine
 
-# VERSION
+# AUTHORITY
 
 # All engines should subclass the core Regexp package
 our @ISA = 'Regexp';
 
 BEGIN
 {
+  # VERSION
     XSLoader::load __PACKAGE__, $VERSION;
 }
 
