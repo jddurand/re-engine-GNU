@@ -107,7 +107,22 @@ get_type(SV* sv) {
   return UNKNOWN;
 }
 
+/* Call to malloc free() */
+#ifdef free
+#define _SAVE_FREE_DEFINITION free
+#undef free
+#else
+#undef _SAVE_FREE_DEFINITION
+#endif
+static void _libc_free(void *ptr) {
+  free(ptr);
+}
+#ifdef _SAVE_FREE_DEFINITION
+#define free _SAVE_FREE_DEFINITION
+#endif
+
 #ifdef HAVE_REGEXP_ENGINE_COMP
+static
 #if PERL_VERSION <= 10
 REGEXP * GNU_comp(pTHX_ const SV * const pattern, const U32 flags)
 #else
@@ -126,7 +141,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     U32 extflags = flags;
 
     /* SVs that are in input */
-    IV pattern_type = get_type(pattern);
+    IV pattern_type = get_type((SV *)pattern);
     SV *sv_pattern;
     SV *sv_syntax = NULL;
 
@@ -176,7 +191,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 
     if (pattern_type == SCALAR) {
 
-      sv_pattern = newSVsv(pattern);
+      sv_pattern = newSVsv((SV *)pattern);
 
     } else if (pattern_type == ARRAYREF) {
       AV *av = (AV *)SvRV(pattern);
@@ -323,7 +338,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       croak("error compiling `%s': %s (error message truncated)", exp, __re_error_msgid + __re_error_msgid_idx[(int) ret]);
     }
 
-/* #ifdef HAVE_REGEXP_PPRIVATE* / /* pprivate must always exist */
+/* #ifdef HAVE_REGEXP_PPRIVATE */ /* pprivate must always exist */
     re->pprivate = ri;
 /* #endif */
 
@@ -343,6 +358,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif /* HAVE_REGEXP_ENGINE_COMP */
 
 #ifdef HAVE_REGEXP_ENGINE_EXEC
+static
 I32
 #if PERL_VERSION >= 19
 GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, SSize_t minend, SV * sv, void *data, U32 flags)
@@ -391,10 +407,11 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 #endif
 
     if (regs.start != NULL) {
-      free(regs.start);
+      _libc_free(regs.start);
     }
+
     if (regs.end != NULL) {
-      free(regs.end);
+      _libc_free(regs.end);
     }
 
     return 1;
@@ -402,6 +419,7 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 #endif /* HAVE_REGEXP_ENGINE_EXEC */
 
 #ifdef HAVE_REGEXP_ENGINE_INTUIT
+static
 char *
 #if PERL_VERSION >= 19
 GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, const char *strbeg, char *strpos, char *strend, U32 flags, re_scream_pos_data *data)
@@ -423,6 +441,7 @@ GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, char *strpos, char *strend, U32 fla
 #endif
 
 #ifdef HAVE_REGEXP_ENGINE_CHECKSTR
+static
 SV *
 GNU_checkstr(pTHX_ REGEXP * const rx)
 {
@@ -432,6 +451,7 @@ GNU_checkstr(pTHX_ REGEXP * const rx)
 #endif
 
 #ifdef HAVE_REGEXP_ENGINE_FREE
+static
 void
 GNU_free(pTHX_ REGEXP * const rx)
 {
@@ -444,22 +464,55 @@ GNU_free(pTHX_ REGEXP * const rx)
 #endif
 
 #ifdef HAVE_REGEXP_ENGINE_QR_PACKAGE
+static
 SV *
 GNU_qr_package(pTHX_ REGEXP * const rx)
 {
   PERL_UNUSED_ARG(rx);
+
   return newSVpvs("re::engine::GNU");
 }
 #endif
 
 #ifdef HAVE_REGEXP_ENGINE_DUPE
+static
 void *
 GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
 {
   PERL_UNUSED_ARG(param);
-  regexp             *re = _RegSV(rx);
+  regexp        *re = _RegSV(rx);
+  GNU_private_t *oldri = (GNU_private_t *) re->pprivate;
+  GNU_private_t *ri;
+  reg_errcode_t  ret;
 
-  return re->pprivate;
+  Newxz(ri, 1, GNU_private_t);
+
+  ri->sv_pattern_copy = newSVsv(oldri->sv_pattern_copy);
+  ri->pattern_utf8    = SvPVutf8(ri->sv_pattern_copy, ri->len_pattern_utf8);
+
+  ri->regex.buffer           = NULL;
+  ri->regex.allocated        = 0;
+  ri->regex.used             = 0;
+  ri->regex.syntax           = oldri->regex.syntax;
+  ri->regex.fastmap          = NULL;
+  ri->regex.translate        = NULL;
+  ri->regex.re_nsub          = 0;
+  ri->regex.can_be_null      = 0;
+  ri->regex.regs_allocated   = 0;
+  ri->regex.fastmap_accurate = 0;
+  ri->regex.no_sub           = 0;
+  ri->regex.not_bol          = 0;
+  ri->regex.not_eol          = 0;
+  ri->regex.newline_anchor   = 0;
+
+  ret = re_compile_internal (&(ri->regex), ri->pattern_utf8, ri->len_pattern_utf8, ri->regex.syntax);
+  if (ret != _REG_NOERROR) {
+    extern const char __re_error_msgid[];
+    extern const size_t __re_error_msgid_idx[];
+    croak("error compiling `%s': %s (error message truncated)", exp, __re_error_msgid + __re_error_msgid_idx[(int) ret]);
+  }
+
+  return ri;
 }
 #endif
 
