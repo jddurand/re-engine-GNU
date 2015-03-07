@@ -380,15 +380,10 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     offs = stringarg - strbeg;
 
 #ifdef HAVE_REGEXP_OFFS
-    for (i = 0; i < regs.num_regs; i++) {
+    /* There is always at least the index 0 for $& */
+    for (i = 0; i < re->nparens + 1; i++) {
       re->offs[i].start = regs.start[i];
       re->offs[i].end = regs.end[i];
-    }
-    if (regs.num_regs < ri->regex.re_nsub) {
-      for (i = regs.num_regs; i < ri->regex.re_nsub + 1; i++) {
-        re->offs[i].start = -1;
-        re->offs[i].end = -1;
-      }
     }
 #endif
 #ifdef HAVE_REGEXP_LASTPAREN
