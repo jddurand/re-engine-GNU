@@ -335,7 +335,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     if (ret != _REG_NOERROR) {
       extern const char __re_error_msgid[];
       extern const size_t __re_error_msgid_idx[];
-      croak("error compiling `%s': %s (error message truncated)", exp, __re_error_msgid + __re_error_msgid_idx[(int) ret]);
+      croak("%s", __re_error_msgid + __re_error_msgid_idx[(int) ret]);
     }
 
 /* #ifdef HAVE_REGEXP_PPRIVATE */ /* pprivate must always exist */
@@ -509,7 +509,7 @@ GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
   if (ret != _REG_NOERROR) {
     extern const char __re_error_msgid[];
     extern const size_t __re_error_msgid_idx[];
-    croak("error compiling `%s': %s (error message truncated)", exp, __re_error_msgid + __re_error_msgid_idx[(int) ret]);
+    croak("%s", __re_error_msgid + __re_error_msgid_idx[(int) ret]);
   }
 
   return ri;
