@@ -2,6 +2,9 @@
 use strict;
 use diagnostics;
 use Config::AutoConf 0.310;
+use File::Temp qw/tempfile/;
+use Capture::Tiny qw/capture/;
+
 BEGIN {
   no warnings 'redefine';
   *Config::AutoConf::check_member = \&my_check_member;
@@ -29,10 +32,16 @@ sub do_config_GNU {
     $ac->check_default_headers;
     ac_c_inline($ac);
     ac_c_restrict($ac);
-    $ac->check_func('malloc', { action_on_false => sub {die "No malloc()"} });
-    $ac->check_func('realloc', { action_on_false => sub {die "No realloc()"} });
-    $ac->check_type('mbstate_t', { action_on_false => sub {die "No mbstate_t"}, prologue => '#include <wchar.h>' });
-    $ac->check_funcs([qw/isblank iswctype/]);
+    ac_malloc_0_is_non_null($ac);
+    $ac->check_func('malloc', { prologue => '#include <stdlib.h>' });
+    $ac->check_func('realloc', { prologue => '#include <stdlib.h>' });
+    $ac->check_type('mbstate_t', { prologue => "#include <stddef.h>\n#include <stdio.h>\n#include <time.h>\n#include <wchar.h>" });
+    $ac->check_header('wctype.h');
+    #
+    # No test on alloca -> HAVE_ALLOCA will be false, which is what we want
+    #
+    $ac->check_func('isblank', { prologue => '#include <ctype.h>' });
+    $ac->check_func('iswctype', { prologue => '#include <wctype.h>' });
     $ac->check_decl('isblank', { action_on_true => sub { $ac->define_var('HAVE_DECL_ISBLANK', 1) }, prologue => '#include <ctype.h>' });
     $ac->define_var('_REGEX_INCLUDE_LIMITS_H', 1);
     $ac->define_var('_REGEX_LARGE_OFFSETS', 1);
@@ -52,6 +61,131 @@ sub do_config_GNU {
     $ac->define_var('regerror', 'rpl_regerror');
     $ac->define_var('regfree', 'rpl_regfree');
     $ac->write_config_h($config);
+}
+
+sub ac_execute_if_else {
+  my ($self, $src) = @_;
+  my $options = {};
+  scalar @_ > 2 and ref $_[-1] eq "HASH" and $options = pop @_;
+
+  my $builder = $self->_get_builder();
+
+  my ($fh, $filename) = tempfile( "testXXXXXX", SUFFIX => '.c' );
+  print {$fh} $src;
+  close $fh;
+
+  my ( $obj_file, $outbuf, $errbuf, $exception );
+  ( $outbuf, $errbuf ) = capture
+    {
+      eval {
+        $obj_file = $builder->compile(
+                                      source               => $filename,
+                                      include_dirs         => $self->{extra_include_dirs},
+                                      extra_compiler_flags => $self->_get_extra_compiler_flags()
+                                     );
+      };
+
+      $exception = $@;
+    };
+  if ( $exception || !$obj_file )
+    {
+      $self->_add_log_lines( "compile stage failed" . ( $exception ? " - " . $exception : "" ) );
+      $errbuf
+        and $self->_add_log_lines($errbuf);
+      $self->_add_log_lines( "failing program is:\n" . $src );
+      $outbuf
+        and $self->_add_log_lines( "stdout was :\n" . $outbuf );
+
+      unlink $filename;
+      unlink $obj_file if $obj_file;
+
+      $options->{action_on_false}
+        and ref $options->{action_on_false} eq "CODE"
+          and $options->{action_on_false}->();
+
+      return 0;
+    }
+
+  my $exe_file;
+  ( $outbuf, $errbuf ) = capture
+    {
+      eval {
+        $exe_file = $builder->link_executable(
+                                              objects            => $obj_file,
+                                              extra_linker_flags => $self->_get_extra_linker_flags()
+                                             );
+      };
+
+      $exception = $@;
+    };
+  unlink $filename;
+  unlink $obj_file if $obj_file;
+
+  if ( $exception || !$exe_file )
+    {
+      $self->_add_log_lines( "link stage failed" . ( $exception ? " - " . $exception : "" ) );
+      $errbuf
+        and $self->_add_log_lines($errbuf);
+      $self->_add_log_lines( "failing program is:\n" . $src );
+      $outbuf
+        and $self->_add_log_lines( "stdout was :\n" . $outbuf );
+
+      $options->{action_on_false}
+        and ref $options->{action_on_false} eq "CODE"
+          and $options->{action_on_false}->();
+
+      return 0;
+    }
+
+  #
+  # In case curdir is not in the system path
+  #
+  if (! File::Spec->file_name_is_absolute( $exe_file )) {
+    $exe_file = File::Spec->catfile( File::Spec->curdir, $exe_file );
+  }
+
+  my ( $stdout, $stderr, $exit ) =
+    capture { system( $exe_file ); };
+  if ( $exit != EXIT_SUCCESS )
+    {
+      $self->_add_log_lines( "execute stage failed" . ( $stderr ? " - " . $stderr : "" ) );
+      $self->_add_log_lines( "failing program is:\n" . $src );
+      $stdout
+        and $self->_add_log_lines( "stdout was :\n" . $stdout );
+
+      $options->{action_on_false}
+        and ref $options->{action_on_false} eq "CODE"
+          and $options->{action_on_false}->();
+
+      return 0;
+    }
+
+  $options->{action_on_true}
+    and ref $options->{action_on_true} eq "CODE"
+      and $options->{action_on_true}->();
+
+  unlink $exe_file;
+
+  1;
+}
+
+sub ac_malloc_0_is_non_null {
+  my ($ac) = @_;
+
+  $ac->msg_checking("GNU libc compatible malloc");
+  my $src = $ac->lang_build_program("
+#if defined STDC_HEADERS || defined HAVE_STDLIB_H
+# include <stdlib.h>
+#else
+char *malloc ();
+#endif
+",
+"return (! malloc(0)) ? 1 : 0;");
+  my $rc = ac_execute_if_else($ac, $src);
+  $ac->msg_result($rc ? 'yes' : 'no');
+  if ($rc) {
+    $ac->define_var('MALLOC_0_IS_NONNULL', 1);
+  }
 }
 
 sub ac_c_inline {
@@ -118,7 +252,6 @@ int testrestrict() {
 #
 # Until this is fixed in Config::AutoConf
 #
-no warnings 'redefine';
 sub my_check_member {
     my $options = {};
     scalar @_ > 2 and ref $_[-1] eq "HASH" and $options = pop @_;
@@ -213,4 +346,3 @@ sub my_check_members {
 
     $have_members;
 };
-
