@@ -6,6 +6,9 @@
 #include "ppport.h"
 
 #include "config_REGEXP.h"
+#ifndef HAVE_REGEXP_PPRIVATE
+#error "pprivate not found in structure regexp"
+#endif
 
 #include "config.h"
 #include "regex.h"
@@ -15,8 +18,6 @@
 #else
 #define _RegSV(p) (p)
 #endif
-
-#define _SAVEPVN(p,n) ((p) ? savepvn(p,n) : NULL)
 
 static regexp_engine engine_GNU;
 
@@ -46,7 +47,267 @@ typedef struct GNU_private {
 #define HANDLE    (GLOB | GLOBREF)
 #define BOOLEAN   (SCALAR | UNDEF)
 
-static IV
+#undef RX_EXTFLAGS_SET
+#undef RX_EXTFLAGS_GET
+#undef RX_EXTFLAGS_CAN
+#ifndef RX_EXTFLAGS
+  #ifdef HAVE_REGEXP_EXTFLAGS
+    #define RX_EXTFLAGS(rx) (((struct regexp *) (rx))->extflags)
+    #define RX_EXTFLAGS_SET(rx,x) RX_EXTFLAGS(rx) = (x)
+    #define RX_EXTFLAGS_GET(rx) RX_EXTFLAGS(rx)
+    #define RX_EXTFLAGS_CAN 1
+  #else
+    #define RX_EXTFLAGS(rx)
+    #define RX_EXTFLAGS_SET(rx,x)
+    #define RX_EXTFLAGS_GET(rx)
+    #define RX_EXTFLAGS_CAN 0
+  #endif
+#else
+  #define RX_EXTFLAGS_SET(rx,x) RX_EXTFLAGS(rx) = (x)
+  #define RX_EXTFLAGS_GET(rx) RX_EXTFLAGS(rx)
+  #define RX_EXTFLAGS_CAN 1
+#endif
+
+#undef RX_ENGINE_SET
+#undef RX_ENGINE_GET
+#undef RX_ENGINE_CAN
+#ifndef RX_ENGINE
+  #ifdef HAVE_REGEXP_ENGINE
+    #define RX_ENGINE(rx) (((struct regexp *) (rx))->engine)
+    #define RX_ENGINE_SET(rx,x) RX_ENGINE(rx) = (x)
+    #define RX_ENGINE_GET(rx) RX_ENGINE(rx)
+    #define RX_ENGINE_CAN 1
+  #else
+    #define RX_ENGINE(rx)
+    #define RX_ENGINE_SET(rx,x)
+    #define RX_ENGINE_GET(rx)
+    #define RX_ENGINE_CAN 0
+  #endif
+#else
+  #define RX_ENGINE_SET(rx,x) RX_ENGINE(rx) = (x)
+  #define RX_ENGINE_GET(rx) RX_ENGINE(rx)
+  #define RX_ENGINE_CAN 1
+#endif
+
+#undef RX_WRAPPED_SET
+#undef RX_WRAPPED_GET
+#undef RX_WRAPPED_CAN
+#ifndef RX_WRAPPED
+  #ifdef HAVE_REGEXP_WRAPPED
+    #define RX_WRAPPED(rx) (((struct regexp *) (rx))->wrapped)
+    #define RX_WRAPPED_SET(rx,x) RX_WRAPPED(rx) = (x)
+    #define RX_WRAPPED_GET(rx) RX_WRAPPED(rx)
+    #define RX_WRAPPED_CAN 1
+  #else
+    #define RX_WRAPPED(rx)
+    #define RX_WRAPPED_SET(rx,x)
+    #define RX_WRAPPED_GET(rx)
+    #define RX_WRAPPED_CAN 0
+  #endif
+#else
+  #define RX_WRAPPED_SET(rx,x) RX_WRAPPED(rx) = (x)
+  #define RX_WRAPPED_GET(rx) RX_WRAPPED(rx)
+  #define RX_WRAPPED_CAN 1
+#endif
+
+#undef RX_WRAPLEN_SET
+#undef RX_WRAPLEN_GET
+#undef RX_WRAPLEN_CAN
+#ifndef RX_WRAPLEN
+  #ifdef HAVE_REGEXP_WRAPLEN
+    #define RX_WRAPLEN(rx) (((struct regexp *) (rx))->wraplen)
+    #define RX_WRAPLEN_SET(rx,x) RX_WRAPLEN(rx) = (x)
+    #define RX_WRAPLEN_GET(rx) RX_WRAPLEN(rx)
+    #define RX_WRAPLEN_CAN 1
+  #else
+    #define RX_WRAPLEN(rx)
+    #define RX_WRAPLEN_SET(rx,x)
+    #define RX_WRAPLEN_GET(rx)
+    #define RX_WRAPLEN_CAN 0
+  #endif
+#else
+  #define RX_WRAPLEN_SET(rx,x) RX_WRAPLEN(rx) = (x)
+  #define RX_WRAPLEN_GET(rx) RX_WRAPLEN(rx)
+  #define RX_WRAPLEN_CAN 1
+#endif
+
+#undef RX_NPARENS_SET
+#undef RX_NPARENS_GET
+#undef RX_NPARENS_CAN
+#ifndef RX_NPARENS
+  #ifdef HAVE_REGEXP_NPARENS
+    #define RX_NPARENS(rx) (((struct regexp *) (rx))->nparens)
+    #define RX_NPARENS_SET(rx,x) RX_NPARENS(rx) = (x)
+    #define RX_NPARENS_GET(rx) RX_NPARENS(rx)
+    #define RX_NPARENS_CAN 1
+  #else
+    #define RX_NPARENS(rx)
+    #define RX_NPARENS_SET(rx,x)
+    #define RX_NPARENS_GET(rx)
+    #define RX_NPARENS_CAN 0
+  #endif
+#else
+  #define RX_NPARENS_SET(rx,x) RX_NPARENS(rx) = (x)
+  #define RX_NPARENS_GET(rx) RX_NPARENS(rx)
+  #define RX_NPARENS_CAN 1
+#endif
+
+#undef RX_LASTCLOSEPAREN_SET
+#undef RX_LASTCLOSEPAREN_GET
+#undef RX_LASTCLOSEPAREN_CAN
+#ifndef RX_LASTCLOSEPAREN
+  #ifdef HAVE_REGEXP_LASTCLOSEPAREN
+    #define RX_LASTCLOSEPAREN(rx) (((struct regexp *) (rx))->lastcloseparen)
+    #define RX_LASTCLOSEPAREN_SET(rx,x) RX_LASTCLOSEPAREN(rx) = (x)
+    #define RX_LASTCLOSEPAREN_GET(rx) RX_LASTCLOSEPAREN(rx)
+    #define RX_LASTCLOSEPAREN_CAN 1
+  #else
+    #define RX_LASTCLOSEPAREN(rx)
+    #define RX_LASTCLOSEPAREN_SET(rx,x)
+    #define RX_LASTCLOSEPAREN_GET(rx)
+    #define RX_LASTCLOSEPAREN_CAN 0
+  #endif
+#else
+  #define RX_LASTCLOSEPAREN_SET(rx,x) RX_LASTCLOSEPAREN(rx) = (x)
+  #define RX_LASTCLOSEPAREN_GET(rx) RX_LASTCLOSEPAREN(rx)
+  #define RX_LASTCLOSEPAREN_CAN 1
+#endif
+
+#undef RX_LASTPAREN_SET
+#undef RX_LASTPAREN_GET
+#undef RX_LASTPAREN_CAN
+#ifndef RX_LASTPAREN
+  #ifdef HAVE_REGEXP_LASTPAREN
+    #define RX_LASTPAREN(rx) (((struct regexp *) (rx))->lastparen)
+    #define RX_LASTPAREN_SET(rx,x) RX_LASTPAREN(rx) = (x)
+    #define RX_LASTPAREN_GET(rx) RX_LASTPAREN(rx)
+    #define RX_LASTPAREN_CAN 1
+  #else
+    #define RX_LASTPAREN(rx)
+    #define RX_LASTPAREN_SET(rx,x)
+    #define RX_LASTPAREN_GET(rx)
+    #define RX_LASTPAREN_CAN 0
+  #endif
+#else
+  #define RX_LASTPAREN_SET(rx,x) RX_LASTPAREN(rx) = (x)
+  #define RX_LASTPAREN_GET(rx) RX_LASTPAREN(rx)
+  #define RX_LASTPAREN_CAN 1
+#endif
+
+#undef RX_SUBBEG_SET
+#undef RX_SUBBEG_GET
+#undef RX_SUBBEG_CAN
+#ifndef RX_SUBBEG
+  #ifdef HAVE_REGEXP_SUBBEG
+    #define RX_SUBBEG(rx) (((struct regexp *) (rx))->subbeg)
+    #define RX_SUBBEG_SET(rx,x) RX_SUBBEG(rx) = (x)
+    #define RX_SUBBEG_GET(rx) RX_SUBBEG(rx)
+    #define RX_SUBBEG_CAN 1
+  #else
+    #define RX_SUBBEG(rx)
+    #define RX_SUBBEG_SET(rx,x)
+    #define RX_SUBBEG_GET(rx)
+    #define RX_SUBBEG_CAN 0
+  #endif
+#else
+  #define RX_SUBBEG_SET(rx,x) RX_SUBBEG(rx) = (x)
+  #define RX_SUBBEG_GET(rx) RX_SUBBEG(rx)
+  #define RX_SUBBEG_CAN 1
+#endif
+
+#undef RX_SUBLEN_SET
+#undef RX_SUBLEN_GET
+#undef RX_SUBLEN_CAN
+#ifndef RX_SUBLEN
+  #ifdef HAVE_REGEXP_SUBLEN
+    #define RX_SUBLEN(rx) (((struct regexp *) (rx))->sublen)
+    #define RX_SUBLEN_SET(rx,x) RX_SUBLEN(rx) = (x)
+    #define RX_SUBLEN_GET(rx) RX_SUBLEN(rx)
+    #define RX_SUBLEN_CAN 1
+  #else
+    #define RX_SUBLEN(rx)
+    #define RX_SUBLEN_SET(rx,x)
+    #define RX_SUBLEN_GET(rx)
+    #define RX_SUBLEN_CAN 0
+  #endif
+#else
+  #define RX_SUBLEN_SET(rx,x) RX_SUBLEN(rx) = (x)
+  #define RX_SUBLEN_GET(rx) RX_SUBLEN(rx)
+  #define RX_SUBLEN_CAN 1
+#endif
+
+#undef RX_OFFS_SET
+#undef RX_OFFS_GET
+#undef RX_OFFS_CAN
+#ifndef RX_OFFS
+  #ifdef HAVE_REGEXP_OFFS
+    #define RX_OFFS(rx) (((struct regexp *) (rx))->offs)
+    #define RX_OFFS_SET(rx,x) RX_OFFS(rx) = (x)
+    #define RX_OFFS_GET(rx) RX_OFFS(rx)
+    #define RX_OFFS_I_SET(rx,i,startValue,endValue) do { (RX_OFFS_GET(rx))[i].start = (startValue); (RX_OFFS_GET(rx))[i].end = (endValue); } while (0)
+    #define RX_OFFS_CAN 1
+  #else
+    #define RX_OFFS(rx)
+    #define RX_OFFS_SET(rx,x)
+    #define RX_OFFS_GET(rx)
+    #define RX_OFFS_I_SET(rx,i,start,end)
+    #define RX_OFFS_CAN 0
+  #endif
+#else
+  #define RX_OFFS_SET(rx,x) RX_OFFS(rx) = (x)
+  #define RX_OFFS_GET(rx) RX_OFFS(rx)
+  #define RX_OFFS_I_SET(rx,i,startValue,endValue) do { (RX_OFFS_GET(rx))[i].start = (startValue); (RX_OFFS_GET(rx))[i].end = (endValue); } while (0)
+  #define RX_OFFS_CAN 1
+#endif
+
+#undef RX_PRELEN_SET
+#undef RX_PRELEN_GET
+#undef RX_PRELEN_CAN
+#ifndef RX_PRELEN
+  #ifdef HAVE_REGEXP_PRELEN
+    #define RX_PRELEN(rx) (((struct regexp *) (rx))->prelen)
+    #define RX_PRELEN_SET(rx,x) RX_PRELEN(rx) = (x)
+    #define RX_PRELEN_GET(rx) RX_PRELEN(rx)
+    #define RX_PRELEN_CAN 1
+  #else
+    #define RX_PRELEN(rx)
+    #define RX_PRELEN_SET(rx,x)
+    #define RX_PRELEN_GET(rx)
+    #define RX_PRELEN_CAN 0
+  #endif
+#else
+  #define RX_PRELEN_SET(rx,x) RX_PRELEN(rx) = (x)
+  #define RX_PRELEN_GET(rx) RX_PRELEN(rx)
+  #define RX_PRELEN_CAN 1
+#endif
+
+#undef RX_PRECOMP_SET
+#undef RX_PRECOMP_GET
+#undef RX_PRECOMP_CAN
+#ifndef RX_PRECOMP
+  #ifdef HAVE_REGEXP_PRECOMP
+    #define RX_PRECOMP(rx) (((struct regexp *) (rx))->precomp)
+    #define RX_PRECOMP_SET(rx,x) RX_PRECOMP(rx) = (x)
+    #define RX_PRECOMP_GET(rx) RX_PRECOMP(rx)
+    #define RX_PRECOMP_CAN 1
+  #else
+    #define RX_PRECOMP(rx)
+    #define RX_PRECOMP_SET(rx,x)
+    #define RX_PRECOMP_GET(rx)
+    #define RX_PRECOMP_CAN 0
+  #endif
+#else
+  #define RX_PRECOMP_SET(rx,x) RX_PRECOMP(rx) = (x)
+  #define RX_PRECOMP_GET(rx) RX_PRECOMP(rx)
+  #define RX_PRECOMP_CAN 1
+#endif
+
+#ifdef PERL_STATIC_INLINE
+PERL_STATIC_INLINE
+#else
+static
+#endif
+IV
 get_type(SV* sv) {
   IV type = 0;
 
@@ -114,7 +375,12 @@ get_type(SV* sv) {
 #else
 #undef _SAVE_FREE_DEFINITION
 #endif
-static void _libc_free(void *ptr) {
+#ifdef PERL_STATIC_INLINE
+PERL_STATIC_INLINE
+#else
+static
+#endif
+void _libc_free(void *ptr) {
   free(ptr);
 }
 #ifdef _SAVE_FREE_DEFINITION
@@ -122,7 +388,11 @@ static void _libc_free(void *ptr) {
 #endif
 
 #ifdef HAVE_REGEXP_ENGINE_COMP
+#ifdef PERL_STATIC_INLINE
+PERL_STATIC_INLINE
+#else
 static
+#endif
 #if PERL_VERSION <= 10
 REGEXP * GNU_comp(pTHX_ const SV * const pattern, const U32 flags)
 #else
@@ -135,7 +405,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 
     /* Input as char * */
     STRLEN plen;
-    char  *exp = SvPV((SV*)pattern, plen);
+    char  *exp;
 
     /* Copy of flags in input */
     U32 extflags = flags;
@@ -147,37 +417,14 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 
     reg_errcode_t ret;
 
-    {
-      /************************************************************/
-      /* split optimizations - copied from re-engine-xxx by avar  */
-      /************************************************************/
-#if (defined(RXf_SPLIT) && defined(RXf_SKIPWHITE) && defined(RXf_WHITE))
-      /* C<split " ">, bypass the PCRE engine alltogether and act as perl does */
-      if (flags & RXf_SPLIT && plen == 1 && exp[0] == ' ')
-        extflags |= (RXf_SKIPWHITE|RXf_WHITE);
+#if RX_WRAPPED_CAN
+    SV * wrapped; /* For stringification */
 #endif
 
-#ifdef RXf_NULL
-      /* RXf_NULL - Have C<split //> split by characters */
-      if (plen == 0) {
-        extflags |= RXf_NULL;
-      }
+#if RX_WRAPPED_CAN
+    wrapped = newSVpvn("(?", 2);
+    sv_2mortal(wrapped);
 #endif
-
-#ifdef RXf_START_ONLY
-      /* RXf_START_ONLY - Have C<split /^/> split on newlines */
-      if (plen == 1 && exp[0] == '^') {
-        extflags |= RXf_START_ONLY;
-      }
-#endif
-
-#ifdef RXf_WHITE
-      /* RXf_WHITE - Have C<split /\s+/> split on whitespace */
-      if (plen == 3 && strnEQ("\\s+", exp, 3)) {
-        extflags |= RXf_WHITE;
-      }
-#endif
-    }
 
     /********************/
     /* GNU engine setup */
@@ -219,10 +466,10 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       SV **h_pattern = hv_fetch(hv, "pattern", 7, 0);
       SV **h_syntax  = hv_fetch(hv, "syntax", 6, 0);
 
-      if (h_pattern == NULL || get_type((SV *)*h_pattern) != SCALARREF) {
+      if (h_pattern == NULL || get_type((SV *)*h_pattern) != SCALAR) {
         croak("re::engine::GNU: hash ref key must have a key 'pattern' refering to a scalar");
       }
-      if (h_syntax == NULL || get_type((SV *)*h_syntax) != SCALARREF) {
+      if (h_syntax == NULL || get_type((SV *)*h_syntax) != SCALAR) {
         croak("re::engine::GNU: hash ref key must have a key 'syntax' refering to a scalar");
       }
 
@@ -231,6 +478,40 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 
     } else {
       croak("re::engine::GNU: pattern must be a scalar, an array ref [syntax => pattern], or a hash ref {'syntax' => syntax, 'pattern' => pattern} where syntax and flavour are exclusive");
+    }
+
+    exp = SvPV(sv_pattern, plen);
+
+    {
+      /************************************************************/
+      /* split optimizations - copied from re-engine-xxx by avar  */
+      /************************************************************/
+#if (defined(RXf_SPLIT) && defined(RXf_SKIPWHITE) && defined(RXf_WHITE))
+      /* C<split " ">, bypass the PCRE engine alltogether and act as perl does */
+      if (flags & RXf_SPLIT && plen == 1 && exp[0] == ' ')
+        extflags |= (RXf_SKIPWHITE|RXf_WHITE);
+#endif
+
+#ifdef RXf_NULL
+      /* RXf_NULL - Have C<split //> split by characters */
+      if (plen == 0) {
+        extflags |= RXf_NULL;
+      }
+#endif
+
+#ifdef RXf_START_ONLY
+      /* RXf_START_ONLY - Have C<split /^/> split on newlines */
+      if (plen == 1 && exp[0] == '^') {
+        extflags |= RXf_START_ONLY;
+      }
+#endif
+
+#ifdef RXf_WHITE
+      /* RXf_WHITE - Have C<split /\s+/> split on whitespace */
+      if (plen == 3 && strnEQ("\\s+", exp, 3)) {
+        extflags |= RXf_WHITE;
+      }
+#endif
     }
 
     ri->sv_pattern_copy        = sv_pattern;
@@ -300,36 +581,25 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     rx = (REGEXP*) newSV_type(SVt_REGEXP);
 #else
     Newxz(rx, 1, REGEXP);
+#endif
+
+    /* struct regexp (same adress as rx, different cast) */
+    re = _RegSV(rx);
+
+#if PERL_VERSION <= 10
 #ifdef HAVE_REGEXP_REFCNT
-    rx->refcnt = 1;
+    re->refcnt = 1;
 #endif
 #endif
 
-    re = _RegSV(rx);
-#ifdef HAVE_REGEXP_EXTFLAGS
-    re->extflags = extflags;
-#endif
-#ifdef HAVE_REGEXP_ENGINE
-    re->engine = &engine_GNU;
-#endif
-    /* Precompiled regexp for pp_regcomp to use */
-#ifdef HAVE_REGEXP_PRELEN
-    re->prelen = (I32)plen;
-#endif
-#ifdef HAVE_REGEXP_PRECOMP
-    re->precomp = _SAVEPVN(exp, re->prelen);
-#endif
-    /* qr// stringification, reuse the space */
-#ifdef HAVE_REGEXP_WRAPLEN
-#ifdef HAVE_REGEXP_PRELEN
-    re->wraplen = re->prelen;
-#endif
-#endif
-#ifdef HAVE_REGEXP_WRAPPED
-#ifdef HAVE_REGEXP_PRECOMP
-    re->wrapped = (char *)re->precomp; /* from const char* */
-#endif
-#endif
+    RX_EXTFLAGS_SET(rx, extflags);
+    RX_ENGINE_SET(rx, &engine_GNU);
+
+    /* AFAIK prelen and precomp macros do not always provide an lvalue */
+    /*
+    RX_PRELEN_SET(rx, (I32)plen);
+    RX_PRECOMP_SET(rx, (exp != NULL) ? savepvn(exp, plen) : NULL);
+    */
 
     ret = re_compile_internal (&(ri->regex), ri->pattern_utf8, ri->len_pattern_utf8, ri->regex.syntax);
     if (ret != _REG_NOERROR) {
@@ -338,12 +608,28 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       croak("%s", __re_error_msgid + __re_error_msgid_idx[(int) ret]);
     }
 
-/* #ifdef HAVE_REGEXP_PPRIVATE */ /* pprivate must always exist */
     re->pprivate = ri;
-/* #endif */
+    RX_LASTPAREN_SET(rx, 0);
+    RX_LASTCLOSEPAREN_SET(rx, 0);
+    RX_NPARENS_SET(rx, (U32)ri->regex.re_nsub); /* cast from size_t */
 
-#ifdef HAVE_REGEXP_NPARENS
-    re->nparens = (U32)ri->regex.re_nsub; /* cast from size_t */
+    /* qr// stringification */
+#if RX_WRAPPED_CAN
+    if (ri->regex.newline_anchor == 1) {
+        sv_catpvn(wrapped, "m", 1);
+    }
+    if ((ri->regex.syntax & RE_DOT_NEWLINE) == RE_DOT_NEWLINE) {
+        sv_catpvn(wrapped, "s", 1);
+    }
+    if ((ri->regex.syntax & RE_ICASE) == RE_ICASE) {
+        sv_catpvn(wrapped, "i", 1);
+    }
+    sv_catpvn(wrapped, ":", 1);
+    sv_catpvn(wrapped, "(?#re::engine::GNU)", 19);
+    sv_catpvn(wrapped, exp, plen);
+    sv_catpvn(wrapped, ")", 1);
+    RX_WRAPPED_SET(rx, savepvn(SvPVX(wrapped), SvCUR(wrapped)));
+    RX_WRAPLEN_SET(rx, SvCUR(wrapped));
 #endif
 
     /*
@@ -358,7 +644,11 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif /* HAVE_REGEXP_ENGINE_COMP */
 
 #ifdef HAVE_REGEXP_ENGINE_EXEC
+#ifdef PERL_STATIC_INLINE
+PERL_STATIC_INLINE
+#else
 static
+#endif
 I32
 #if PERL_VERSION >= 19
 GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, SSize_t minend, SV * sv, void *data, U32 flags)
@@ -368,43 +658,30 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 {
     regexp             *re = _RegSV(rx);
     GNU_private_t      *ri = re->pprivate;
-    regoff_t            offs;
+    regoff_t            rc;
     int                 i;
     struct re_registers regs;     /* for subexpression matches */
 
     regs.start = NULL;
     regs.end = NULL;
 
-    offs = re_search(&(ri->regex), stringarg, strend - stringarg, strbeg - stringarg, strend - strbeg, &regs);
+    rc = re_search(&(ri->regex), stringarg, strend - stringarg, strbeg - stringarg, strend - strbeg, &regs);
 
-    if (offs <= -2) {
+    if (rc <= -2) {
       croak("Internal error matching regular expression");
-    } else if (offs == -1) {
+    } else if (rc == -1) {
       return 0;
     }
 
-#ifdef HAVE_REGEXP_SUBBEG
-    re->subbeg = strbeg;
-#endif
-#ifdef HAVE_REGEXP_SUBLEN
-    re->sublen = strend - strbeg;
-#endif
-    /*
-      re_search returns offsets from the start of `stringarg' but perl expects
-      them to count from `strbeg'.
-    */
-    offs = stringarg - strbeg;
+    RX_SUBBEG_SET(rx, strbeg);
+    RX_SUBLEN_SET(rx, strend - strbeg);
+    RX_LASTPAREN_SET(rx, re->nparens);
+    RX_LASTCLOSEPAREN_SET(rx, re->nparens);
 
-#ifdef HAVE_REGEXP_OFFS
     /* There is always at least the index 0 for $& */
     for (i = 0; i < re->nparens + 1; i++) {
-      re->offs[i].start = regs.start[i];
-      re->offs[i].end = regs.end[i];
+      RX_OFFS_I_SET(rx, i, regs.start[i], regs.end[i]);
     }
-#endif
-#ifdef HAVE_REGEXP_LASTPAREN
-    re->lastparen = i;
-#endif
 
     if (regs.start != NULL) {
       _libc_free(regs.start);
@@ -419,7 +696,11 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 #endif /* HAVE_REGEXP_ENGINE_EXEC */
 
 #ifdef HAVE_REGEXP_ENGINE_INTUIT
+#ifdef PERL_STATIC_INLINE
+PERL_STATIC_INLINE
+#else
 static
+#endif
 char *
 #if PERL_VERSION >= 19
 GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, const char *strbeg, char *strpos, char *strend, U32 flags, re_scream_pos_data *data)
@@ -436,12 +717,17 @@ GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, char *strpos, char *strend, U32 fla
   PERL_UNUSED_ARG(strend);
   PERL_UNUSED_ARG(flags);
   PERL_UNUSED_ARG(data);
+
   return NULL;
 }
 #endif
 
 #ifdef HAVE_REGEXP_ENGINE_CHECKSTR
+#ifdef PERL_STATIC_INLINE
+PERL_STATIC_INLINE
+#else
 static
+#endif
 SV *
 GNU_checkstr(pTHX_ REGEXP * const rx)
 {
@@ -451,7 +737,11 @@ GNU_checkstr(pTHX_ REGEXP * const rx)
 #endif
 
 #ifdef HAVE_REGEXP_ENGINE_FREE
+#ifdef PERL_STATIC_INLINE
+PERL_STATIC_INLINE
+#else
 static
+#endif
 void
 GNU_free(pTHX_ REGEXP * const rx)
 {
@@ -464,7 +754,11 @@ GNU_free(pTHX_ REGEXP * const rx)
 #endif
 
 #ifdef HAVE_REGEXP_ENGINE_QR_PACKAGE
+#ifdef PERL_STATIC_INLINE
+PERL_STATIC_INLINE
+#else
 static
+#endif
 SV *
 GNU_qr_package(pTHX_ REGEXP * const rx)
 {
@@ -475,7 +769,11 @@ GNU_qr_package(pTHX_ REGEXP * const rx)
 #endif
 
 #ifdef HAVE_REGEXP_ENGINE_DUPE
+#ifdef PERL_STATIC_INLINE
+PERL_STATIC_INLINE
+#else
 static
+#endif
 void *
 GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
 {
