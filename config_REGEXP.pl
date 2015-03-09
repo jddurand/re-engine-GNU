@@ -27,7 +27,7 @@ sub do_config_REGEXP {
     print STDERR "...\n";
     print STDERR "... regexp structure configuration\n";
     print STDERR "...\n";
-    my @members = qw/engine mother_re extflags minlen minlenret gofs substrs nparens intflags pprivate lastparen lastcloseparen swap offs subbeg saved_copy sublen suboffset subcoffset prelen precomp wrapped wraplen seen_evals paren_names refcnt/;
+    my @members = qw/engine mother_re paren_names extflags minlen minlenret gofs substrs nparens intflags pprivate lastparen lastcloseparen swap offs subbeg saved_copy sublen suboffset subcoffset maxlen pre_prefix compflags prelen precomp wrapped wraplen seen_evals refcnt/;
     $ac->check_members([ map {"regexp.$_"} @members], { prologue => "#include \"EXTERN.h\"
 #include \"perl.h\"
 #include \"XSUB.h\"" });
