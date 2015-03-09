@@ -22,8 +22,19 @@ sub import
 
 sub unimport
 {
-    delete $^H{regcomp}
-        if $^H{regcomp} == ENGINE;
+    my $class = shift;
+
+    if (exists($^H{regcomp}) && $^H{regcomp} == ENGINE) {
+      delete($^H{regcomp});
+    }
+
+    if (@_) {
+      my %args = @_;
+      if (exists $args{'debug'}) {
+        $^H{__PACKAGE__ . '::debug'} = $args{'debug'};
+      }
+    }
+
 }
 
 1;
