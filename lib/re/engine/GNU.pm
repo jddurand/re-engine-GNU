@@ -40,53 +40,60 @@ sub unimport
 1;
 
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
-re::engine::GNU - Perl extension for blah blah blah
+re::engine::GNU - Perl extension for GNU regular expressions
 
 =head1 SYNOPSIS
 
   use re::engine::GNU;
-  blah blah blah
+  'test' =~ /\(tes\)t/ && print "ok 1\n";
+  'test' =~ [ 0, '\(tes\)t' ] && print "ok 2\n";
+  'test' =~ { syntax => 0, pattern => '\(tes\)t' } && print "ok 3\n";
 
 =head1 DESCRIPTION
 
-Stub documentation for re::engine::GNU, created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
+The GNU regular expression engine plugged into perl.
 
-Blah blah blah.
+They can be writen in three form:
+
+=over
+
+=item classic
+
+e.g. qr/xxx/. The default syntax is then GNU Emacs.
+
+=item array
+
+e.g. [ syntax, 'xxx' ], where syntax is a bitwised value.
+
+=item hash
+
+e.g. { syntax => value, pattern => 'xxx' }, where value is bitwised, like in the array form.
+
+=back
+
+Bitwised value is to be documented (brave people should read the file regex.h in this package).
 
 =head2 EXPORT
 
 None by default.
 
-
-
 =head1 SEE ALSO
 
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
+http://www.regular-expressions.info/gnu.html
 
 =head1 AUTHOR
 
-A. U. Thor, E<lt>a.u.thor@a.galaxy.far.far.awayE<gt>
+Jean-Damien Durand.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2015 by A. U. Thor
+Copyright (C) 2015 by Jean-Damien Durand.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.20.1 or,
 at your option, any later version of Perl 5 you may have available.
-
 
 =cut
