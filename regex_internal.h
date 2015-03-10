@@ -32,7 +32,26 @@
 #endif
 #include <wchar.h>
 #include <wctype.h>
+#ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
+#else
+  #ifndef __cplusplus
+    #ifndef bool
+      #ifdef HAVE__BOOL
+        typedef _Bool bool;
+      #else
+        typedef unsigned char bool;
+      #endif
+    #endif
+    #ifndef true
+      #define true 1
+    #endif
+    #ifndef false
+      #define false 0
+    #endif
+    #define __bool_true_false_are_defined 1
+  #endif
+#endif
 #include <stdint.h>
 
 #ifdef _LIBC
