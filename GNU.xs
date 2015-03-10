@@ -302,6 +302,27 @@ typedef struct GNU_private {
   #define RX_PRECOMP_CAN 1
 #endif
 
+#undef RXp_PAREN_NAMES_SET
+#undef RXp_PAREN_NAMES_GET
+#undef RXp_PAREN_NAMES_CAN
+#ifndef RXp_PAREN_NAMES
+  #ifdef HAVE_REGEXP_PAREN_NAMES
+    #define RXp_PAREN_NAMES(rx) (((struct regexp *) (rx))->paren_names)
+    #define RXp_PAREN_NAMES_SET(rx,x) RXp_PAREN_NAMES(rx) = (x)
+    #define RXp_PAREN_NAMES_GET(rx) RXp_PAREN_NAMES(rx)
+    #define RXp_PAREN_NAMES_CAN 1
+  #else
+    #define RXp_PAREN_NAMES(rx)
+    #define RXp_PAREN_NAMES_SET(rx,x)
+    #define RXp_PAREN_NAMES_GET(rx)
+    #define RXp_PAREN_NAMES_CAN 0
+  #endif
+#else
+  #define RXp_PAREN_NAMES_SET(rx,x) RXp_PAREN_NAMES(rx) = (x)
+  #define RXp_PAREN_NAMES_GET(rx) RXp_PAREN_NAMES(rx)
+  #define RXp_PAREN_NAMES_CAN 1
+#endif
+
 #ifdef PERL_STATIC_INLINE
 PERL_STATIC_INLINE
 #else
@@ -609,6 +630,10 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     }
 
     re->pprivate = ri;
+#if RXp_PAREN_NAMES_CAN
+    /* Not supported */
+    /* RXp_PAREN_NAMES_SET(re, newHV()); */
+#endif
     RX_LASTPAREN_SET(rx, 0);
     RX_LASTCLOSEPAREN_SET(rx, 0);
     RX_NPARENS_SET(rx, (U32)ri->regex.re_nsub); /* cast from size_t */
@@ -636,7 +661,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       Tell perl how many match vars we have and allocate space for
       them, at least one is always allocated for $&
      */
-    Newxz(re->offs, re->nparens + 1, regexp_paren_pair);
+    Newxz(re->offs, RX_NPARENS_GET(rx) + 1, regexp_paren_pair);
 
     /* return the regexp structure to perl */
     return rx;
@@ -659,7 +684,7 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     regexp             *re = _RegSV(rx);
     GNU_private_t      *ri = re->pprivate;
     regoff_t            rc;
-    int                 i;
+    U32                 i;
     struct re_registers regs;     /* for subexpression matches */
 
     regs.start = NULL;
@@ -675,11 +700,11 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 
     RX_SUBBEG_SET(rx, strbeg);
     RX_SUBLEN_SET(rx, strend - strbeg);
-    RX_LASTPAREN_SET(rx, re->nparens);
-    RX_LASTCLOSEPAREN_SET(rx, re->nparens);
+    RX_LASTPAREN_SET(rx, RX_NPARENS_GET(rx));
+    RX_LASTCLOSEPAREN_SET(rx, RX_NPARENS_GET(rx));
 
     /* There is always at least the index 0 for $& */
-    for (i = 0; i < re->nparens + 1; i++) {
+    for (i = 0; i < RX_NPARENS_GET(rx) + 1; i++) {
       RX_OFFS_I_SET(rx, i, regs.start[i], regs.end[i]);
     }
 
@@ -777,11 +802,12 @@ static
 void *
 GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
 {
-  PERL_UNUSED_ARG(param);
   regexp        *re = _RegSV(rx);
   GNU_private_t *oldri = (GNU_private_t *) re->pprivate;
   GNU_private_t *ri;
   reg_errcode_t  ret;
+
+  PERL_UNUSED_ARG(param);
 
   Newxz(ri, 1, GNU_private_t);
 
