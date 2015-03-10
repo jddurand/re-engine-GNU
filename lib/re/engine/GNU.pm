@@ -1,4 +1,6 @@
 package re::engine::GNU;
+use strict;
+use diagnostics;
 use 5.010000;
 use XSLoader ();
 
