@@ -25,16 +25,30 @@ sub do_config_REGEXP {
     print STDERR "... ------------------------------\n";
     $ac->check_cc;
     my @members = qw/engine mother_re paren_names extflags minlen minlenret gofs substrs nparens intflags pprivate lastparen lastcloseparen swap offs subbeg saved_copy sublen suboffset subcoffset maxlen pre_prefix compflags prelen precomp wrapped wraplen seen_evals refcnt/;
-    $ac->check_members([ map {"regexp.$_"} @members], { prologue => "#include \"EXTERN.h\"
+    foreach (@members) {
+        $ac->check_member("regexp.$_", { prologue => "#include \"EXTERN.h\"
 #include \"perl.h\"
-#include \"XSUB.h\"" });
+#include \"XSUB.h\"
+
+/* We are checking a structure member: it should never be a #define */
+#undef $_
+
+" });
+    }
     print STDERR "...\n";
     print STDERR "... regexp_engine structure configuration\n";
     print STDERR "...\n";
     @members = qw/comp exec intuit checkstr free numbered_buff_FETCH numbered_buff_STORE numbered_buff_LENGTH named_buff named_buff_iter qr_package dupe op_comp/;
-    $ac->check_members([ map {"regexp_engine.$_"} @members], { prologue => "#include \"EXTERN.h\"
+    foreach (@members) {
+        $ac->check_member("regexp_engine.$_", { prologue => "#include \"EXTERN.h\"
 #include \"perl.h\"
-#include \"XSUB.h\"" });
+#include \"XSUB.h\"
+
+/* We are checking a structure member: it should never be a #define */
+#undef $_
+
+" });
+    }
     print STDERR "...\n";
     print STDERR "... regexp_engine perl functions\n";
     print STDERR "...\n";
