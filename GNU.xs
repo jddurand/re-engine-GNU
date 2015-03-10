@@ -687,6 +687,7 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     U32                 i;
     struct re_registers regs;     /* for subexpression matches */
 
+    regs.num_regs = 0;
     regs.start = NULL;
     regs.end = NULL;
 
