@@ -37,7 +37,9 @@ sub do_config_GNU {
     $ac->check_func('malloc', { prologue => '#include <stdlib.h>' });
     $ac->check_func('realloc', { prologue => '#include <stdlib.h>' });
     $ac->check_type('mbstate_t', { prologue => "#include <stddef.h>\n#include <stdio.h>\n#include <time.h>\n#include <wchar.h>" });
+    $ac->check_type('_Bool');
     $ac->check_header('wctype.h');
+    $ac->check_header('stdbool.h');
     #
     # No test on alloca -> HAVE_ALLOCA will be false, which is what we want
     #
@@ -61,6 +63,13 @@ sub do_config_GNU {
     $ac->define_var('regexec', 'rpl_regexec');
     $ac->define_var('regerror', 'rpl_regerror');
     $ac->define_var('regfree', 'rpl_regfree');
+    $ac->check_type('size_t');
+    $ac->check_type('ssize_t');
+    $ac->check_sizeof_type('size_t');
+    $ac->check_sizeof_type('short');
+    $ac->check_sizeof_type('int');
+    $ac->check_sizeof_type('long');
+    $ac->check_sizeof_type('long long');
     $ac->write_config_h($config);
 }
 
