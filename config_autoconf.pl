@@ -24,10 +24,11 @@ sub do_config_GNU {
     my $config = File::Spec->catfile('config_autoconf.h');
     my $log = File::Spec->catfile('config_autoconf.log');
 
+    my $ac = Config::AutoConf->new(logfile => $log);
+
     print STDERR "...\n";
     print STDERR "... GNU REGEX configuration\n";
-    print STDERR "...\n";
-    my $ac = Config::AutoConf->new(logfile => $log);
+    print STDERR "... -----------------------\n";
     $ac->check_cc;
     $ac->check_default_headers;
     ac_c_inline($ac);
