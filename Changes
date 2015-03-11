@@ -1,7 +1,8 @@
 Changelog for re-engine-GNU
 
-0.007 2015-03-11T21:23:32
+0.007 2015-03-11T21:23:55
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Correct Changes file
  - Changes: generated
  - GNU.pm: POD fix
  - -syntax support

@@ -8,7 +8,7 @@ re::engine::GNU - GNU Regular Expression Engine
 
 =head1 VERSION
 
-version 0.006
+version 0.007
 
 =head1 SYNOPSIS
 
@@ -19,9 +19,21 @@ version 0.006
 
 =head1 DESCRIPTION
 
-The GNU regular expression engine plugged into perl.
+The GNU regular expression engine plugged into perl. The package can be "used" with the following pragmas:
 
-They can be writen in three form:
+=over
+
+=item -debug => boolean
+
+E.g. use re::engine::GNU -debug => 1;    # a true value will print on stderr
+
+=item -syntax => bitwised value
+
+E.g. use re::engine::GNU -syntax => 0;   # Default syntax. Useful for the // form.
+
+=back
+
+Regular expressions can be writen in three form:
 
 =over
 
@@ -52,18 +64,6 @@ re::engine::GNU - Perl extension for GNU regular expressions
 =head1 SEE ALSO
 
 http://www.regular-expressions.info/gnu.html
-
-=head1 AUTHOR
-
-Jean-Damien Durand.
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2015 by Jean-Damien Durand.
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.20.1 or,
-at your option, any later version of Perl 5 you may have available.
 
 =head1 AUTHOR
 
