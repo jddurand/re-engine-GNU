@@ -66,17 +66,17 @@ The GNU regular expression engine plugged into perl. The package can be "used" w
 
 =over
 
-=item -debug
+=item -debug => boolean
 
 E.g. use re::engine::GNU -debug => 1;    # a true value will print on stderr
 
-=item -syntax
+=item -syntax => bitwised value
 
 E.g. use re::engine::GNU -syntax => 0;   # Default syntax. Useful for the // form.
 
 =back
 
-They can be writen in three form:
+Regular expressions can be writen in three form:
 
 =over
 
