@@ -26,7 +26,6 @@ sub import
     if (@_) {
       my %args = @_;
       if (exists $args{'-debug'}) {
-        print STDERR "SETTING " . __PACKAGE__ . '::debug' . " to " . $args{'-debug'} . "\n";
         $^H{__PACKAGE__ . '::debug'} = $args{'-debug'};
       }
     }
