@@ -19,7 +19,18 @@ BEGIN
 
 sub import
 {
+    my $class = shift;
+
     $^H{regcomp} = ENGINE;
+
+    if (@_) {
+      my %args = @_;
+      if (exists $args{'-debug'}) {
+        print STDERR "SETTING " . __PACKAGE__ . '::debug' . " to " . $args{'-debug'} . "\n";
+        $^H{__PACKAGE__ . '::debug'} = $args{'-debug'};
+      }
+    }
+
 }
 
 sub unimport
@@ -28,13 +39,6 @@ sub unimport
 
     if (exists($^H{regcomp}) && $^H{regcomp} == ENGINE) {
       delete($^H{regcomp});
-    }
-
-    if (@_) {
-      my %args = @_;
-      if (exists $args{'debug'}) {
-        $^H{__PACKAGE__ . '::debug'} = $args{'debug'};
-      }
     }
 
 }
