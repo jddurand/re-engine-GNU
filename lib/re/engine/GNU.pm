@@ -28,6 +28,9 @@ sub import
       if (exists $args{'-debug'}) {
         $^H{__PACKAGE__ . '::debug'} = $args{'-debug'};
       }
+      if (exists $args{'-syntax'}) {
+        $^H{__PACKAGE__ . '::syntax'} = $args{'-syntax'};
+      }
     }
 
 }
@@ -59,7 +62,19 @@ re::engine::GNU - Perl extension for GNU regular expressions
 
 =head1 DESCRIPTION
 
-The GNU regular expression engine plugged into perl.
+The GNU regular expression engine plugged into perl. The package can be "used" with the following pragmas:
+
+=over
+
+=item -debug
+
+E.g. use re::engine::GNU -debug => 1;    # a true value will print on stderr
+
+=item -syntax
+
+E.g. use re::engine::GNU -syntax => 0;   # Default syntax. Useful for the // form.
+
+=back
 
 They can be writen in three form:
 

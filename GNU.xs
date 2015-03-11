@@ -450,6 +450,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     regexp                   *re;
     GNU_private_t            *ri;
     int                       isDebug;
+    int                       defaultSyntax;
     char                     *logHeader = "[re::engine::GNU] GNU_comp";
 
     /* Input as char * */
@@ -471,14 +472,16 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif
 
     GNU_key2int("re::engine::GNU::debug", isDebug);
+    GNU_key2int("re::engine::GNU::syntax", defaultSyntax);
 
     if (isDebug) {
-      fprintf(stderr, "%s: %s", logHeader, "start\n");
+      fprintf(stderr, "%s: start\n", logHeader);
+      fprintf(stderr, "%s: default syntax: %d\n", logHeader, defaultSyntax);
     }
 
 #if RX_WRAPPED_CAN
     if (isDebug) {
-      fprintf(stderr, "%s: %s", logHeader, "allocating wrapped\n");
+      fprintf(stderr, "%s: allocating wrapped\n", logHeader);
     }
     wrapped = newSVpvn("(?", 2);
     sv_2mortal(wrapped);
@@ -488,7 +491,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     /* GNU engine setup */
     /********************/
     if (isDebug) {
-      fprintf(stderr, "%s: %s", logHeader, "allocating GNU_private_t\n");
+      fprintf(stderr, "%s: allocating GNU_private_t\n", logHeader);
     }
     Newxz(ri, 1, GNU_private_t);
 
@@ -499,12 +502,20 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 
     if (pattern_type == SCALAR) {
 
+      if (isDebug) {
+        fprintf(stderr, "%s: input is a scalar\n", logHeader);
+      }
+
       sv_pattern = newSVsv((SV *)pattern);
 
     } else if (pattern_type == ARRAYREF) {
       AV *av = (AV *)SvRV(pattern);
       SV **a_pattern;
       SV **a_syntax;
+
+      if (isDebug) {
+        fprintf(stderr, "%s: input is an array ref\n", logHeader);
+      }
 
       if (av_len(av) < 1) {
         croak("re::engine::GNU: array ref must have at least two elements, i.e. [syntax => pattern]");
@@ -526,6 +537,10 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       HV  *hv        = (HV *)SvRV(pattern);
       SV **h_pattern = hv_fetch(hv, "pattern", 7, 0);
       SV **h_syntax  = hv_fetch(hv, "syntax", 6, 0);
+
+      if (isDebug) {
+        fprintf(stderr, "%s: input is a hash ref\n", logHeader);
+      }
 
       if (h_pattern == NULL || get_type((SV *)*h_pattern) != SCALAR) {
         croak("re::engine::GNU: hash ref key must have a key 'pattern' refering to a scalar");
@@ -549,13 +564,20 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       /************************************************************/
 #if (defined(RXf_SPLIT) && defined(RXf_SKIPWHITE) && defined(RXf_WHITE))
       /* C<split " ">, bypass the PCRE engine alltogether and act as perl does */
-      if (flags & RXf_SPLIT && plen == 1 && exp[0] == ' ')
+      if (flags & RXf_SPLIT && plen == 1 && exp[0] == ' ') {
+        if (isDebug) {
+          fprintf(stderr, "%s: split ' ' optimization\n", logHeader);
+        }
         extflags |= (RXf_SKIPWHITE|RXf_WHITE);
+      }
 #endif
 
 #ifdef RXf_NULL
       /* RXf_NULL - Have C<split //> split by characters */
       if (plen == 0) {
+        if (isDebug) {
+          fprintf(stderr, "%s: split // optimization\n", logHeader);
+        }
         extflags |= RXf_NULL;
       }
 #endif
@@ -563,6 +585,9 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #ifdef RXf_START_ONLY
       /* RXf_START_ONLY - Have C<split /^/> split on newlines */
       if (plen == 1 && exp[0] == '^') {
+        if (isDebug) {
+          fprintf(stderr, "%s: %split /^/ optimizationn", logHeader);
+        }
         extflags |= RXf_START_ONLY;
       }
 #endif
@@ -570,6 +595,9 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #ifdef RXf_WHITE
       /* RXf_WHITE - Have C<split /\s+/> split on whitespace */
       if (plen == 3 && strnEQ("\\s+", exp, 3)) {
+        if (isDebug) {
+          fprintf(stderr, "%s: split /\\s+/ optimization\n", logHeader);
+        }
         extflags |= RXf_WHITE;
       }
 #endif
@@ -581,7 +609,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     ri->regex.buffer           = NULL;
     ri->regex.allocated        = 0;
     ri->regex.used             = 0;
-    ri->regex.syntax           = (sv_syntax != NULL) ? SvUV(sv_syntax) : 0; /* == RE_SYNTAX_EMACS */
+    ri->regex.syntax           = (sv_syntax != NULL) ? SvUV(sv_syntax) : defaultSyntax;
     ri->regex.fastmap          = NULL;
     ri->regex.translate        = NULL;
     ri->regex.re_nsub          = 0;
@@ -603,22 +631,41 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #ifdef RXf_PMf_MULTILINE
     /* /m */
     if ((flags & RXf_PMf_MULTILINE) == RXf_PMf_MULTILINE) {
+      if (isDebug) {
+        fprintf(stderr, "%s: /m flag\n", logHeader);
+      }
       ri->regex.newline_anchor = 1;
+    } else {
+      if (isDebug) {
+        fprintf(stderr, "%s: no /m flag\n", logHeader);
+      }
     }
 #endif
 #ifdef RXf_PMf_SINGLELINE
     /* /s */
     if ((flags & RXf_PMf_SINGLELINE) == RXf_PMf_SINGLELINE) {
+      if (isDebug) {
+        fprintf(stderr, "%s: /s flag\n", logHeader);
+      }
       ri->regex.syntax |= RE_DOT_NEWLINE;
     } else {
+      if (isDebug) {
+        fprintf(stderr, "%s: no /s flag\n", logHeader);
+      }
       ri->regex.syntax &= ~RE_DOT_NEWLINE;
     }
 #endif
 #ifdef RXf_PMf_FOLD
     /* /i */
     if ((flags & RXf_PMf_FOLD) == RXf_PMf_FOLD) {
+      if (isDebug) {
+        fprintf(stderr, "%s: /i flag\n", logHeader);
+      }
       ri->regex.syntax |= RE_ICASE;
     } else {
+      if (isDebug) {
+        fprintf(stderr, "%s: no /i flag\n", logHeader);
+      }
       ri->regex.syntax &= ~RE_ICASE;
     }
 #endif
@@ -626,6 +673,9 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     /* /x */
     if ((flags & RXf_PMf_EXTENDED) == RXf_PMf_EXTENDED) {
       /* Not supported: explicitely removed */
+      if (isDebug) {
+        fprintf(stderr, "%s: /x flag removed\n", logHeader);
+      }
       extflags &= ~RXf_PMf_EXTENDED;
     }
 #endif
@@ -633,6 +683,9 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     /* /p */
     if ((flags & RXf_PMf_KEEPCOPY) == RXf_PMf_KEEPCOPY) {
       /* Not supported: explicitely removed */
+      if (isDebug) {
+        fprintf(stderr, "%s: /p flag removed\n", logHeader);
+      }
       extflags &= ~RXf_PMf_KEEPCOPY;
     }
 #endif
@@ -662,6 +715,9 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     RX_PRECOMP_SET(rx, (exp != NULL) ? savepvn(exp, plen) : NULL);
     */
 
+    if (isDebug) {
+      fprintf(stderr, "%s: re_compile_internal() call\n", logHeader);
+    }
     ret = re_compile_internal (&(ri->regex), ri->pattern_utf8, ri->len_pattern_utf8, ri->regex.syntax);
     if (ret != _REG_NOERROR) {
       extern const char __re_error_msgid[];
@@ -677,6 +733,9 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     RX_LASTPAREN_SET(rx, 0);
     RX_LASTCLOSEPAREN_SET(rx, 0);
     RX_NPARENS_SET(rx, (U32)ri->regex.re_nsub); /* cast from size_t */
+    if (isDebug) {
+      fprintf(stderr, "%s: %d () detected\n", logHeader, (int) ri->regex.re_nsub);
+    }
 
     /* qr// stringification */
 #if RX_WRAPPED_CAN
@@ -695,6 +754,9 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     sv_catpvn(wrapped, ")", 1);
     RX_WRAPPED_SET(rx, savepvn(SvPVX(wrapped), SvCUR(wrapped)));
     RX_WRAPLEN_SET(rx, SvCUR(wrapped));
+    if (isDebug) {
+      fprintf(stderr, "%s: stringification to %s\n", logHeader, RX_WRAPPED_GET(rx));
+    }
 #endif
 
     /*
@@ -702,6 +764,10 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       them, at least one is always allocated for $&
      */
     Newxz(re->offs, RX_NPARENS_GET(rx) + 1, regexp_paren_pair);
+
+    if (isDebug) {
+      fprintf(stderr, "%s: done\n", logHeader);
+    }
 
     /* return the regexp structure to perl */
     return rx;
@@ -726,16 +792,30 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     regoff_t            rc;
     U32                 i;
     struct re_registers regs;     /* for subexpression matches */
+    int                       isDebug;
+    char                     *logHeader = "[re::engine::GNU] GNU_exec";
 
     regs.num_regs = 0;
     regs.start = NULL;
     regs.end = NULL;
 
+    GNU_key2int("re::engine::GNU::debug", isDebug);
+
+    if (isDebug) {
+      fprintf(stderr, "%s: start\n", logHeader);
+    }
+
+    if (isDebug) {
+      fprintf(stderr, "%s: re_search\n", logHeader);
+    }
     rc = re_search(&(ri->regex), stringarg, strend - stringarg, strbeg - stringarg, strend - strbeg, &regs);
 
     if (rc <= -2) {
       croak("Internal error matching regular expression");
     } else if (rc == -1) {
+      if (isDebug) {
+        fprintf(stderr, "%s: done (no match)\n", logHeader);
+      }
       return 0;
     }
 
@@ -757,6 +837,10 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
       _libc_free(regs.end);
     }
 
+    if (isDebug) {
+      fprintf(stderr, "%s: done (match)\n", logHeader);
+    }
+
     return 1;
 }
 #endif /* HAVE_REGEXP_ENGINE_EXEC */
@@ -774,6 +858,9 @@ GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, const char *strbeg, char *strpos, c
 GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, char *strpos, char *strend, U32 flags, re_scream_pos_data *data)
 #endif
 {
+  int                       isDebug;
+  char                     *logHeader = "[re::engine::GNU] GNU_intuit";
+
   PERL_UNUSED_ARG(rx);
   PERL_UNUSED_ARG(sv);
 #if PERL_VERSION >= 19
@@ -783,6 +870,12 @@ GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, char *strpos, char *strend, U32 fla
   PERL_UNUSED_ARG(strend);
   PERL_UNUSED_ARG(flags);
   PERL_UNUSED_ARG(data);
+
+  GNU_key2int("re::engine::GNU::debug", isDebug);
+
+  if (isDebug) {
+    fprintf(stderr, "%s: no-op\n", logHeader);
+  }
 
   return NULL;
 }
@@ -797,7 +890,17 @@ static
 SV *
 GNU_checkstr(pTHX_ REGEXP * const rx)
 {
+  int                       isDebug;
+  char                     *logHeader = "[re::engine::GNU] GNU_checkstr";
+
   PERL_UNUSED_ARG(rx);
+
+  GNU_key2int("re::engine::GNU::debug", isDebug);
+
+  if (isDebug) {
+    fprintf(stderr, "%s: no-op\n", logHeader);
+  }
+
   return NULL;
 }
 #endif
@@ -813,9 +916,20 @@ GNU_free(pTHX_ REGEXP * const rx)
 {
   regexp             *re = _RegSV(rx);
   GNU_private_t      *ri = re->pprivate;
+  int                isDebug;
+  char              *logHeader = "[re::engine::GNU] GNU_free";
+
+  if (isDebug) {
+    fprintf(stderr, "%s: start\n", logHeader);
+  }
 
   SvREFCNT_dec(ri->sv_pattern_copy);
   regfree(&(ri->regex));
+
+  if (isDebug) {
+    fprintf(stderr, "%s: done\n", logHeader);
+  }
+
 }
 #endif
 
@@ -828,9 +942,26 @@ static
 SV *
 GNU_qr_package(pTHX_ REGEXP * const rx)
 {
+  int                isDebug;
+  char              *logHeader = "[re::engine::GNU] GNU_qr_package";
+  SV                *rc;
+
   PERL_UNUSED_ARG(rx);
 
-  return newSVpvs("re::engine::GNU");
+  GNU_key2int("re::engine::GNU::debug", isDebug);
+
+  if (isDebug) {
+    fprintf(stderr, "%s: start\n", logHeader);
+  }
+
+  rc = newSVpvs("re::engine::GNU");
+
+  if (isDebug) {
+    fprintf(stderr, "%s: done\n", logHeader);
+  }
+
+  return rc;
+
 }
 #endif
 
@@ -847,9 +978,18 @@ GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
   GNU_private_t *oldri = (GNU_private_t *) re->pprivate;
   GNU_private_t *ri;
   reg_errcode_t  ret;
+  int                       isDebug;
+  char                     *logHeader = "[re::engine::GNU] GNU_dupe";
 
   PERL_UNUSED_ARG(param);
 
+  if (isDebug) {
+    fprintf(stderr, "%s: start\n", logHeader);
+  }
+
+  if (isDebug) {
+    fprintf(stderr, "%s: allocating GNU_private_t\n", logHeader);
+  }
   Newxz(ri, 1, GNU_private_t);
 
   ri->sv_pattern_copy = newSVsv(oldri->sv_pattern_copy);
@@ -870,11 +1010,18 @@ GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
   ri->regex.not_eol          = 0;
   ri->regex.newline_anchor   = 0;
 
+  if (isDebug) {
+    fprintf(stderr, "%s: re_compile_internal() call\n", logHeader);
+  }
   ret = re_compile_internal (&(ri->regex), ri->pattern_utf8, ri->len_pattern_utf8, ri->regex.syntax);
   if (ret != _REG_NOERROR) {
     extern const char __re_error_msgid[];
     extern const size_t __re_error_msgid_idx[];
     croak("%s", __re_error_msgid + __re_error_msgid_idx[(int) ret]);
+  }
+
+  if (isDebug) {
+    fprintf(stderr, "%s: done\n", logHeader);
   }
 
   return ri;
