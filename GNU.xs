@@ -429,8 +429,9 @@ void _libc_free(void *ptr) {
   SV* val = cophh_fetch_pvs(CopHINTHASH_get(PL_curcop), key, 0); \
   if (val != &PL_sv_placeholder) {                               \
     value = SvIV(val);                                           \
+  } else {                                                       \
+    value = 0;                                                   \
   }                                                              \
-  value = 0;                                                     \
 } while (0)
 
 #ifdef HAVE_REGEXP_ENGINE_COMP
