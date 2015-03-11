@@ -86,16 +86,4 @@ None by default.
 
 http://www.regular-expressions.info/gnu.html
 
-=head1 AUTHOR
-
-Jean-Damien Durand.
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2015 by Jean-Damien Durand.
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.20.1 or,
-at your option, any later version of Perl 5 you may have available.
-
 =cut
