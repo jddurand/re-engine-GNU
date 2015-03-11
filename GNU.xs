@@ -37,7 +37,11 @@ typedef struct GNU_private {
 #define CopHINTHASH_get(c) ((c)->cop_hints_hash)
 #endif
 #ifndef cophh_fetch_pvs
+#ifdef STR_WITH_LEN
+#define cophh_fetch_pvs(cophh, key, flags) Perl_refcounted_he_fetch(aTHX_ cophh, NULL, key, sizeof(key) - 1, 0, flags)
+#else
 #define cophh_fetch_pvs(cophh, key, flags) Perl_refcounted_he_fetch(aTHX_ cophh, NULL, STR_WITH_LEN(key), 0, flags)
+#endif
 #endif
 
 /******************************************************************/
@@ -421,17 +425,13 @@ void _libc_free(void *ptr) {
 #define free _SAVE_FREE_DEFINITION
 #endif
 
-#ifdef PERL_STATIC_INLINE
-PERL_STATIC_INLINE
-#else
-static
-#endif
-int GNU_key2int(pTHX char *key) {
-  SV* val = cophh_fetch_pvs(CopHINTHASH_get(PL_curcop), key, 0);
-  if (val != &PL_sv_placeholder)
-    return SvIV(val);
-  return 0;
-}
+#define GNU_key2int(key, value) do {                             \
+  SV* val = cophh_fetch_pvs(CopHINTHASH_get(PL_curcop), key, 0); \
+  if (val != &PL_sv_placeholder) {                               \
+    value = SvIV(val);                                           \
+  }                                                              \
+  value = 0;                                                     \
+} while (0)
 
 #ifdef HAVE_REGEXP_ENGINE_COMP
 #ifdef PERL_STATIC_INLINE
@@ -448,6 +448,8 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     REGEXP                   *rx;
     regexp                   *re;
     GNU_private_t            *ri;
+    int                       isDebug;
+    char                     *logHeader = "[re::engine::GNU] GNU_comp";
 
     /* Input as char * */
     STRLEN plen;
@@ -467,7 +469,16 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     SV * wrapped; /* For stringification */
 #endif
 
+    GNU_key2int("re::engine::GNU::debug", isDebug);
+
+    if (isDebug) {
+      fprintf(stderr, "%s: %s", logHeader, "start\n");
+    }
+
 #if RX_WRAPPED_CAN
+    if (isDebug) {
+      fprintf(stderr, "%s: %s", logHeader, "allocating wrapped\n");
+    }
     wrapped = newSVpvn("(?", 2);
     sv_2mortal(wrapped);
 #endif
@@ -475,6 +486,9 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     /********************/
     /* GNU engine setup */
     /********************/
+    if (isDebug) {
+      fprintf(stderr, "%s: %s", logHeader, "allocating GNU_private_t\n");
+    }
     Newxz(ri, 1, GNU_private_t);
 
     /* We accept in input:                                                  */
