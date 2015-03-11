@@ -1,0 +1,73 @@
+Changelog for re-engine-GNU
+
+0.007 2015-03-11T21:23:32
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Changes: generated
+ - GNU.pm: POD fix
+ - -syntax support
+ - debug if AUTHOR_TEST
+ - GNU.xs: fix GNU_key2int macro
+ - debug mode in AUTHOR_TEST mode
+ - GNU.pm: remove a print
+ - GNU.pm import fix
+ - GNU.xs: GNU_key2int fix
+ - Revert "dist.ini: ExtUtils::MakeMaker = 7.04; fix issue on darwin2-level
+   about cc_runtime.h"
+ - dist.ini: ExtUtils::MakeMaker = 7.04; fix issue on darwin2-level about
+   cc_runtime.h
+ - GNU.xs: get variables dev+
+ - GNU.pm: AUTHOR and COPYRIGHT are done by dzil
+ - README: it is README.pod, not this file
+
+0.006 2015-03-10T22:55:34Z
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - GNU.xs: fix jump on uninitialized value detected by valgrind
+
+0.005 2015-03-10T21:43:28Z
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - GNU.pm: use strict; use diagnostics;
+ - GNU.pm: brief documentation
+ - GNU.xs: fixed compilation issues
+ - config.h: ssize_t issue
+ - config_REGEXP.pl: fix struct check
+ - config_autoconf.pl: cl
+ - regex_internal.h: cl
+ - config*pl: cosmetic changes
+ - GNU.xs: revisited with macros
+ - t/re-engine-GNU.t: three differentt ways
+ - GNU.pm: support of debug - TODO
+ - config_REGEXP.pl: added more members
+ - GNU.xs: revisit croak message
+ - dist.ini: add a newline before GNU\$(OBJ_EXT) rule
+
+0.004 2015-03-08T07:38:37Z
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - dist.ini: use $(PERLRUN) instead of perl (#1)
+
+0.003 2015-03-08T07:18:27Z
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - dist:ini: File::Temp and Capture::Tiny
+ - config_autoconf.pl: ac_execute_if_else
+
+0.002 2015-03-08T04:42:04Z
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - dev+
+
+0.001 2015-03-07T19:13:03Z
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - dev+
+ - dzil
+ - GNU.xs: free@libc fix
+ - GNU.xs: fix setting of offsets
+ - GNU.h removal
+ - use Config::AutoConf 0.310
+ - Makefile.PL: cc check first
+ - Makefile.PL: regexp_engine config
+ - XS fixes and first working version -;
+ - t+
+ - av_len instead of av_top_index
+ - GNU_intuit and GNU_checkstr
+ - GNU_exec: free regs
+ - GNU_exec: dev+
+ - GNU_exec
+
