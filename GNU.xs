@@ -30,6 +30,16 @@ typedef struct GNU_private {
   regex_t regex;
 } GNU_private_t;
 
+/*****************************************************************/
+/* Just in case it does not exist - Copy of autodie/variables.xs */
+/*****************************************************************/
+#ifndef CopHINTHASH_get
+#define CopHINTHASH_get(c) ((c)->cop_hints_hash)
+#endif
+#ifndef cophh_fetch_pvs
+#define cophh_fetch_pvs(cophh, key, flags) Perl_refcounted_he_fetch(aTHX_ cophh, NULL, STR_WITH_LEN(key), 0, flags)
+#endif
+
 /******************************************************************/
 /* Copy of DROLSKY/Params-Validate-1.18/lib/Params/Validate/XS.xs */
 /******************************************************************/
@@ -47,6 +57,9 @@ typedef struct GNU_private {
 #define HANDLE    (GLOB | GLOBREF)
 #define BOOLEAN   (SCALAR | UNDEF)
 
+/***************/
+/* Util macros */
+/***************/
 #undef RX_EXTFLAGS_SET
 #undef RX_EXTFLAGS_GET
 #undef RX_EXTFLAGS_CAN
@@ -407,6 +420,18 @@ void _libc_free(void *ptr) {
 #ifdef _SAVE_FREE_DEFINITION
 #define free _SAVE_FREE_DEFINITION
 #endif
+
+#ifdef PERL_STATIC_INLINE
+PERL_STATIC_INLINE
+#else
+static
+#endif
+int GNU_key2int(pTHX char *key) {
+  SV* val = cophh_fetch_pvs(CopHINTHASH_get(PL_curcop), key, 0);
+  if (val != &PL_sv_placeholder)
+    return SvIV(val);
+  return 0;
+}
 
 #ifdef HAVE_REGEXP_ENGINE_COMP
 #ifdef PERL_STATIC_INLINE
