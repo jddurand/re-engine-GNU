@@ -38,8 +38,11 @@ sub do_config_GNU {
     $ac->check_func('realloc', { prologue => '#include <stdlib.h>' });
     $ac->check_type('mbstate_t', { prologue => "#include <stddef.h>\n#include <stdio.h>\n#include <time.h>\n#include <wchar.h>" });
     $ac->check_type('_Bool');
+    $ac->check_header('wchar.h');
     $ac->check_header('wctype.h');
     $ac->check_header('stdbool.h');
+    $ac->check_header('stdint.h');
+    $ac->check_header('sys/int_types.h');
     #
     # No test on alloca -> HAVE_ALLOCA will be false, which is what we want
     #

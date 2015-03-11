@@ -30,8 +30,12 @@
 #include <langinfo.h>
 #include <locale.h>
 #endif
+#ifdef HAVE_WCHAR_H
 #include <wchar.h>
+#endif
+#ifdef HAVE_WCTYPE_H
 #include <wctype.h>
+#endif
 #ifdef HAVE_STDBOOL_H
 #include <stdbool.h>
 #else
@@ -52,7 +56,13 @@
     #define __bool_true_false_are_defined 1
   #endif
 #endif
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
+#ifdef HAVE_SYS_INT_TYPES_H
+/* for some old solaris */
+#include <sys/int_types.h>
+#endif
 
 #ifdef _LIBC
 # include <bits/libc-lock.h>
