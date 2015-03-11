@@ -1,6 +1,10 @@
 Changelog for re-engine-GNU
 
-0.007 2015-03-11T21:23:55
+0.008 2015-03-11T21:41:15
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - Some more portability issues
+
+0.007 2015-03-11T21:23:55Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - Correct Changes file
  - Changes: generated
