@@ -471,8 +471,8 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     SV * wrapped; /* For stringification */
 #endif
 
-    GNU_key2int("re::engine::GNU::debug", isDebug);
-    GNU_key2int("re::engine::GNU::syntax", defaultSyntax);
+    GNU_key2int("re::engine::GNU/debug", isDebug);
+    GNU_key2int("re::engine::GNU/syntax", defaultSyntax);
 
     if (isDebug) {
       fprintf(stderr, "%s: start\n", logHeader);
@@ -749,7 +749,16 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
         sv_catpvn(wrapped, "i", 1);
     }
     sv_catpvn(wrapped, ":", 1);
-    sv_catpvn(wrapped, "(?#re::engine::GNU)", 19);
+    sv_catpvn(wrapped, "(?#re::engine::GNU", 18);
+    {
+      char tmp[50];
+
+      sprintf(tmp, "%d", defaultSyntax);
+      sv_catpvn(wrapped, "/syntax=", 8);
+      sv_catpvn(wrapped, tmp, strlen(tmp));
+    }
+    sv_catpvn(wrapped, ")", 1);
+
     sv_catpvn(wrapped, exp, plen);
     sv_catpvn(wrapped, ")", 1);
     RX_WRAPPED_SET(rx, savepvn(SvPVX(wrapped), SvCUR(wrapped)));
@@ -799,7 +808,7 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     regs.start = NULL;
     regs.end = NULL;
 
-    GNU_key2int("re::engine::GNU::debug", isDebug);
+    GNU_key2int("re::engine::GNU/debug", isDebug);
 
     if (isDebug) {
       fprintf(stderr, "%s: start\n", logHeader);
@@ -871,7 +880,7 @@ GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, char *strpos, char *strend, U32 fla
   PERL_UNUSED_ARG(flags);
   PERL_UNUSED_ARG(data);
 
-  GNU_key2int("re::engine::GNU::debug", isDebug);
+  GNU_key2int("re::engine::GNU/debug", isDebug);
 
   if (isDebug) {
     fprintf(stderr, "%s: no-op\n", logHeader);
@@ -895,7 +904,7 @@ GNU_checkstr(pTHX_ REGEXP * const rx)
 
   PERL_UNUSED_ARG(rx);
 
-  GNU_key2int("re::engine::GNU::debug", isDebug);
+  GNU_key2int("re::engine::GNU/debug", isDebug);
 
   if (isDebug) {
     fprintf(stderr, "%s: no-op\n", logHeader);
@@ -948,7 +957,7 @@ GNU_qr_package(pTHX_ REGEXP * const rx)
 
   PERL_UNUSED_ARG(rx);
 
-  GNU_key2int("re::engine::GNU::debug", isDebug);
+  GNU_key2int("re::engine::GNU/debug", isDebug);
 
   if (isDebug) {
     fprintf(stderr, "%s: start\n", logHeader);

@@ -26,10 +26,10 @@ sub import
     if (@_) {
       my %args = @_;
       if (exists $args{'-debug'}) {
-        $^H{__PACKAGE__ . '::debug'} = $args{'-debug'};
+        $^H{__PACKAGE__ . '/debug'} = $args{'-debug'};
       }
       if (exists $args{'-syntax'}) {
-        $^H{__PACKAGE__ . '::syntax'} = $args{'-syntax'};
+        $^H{__PACKAGE__ . '/syntax'} = $args{'-syntax'};
       }
     }
 
