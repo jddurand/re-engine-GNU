@@ -815,9 +815,9 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     }
 
     if (isDebug) {
-      fprintf(stderr, "%s: re_search(bufp=%p, string=%p, length=%d, start=%d, range=%d, regs=%p)\n", logHeader, &(ri->regex), stringarg, (int) (strend - stringarg), (int) (strbeg - stringarg), (int) (strend - strbeg), &regs);
+      fprintf(stderr, "%s: re_search(bufp=%p, string=%p, length=%d, start=%d, range=%d, regs=%p)\n", logHeader, &(ri->regex), strbeg, (int) (strend - strbeg), (int) (stringarg - strbeg), (int) (strend - stringarg), &regs);
     }
-    rc = re_search(&(ri->regex), stringarg, strend - stringarg, strbeg - stringarg, strend - strbeg, &regs);
+    rc = re_search(&(ri->regex), strbeg, strend - strbeg, stringarg - strbeg, strend - stringarg, &regs);
 
     if (rc <= -2) {
       croak("Internal error matching regular expression");
