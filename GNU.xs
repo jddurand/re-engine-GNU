@@ -1111,3 +1111,81 @@ ENGINE(...)
 PROTOTYPE:
 PPCODE:
     XPUSHs(sv_2mortal(newSViv(PTR2IV(&engine_GNU))));
+
+void
+RE_SYNTAX_AWK(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_AWK)));
+
+void
+RE_SYNTAX_ED(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_ED)));
+
+void
+RE_SYNTAX_EGREP(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_EGREP)));
+
+void
+RE_SYNTAX_EMACS(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_EMACS)));
+
+void
+RE_SYNTAX_GNU_AWK(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_GNU_AWK)));
+
+void
+RE_SYNTAX_GREP(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_GREP)));
+
+void
+RE_SYNTAX_POSIX_AWK(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_POSIX_AWK)));
+
+void
+RE_SYNTAX_POSIX_BASIC(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_POSIX_BASIC)));
+
+void
+RE_SYNTAX_POSIX_EGREP(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_POSIX_EGREP)));
+
+void
+RE_SYNTAX_POSIX_EXTENDED(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_POSIX_EXTENDED)));
+
+void
+RE_SYNTAX_POSIX_MINIMAL_BASIC(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_POSIX_MINIMAL_BASIC)));
+
+void
+RE_SYNTAX_POSIX_MINIMAL_EXTENDED(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_POSIX_MINIMAL_EXTENDED)));
+
+void
+RE_SYNTAX_SED(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_SED)));

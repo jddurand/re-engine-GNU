@@ -17,6 +17,23 @@ BEGIN
     XSLoader::load __PACKAGE__, $VERSION;
 }
 
+{
+  no strict 'subs';
+    our $RE_SYNTAX_AWK = RE_SYNTAX_AWK;
+    our $RE_SYNTAX_ED = RE_SYNTAX_ED;
+    our $RE_SYNTAX_EGREP = RE_SYNTAX_EGREP;
+    our $RE_SYNTAX_EMACS = RE_SYNTAX_EMACS;
+    our $RE_SYNTAX_GNU_AWK = RE_SYNTAX_GNU_AWK;
+    our $RE_SYNTAX_GREP = RE_SYNTAX_GREP;
+    our $RE_SYNTAX_POSIX_AWK = RE_SYNTAX_POSIX_AWK;
+    our $RE_SYNTAX_POSIX_BASIC = RE_SYNTAX_POSIX_BASIC;
+    our $RE_SYNTAX_POSIX_EGREP = RE_SYNTAX_POSIX_EGREP;
+    our $RE_SYNTAX_POSIX_EXTENDED = RE_SYNTAX_POSIX_EXTENDED;
+    our $RE_SYNTAX_POSIX_MINIMAL_BASIC = RE_SYNTAX_POSIX_MINIMAL_BASIC;
+    our $RE_SYNTAX_POSIX_MINIMAL_EXTENDED = RE_SYNTAX_POSIX_MINIMAL_EXTENDED;
+    our $RE_SYNTAX_SED = RE_SYNTAX_SED;
+}
+
 sub import
 {
     my $class = shift;
@@ -94,7 +111,57 @@ e.g. { syntax => value, pattern => 'xxx' }, where value is bitwised, like in the
 
 =back
 
-Bitwised value is to be documented (brave people should read the file regex.h in this package).
+Bitwised value is fully documented in the file regex.h distributed with this package. The following convenient class variables are available:
+
+=over
+
+=item $re::engine::GNU::RE_SYNTAX_ED
+
+=item $re::engine::GNU::RE_SYNTAX_EGREP
+
+=item $re::engine::GNU::RE_SYNTAX_EMACS (default)
+
+=item $re::engine::GNU::RE_SYNTAX_GNU_AWK
+
+=item $re::engine::GNU::RE_SYNTAX_GREP
+
+=item $re::engine::GNU::RE_SYNTAX_POSIX_AWK
+
+=item $re::engine::GNU::RE_SYNTAX_POSIX_BASIC
+
+=item $re::engine::GNU::RE_SYNTAX_POSIX_EGREP
+
+=item $re::engine::GNU::RE_SYNTAX_POSIX_EXTENDED
+
+=item $re::engine::GNU::RE_SYNTAX_POSIX_MINIMAL_BASIC
+
+=item $re::engine::GNU::RE_SYNTAX_POSIX_MINIMAL_EXTENDED
+
+=item $re::engine::GNU::RE_SYNTAX_SED
+
+=back
+
+Please refer to L<Gnulib Regular expression syntaxes|https://www.gnu.org/software/gnulib/manual/html_node/Regular-expression-syntaxes.html#Regular-expression-syntaxes> documentation.
+
+The following perl modifiers are supported and applied to the chosen syntax:
+
+=over
+
+=item //m
+
+This is triggering an internal flag saying that newline is an anchor.
+
+=item //s
+
+This is setting a bit in the syntax value, saying that "." can also match newline.
+
+=item //i
+
+This is making the regular expression case insensitive.
+
+=back
+
+The perl modifiers //xp are explicited dropped.
 
 =head2 EXPORT
 
