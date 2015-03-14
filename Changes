@@ -1,6 +1,10 @@
 Changelog for re-engine-GNU
 
-0.009 2015-03-14T10:34:14
+0.010 2015-03-14T11:11:09
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - #define RE_ENABLE_I18N 1
+
+0.009 2015-03-14T10:34:14Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - GNU.xs: uniform debug
  - GNU.xs: fixed wrong arguments to re_search
