@@ -586,7 +586,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       /* RXf_START_ONLY - Have C<split /^/> split on newlines */
       if (plen == 1 && exp[0] == '^') {
         if (isDebug) {
-          fprintf(stderr, "%s: %split /^/ optimizationn", logHeader);
+          fprintf(stderr, "%s: split /^/ optimization", logHeader);
         }
         extflags |= RXf_START_ONLY;
       }
@@ -716,7 +716,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     */
 
     if (isDebug) {
-      fprintf(stderr, "%s: re_compile_internal() call\n", logHeader);
+      fprintf(stderr, "%s: re_compile_internal(preg=%p, pattern=%p, length=%d, syntax=0x%lx)\n", logHeader, &(ri->regex), ri->pattern_utf8, (int) ri->len_pattern_utf8, (unsigned long) ri->regex.syntax);
     }
     ret = re_compile_internal (&(ri->regex), ri->pattern_utf8, ri->len_pattern_utf8, ri->regex.syntax);
     if (ret != _REG_NOERROR) {
@@ -811,11 +811,11 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     GNU_key2int("re::engine::GNU/debug", isDebug);
 
     if (isDebug) {
-      fprintf(stderr, "%s: start\n", logHeader);
+      fprintf(stderr, "%s: start(rx=%p, stringarg=%p, strend=%p, strbeg=%p, minend=%d, sv=%p, data=%p, flags=0x%lx)\n", logHeader, rx, stringarg, strend, strbeg, (int) minend, sv, data, (unsigned long) flags);
     }
 
     if (isDebug) {
-      fprintf(stderr, "%s: re_search\n", logHeader);
+      fprintf(stderr, "%s: re_search(bufp=%p, string=%p, length=%d, start=%d, range=%d, regs=%p)\n", logHeader, &(ri->regex), stringarg, (int) (strend - stringarg), (int) (strbeg - stringarg), (int) (strend - strbeg), &regs);
     }
     rc = re_search(&(ri->regex), stringarg, strend - stringarg, strbeg - stringarg, strend - strbeg, &regs);
 
