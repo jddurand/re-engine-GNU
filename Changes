@@ -1,6 +1,13 @@
 Changelog for re-engine-GNU
 
-0.008 2015-03-11T21:41:15
+0.009 2015-03-14T10:34:14
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - GNU.xs: uniform debug
+ - GNU.xs: fixed wrong arguments to re_search
+ - GNU.xs: more verbose debug statement, fix a wrong debug one
+ - Conform to perlvar convention for scoped variables
+
+0.008 2015-03-11T21:41:15Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - Some more portability issues
 
