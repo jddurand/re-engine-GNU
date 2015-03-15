@@ -167,6 +167,10 @@ The perl modifiers //xp are explicited dropped.
 
 None by default.
 
+=head1 NOTES
+
+I18N is supported without collation.
+
 =head1 SEE ALSO
 
 http://www.regular-expressions.info/gnu.html
