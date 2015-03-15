@@ -1240,6 +1240,8 @@ GNU_free(pTHX_ REGEXP * const rx)
   int                isDebug;
   char              *logHeader = "[re::engine::GNU] GNU_free";
 
+  GNU_key2int("re::engine::GNU/debug", isDebug);
+
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p\n", logHeader, rx);
   }
