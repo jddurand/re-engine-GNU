@@ -13,10 +13,47 @@
 #include "config.h"
 #include "regex.h"
 
+/* Few compatibility issues */
 #if PERL_VERSION > 10
-#define _RegSV(p) SvANY(p)
+#  define _RegSV(p) SvANY(p)
 #else
-#define _RegSV(p) (p)
+#  define _RegSV(p) (p)
+#endif
+
+#ifndef PM_GETRE
+#  define PM_GETRE(o) ((o)->op_pmregexp)
+#endif
+
+#ifndef PERL_UNUSED_VAR
+#  define PERL_UNUSED_VAR(x) ((void)x)
+#endif
+
+#ifndef PERL_UNUSED_ARG
+#  define PERL_UNUSED_ARG(x) PERL_UNUSED_VAR(x)
+#endif
+
+#ifndef sv_setsv_cow
+#  define sv_setsv_cow(a,b) Perl_sv_setsv_cow(aTHX_ a,b)
+#endif
+
+#ifndef RX_MATCH_TAINTED_off
+#  ifdef RXf_TAINTED_SEEN
+#    ifdef NO_TAINT_SUPPORT
+#      define RX_MATCH_TAINTED_off(x)
+#    else
+#      define RX_MATCH_TAINTED_off(x) (RX_EXTFLAGS_SET(x, RX_EXTFLAGS_GET(x) & ~RXf_TAINTED_SEEN))
+#    endif
+#  else
+#    define RX_MATCH_TAINTED_off(x)
+#  endif
+#endif
+
+#ifndef RX_MATCH_UTF8_set
+#  ifdef RXf_MATCH_UTF8
+#    define RX_MATCH_UTF8_set(x, t) ((t) ? (RX_EXTFLAGS_SET(x, RX_EXTFLAGS_GET(x) |= RXf_MATCH_UTF8)) :(RX_EXTFLAGS_SET(x, RX_EXTFLAGS_GET(x) &= ~RXf_MATCH_UTF8)))
+#  else
+#    define RX_MATCH_UTF8_set(x, t)
+#  endif
 #endif
 
 static regexp_engine engine_GNU;
@@ -104,6 +141,27 @@ typedef struct GNU_private {
   #define RX_ENGINE_SET(rx,x) RX_ENGINE(rx) = (x)
   #define RX_ENGINE_GET(rx) RX_ENGINE(rx)
   #define RX_ENGINE_CAN 1
+#endif
+
+#undef RX_SAVED_COPY_SET
+#undef RX_SAVED_COPY_GET
+#undef RX_SAVED_COPY_CAN
+#ifndef RX_SAVED_COPY
+  #ifdef HAVE_REGEXP_SAVED_COPY
+    #define RX_SAVED_COPY(rx) (((struct regexp *) (rx))->saved_copy)
+    #define RX_SAVED_COPY_SET(rx,x) RX_SAVED_COPY(rx) = (x)
+    #define RX_SAVED_COPY_GET(rx) RX_SAVED_COPY(rx)
+    #define RX_SAVED_COPY_CAN 1
+  #else
+    #define RX_SAVED_COPY(rx)
+    #define RX_SAVED_COPY_SET(rx,x)
+    #define RX_SAVED_COPY_GET(rx)
+    #define RX_SAVED_COPY_CAN 0
+  #endif
+#else
+  #define RX_SAVED_COPY_SET(rx,x) RX_SAVED_COPY(rx) = (x)
+  #define RX_SAVED_COPY_GET(rx) RX_SAVED_COPY(rx)
+  #define RX_SAVED_COPY_CAN 1
 #endif
 
 #undef RX_WRAPPED_SET
@@ -253,6 +311,48 @@ typedef struct GNU_private {
   #define RX_SUBLEN_CAN 1
 #endif
 
+#undef RX_SUBOFFSET_SET
+#undef RX_SUBOFFSET_GET
+#undef RX_SUBOFFSET_CAN
+#ifndef RX_SUBOFFSET
+  #ifdef HAVE_REGEXP_SUBOFFSET
+    #define RX_SUBOFFSET(rx) (((struct regexp *) (rx))->suboffset)
+    #define RX_SUBOFFSET_SET(rx,x) RX_SUBOFFSET(rx) = (x)
+    #define RX_SUBOFFSET_GET(rx) RX_SUBOFFSET(rx)
+    #define RX_SUBOFFSET_CAN 1
+  #else
+    #define RX_SUBOFFSET(rx)
+    #define RX_SUBOFFSET_SET(rx,x)
+    #define RX_SUBOFFSET_GET(rx)
+    #define RX_SUBOFFSET_CAN 0
+  #endif
+#else
+  #define RX_SUBOFFSET_SET(rx,x) RX_SUBOFFSET(rx) = (x)
+  #define RX_SUBOFFSET_GET(rx) RX_SUBOFFSET(rx)
+  #define RX_SUBOFFSET_CAN 1
+#endif
+
+#undef RX_SUBCOFFSET_SET
+#undef RX_SUBCOFFSET_GET
+#undef RX_SUBCOFFSET_CAN
+#ifndef RX_SUBCOFFSET
+  #ifdef HAVE_REGEXP_SUBCOFFSET
+    #define RX_SUBCOFFSET(rx) (((struct regexp *) (rx))->subcoffset)
+    #define RX_SUBCOFFSET_SET(rx,x) RX_SUBCOFFSET(rx) = (x)
+    #define RX_SUBCOFFSET_GET(rx) RX_SUBCOFFSET(rx)
+    #define RX_SUBCOFFSET_CAN 1
+  #else
+    #define RX_SUBCOFFSET(rx)
+    #define RX_SUBCOFFSET_SET(rx,x)
+    #define RX_SUBCOFFSET_GET(rx)
+    #define RX_SUBCOFFSET_CAN 0
+  #endif
+#else
+  #define RX_SUBCOFFSET_SET(rx,x) RX_SUBCOFFSET(rx) = (x)
+  #define RX_SUBCOFFSET_GET(rx) RX_SUBCOFFSET(rx)
+  #define RX_SUBCOFFSET_CAN 1
+#endif
+
 #undef RX_OFFS_SET
 #undef RX_OFFS_GET
 #undef RX_OFFS_CAN
@@ -261,18 +361,21 @@ typedef struct GNU_private {
     #define RX_OFFS(rx) (((struct regexp *) (rx))->offs)
     #define RX_OFFS_SET(rx,x) RX_OFFS(rx) = (x)
     #define RX_OFFS_GET(rx) RX_OFFS(rx)
+    #define RX_OFFS_I_GET(rx,i) (RX_OFFS_GET(rx))[i]
     #define RX_OFFS_I_SET(rx,i,startValue,endValue) do { (RX_OFFS_GET(rx))[i].start = (startValue); (RX_OFFS_GET(rx))[i].end = (endValue); } while (0)
     #define RX_OFFS_CAN 1
   #else
     #define RX_OFFS(rx)
     #define RX_OFFS_SET(rx,x)
     #define RX_OFFS_GET(rx)
+    #define RX_OFFS_I_GET(rx,i)
     #define RX_OFFS_I_SET(rx,i,start,end)
     #define RX_OFFS_CAN 0
   #endif
 #else
   #define RX_OFFS_SET(rx,x) RX_OFFS(rx) = (x)
   #define RX_OFFS_GET(rx) RX_OFFS(rx)
+  #define RX_OFFS_I_GET(rx,i) (RX_OFFS_GET(rx))[i]
   #define RX_OFFS_I_SET(rx,i,startValue,endValue) do { (RX_OFFS_GET(rx))[i].start = (startValue); (RX_OFFS_GET(rx))[i].end = (endValue); } while (0)
   #define RX_OFFS_CAN 1
 #endif
@@ -652,7 +755,6 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       if (isDebug) {
         fprintf(stderr, "%s: ... no /s flag\n", logHeader);
       }
-      ri->regex.syntax &= ~RE_DOT_NEWLINE;
     }
 #endif
 #ifdef RXf_PMf_FOLD
@@ -666,7 +768,6 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       if (isDebug) {
         fprintf(stderr, "%s: ... no /i flag\n", logHeader);
       }
-      ri->regex.syntax &= ~RE_ICASE;
     }
 #endif
 #ifdef RXf_PMf_EXTENDED
@@ -682,11 +783,13 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #ifdef RXf_PMf_KEEPCOPY
     /* /p */
     if ((flags & RXf_PMf_KEEPCOPY) == RXf_PMf_KEEPCOPY) {
-      /* Not supported: explicitely removed */
       if (isDebug) {
-        fprintf(stderr, "%s: ... /p flag removed\n", logHeader);
+        fprintf(stderr, "%s: ... /p flag\n", logHeader);
       }
-      extflags &= ~RXf_PMf_KEEPCOPY;
+    } else {
+      if (isDebug) {
+        fprintf(stderr, "%s: ... no /p flag\n", logHeader);
+      }
     }
 #endif
 
@@ -772,7 +875,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       Tell perl how many match vars we have and allocate space for
       them, at least one is always allocated for $&
      */
-    Newxz(re->offs, RX_NPARENS_GET(rx) + 1, regexp_paren_pair);
+    Newxz(RX_OFFS_GET(rx), RX_NPARENS_GET(rx) + 1, regexp_paren_pair);
 
     if (isDebug) {
       fprintf(stderr, "%s: return %p\n", logHeader, rx);
@@ -784,6 +887,198 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif /* HAVE_REGEXP_ENGINE_COMP */
 
 #ifdef HAVE_REGEXP_ENGINE_EXEC
+
+/* Copy of http://perl5.git.perl.org/perl.git/blob_plain/HEAD:/regexec.c */
+/* and little adaptation -; 2015.03.15 */
+
+static void
+GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
+                            char *strbeg,
+                            char *strend,
+                            SV *sv,
+                            U32 flags,
+                            short utf8_target)
+{
+  int   isDebug;
+  char *logHeader = "[re::engine::GNU] GNU_exec_set_capture_string";
+
+  GNU_key2int("re::engine::GNU/debug", isDebug);
+
+  if (isDebug) {
+    fprintf(stderr, "%s: rx=%p, strbeg=%p, strend=%p, sv=%p, flags=0x%lx, utf8_target=%d\n", logHeader, rx, strbeg, strend, sv, (unsigned long) flags, (int) utf8_target);
+  }
+
+#ifdef REXEC_COPY_STR
+    if ((flags & REXEC_COPY_STR) == REXEC_COPY_STR) {
+#if (defined(PERL_ANY_COW) && defined(SvCANCOW) && defined(SvIsCOW) && defined(RXf_COPY_DONE) && defined(RX_MATCH_COPY_FREE))
+#if RX_SAVED_COPY_CAN && RX_EXTFLAGS_CAN && RX_SUBBEG_CAN && RX_SUBLEN_CAN && RX_SUBOFFSET_CAN && RX_SUBCOFFSET_CAN
+        if (SvCANCOW(sv)) {
+            /* Create a new COW SV to share the match string and store
+             * in saved_copy, unless the current COW SV in saved_copy
+             * is valid and suitable for our purpose */
+          if ((   RX_SAVED_COPY_GET(rx) != NULL
+                 && SvIsCOW(RX_SAVED_COPY_GET(rx))
+                 && SvPOKp(RX_SAVED_COPY_GET(rx))
+                 && SvIsCOW(sv)
+                 && SvPOKp(sv)
+                 && SvPVX(sv) == SvPVX(RX_SAVED_COPY_GET(rx))))
+            {
+                /* just reuse saved_copy SV */
+              if (isDebug) {
+                fprintf(stderr, "%s: ... reusing save_copy SV\n", logHeader);
+              }
+              if ((RX_EXTFLAGS_GET(rx) & RXf_COPY_DONE) == RXf_COPY_DONE) {
+                Safefree(RX_SUBBEG_GET(rx));
+                RX_EXTFLAGS_SET(rx, RX_EXTFLAGS_GET(rx) & ~RXf_COPY_DONE);
+              }
+            }
+          else {
+            /* create new COW SV to share string */
+            if (isDebug) {
+              fprintf(stderr, "%s: ... creating new COW sv\n", logHeader);
+            }
+            RX_MATCH_COPY_FREE(rx);
+            RX_SAVED_COPY_SET(rx, sv_setsv_cow(RX_SAVED_COPY_GET(rx), sv));
+          }
+          RX_SUBBEG_SET(rx, (char *)SvPVX_const(RX_SAVED_COPY_GET(rx)));
+          RX_SUBLEN_SET(rx, strend - strbeg);
+          RX_SUBOFFSET_SET(rx, 0);
+          RX_SUBCOFFSET_SET(rx, 0);
+          if (isDebug) {
+            fprintf(stderr, "%s: ... subbeg=%p, sublen=%d, suboffset=%d, subcoffset=%d\n", logHeader, RX_SUBBEG_GET(rx), RX_SUBLEN_GET(rx), RX_SUBOFFSET_GET(rx), RX_SUBCOFFSET_GET(rx));
+          }
+        } else
+#endif /* RX_SAVED_COPY_CAN && RX_EXTFLAGS_CAN && RX_SUBBEG_CAN && RX_SUBLEN_CAN && RX_SUBOFFSET_CAN && RX_SUBCOFFSET_CAN*/
+#endif /* PERL_ANY_COW && SvCANCOW && SvIsCOW && RXf_COPY_DONE && RX_MATCH_COPY_FREE */
+        {
+#if (defined(REXEC_COPY_SKIP_POST) && defined(RXf_PMf_KEEPCOPY) && defined(PL_sawampersand) && defined(SAWAMPERSAND_RIGHT) && defined(SAWAMPERSAND_LEFT) && defined(REXEC_COPY_SKIP_PRE) && defined(RX_MATCH_COPIED) && defined(RX_MATCH_COPIED_on))
+#if RX_EXTFLAGS_CAN && RX_LASTPAREN_CAN && RX_OFFS_CAN && RX_SUBLEN_CAN && RX_SUBBEG_CAN && RX_SUBOFFSET_CAN
+            SSize_t min = 0;
+            SSize_t max = strend - strbeg;
+            SSize_t sublen;
+
+            if (    ((flags & REXEC_COPY_SKIP_POST) == REXEC_COPY_SKIP_POST)
+                    && !((RX_EXTFLAGS_GET(rx) & RXf_PMf_KEEPCOPY) == RXf_PMf_KEEPCOPY) /* //p */
+                    && !((PL_sawampersand & SAWAMPERSAND_RIGHT) == SAWAMPERSAND_RIGHT)
+                    ) { /* don't copy $' part of string */
+              U32 n = 0;
+              max = -1;
+              /* calculate the right-most part of the string covered
+               * by a capture. Due to look-ahead, this may be to
+               * the right of $&, so we have to scan all captures */
+              if (isDebug) {
+                fprintf(stderr, "%s: ... calculate right-most part of the string coverred by a capture\n", logHeader);
+              }
+              while (n <= RX_LASTPAREN_GET(rx)) {
+                if (RX_OFFS_I_GET(rx, n).end > max) {
+                  max = RX_OFFS_I_GET(rx, n).end;
+                }
+                n++;
+              }
+              if (max == -1)
+                max = ((PL_sawampersand & SAWAMPERSAND_LEFT) == SAWAMPERSAND_LEFT)
+                  ? RX_OFFS_I_GET(rx, 0).start
+                  : 0;
+            }
+
+            if (    ((flags & REXEC_COPY_SKIP_PRE) == REXEC_COPY_SKIP_PRE)
+                    && !((RX_EXTFLAGS_GET(rx) & RXf_PMf_KEEPCOPY) == RXf_PMf_KEEPCOPY) /* //p */
+                    && !((PL_sawampersand & SAWAMPERSAND_LEFT) == SAWAMPERSAND_LEFT)
+                    ) { /* don't copy $` part of string */
+              U32 n = 0;
+              min = max;
+              /* calculate the left-most part of the string covered
+               * by a capture. Due to look-behind, this may be to
+               * the left of $&, so we have to scan all captures */
+              if (isDebug) {
+                fprintf(stderr, "%s: ... calculate left-most part of the string coverred by a capture\n", logHeader);
+              }
+              while (min && n <= RX_LASTPAREN_GET(rx)) {
+                if (   RX_OFFS_I_GET(rx, n).start != -1
+                       && RX_OFFS_I_GET(rx, n).start < min)
+                  {
+                    min = RX_OFFS_I_GET(rx, n).start;
+                  }
+                n++;
+              }
+              if (((PL_sawampersand & SAWAMPERSAND_RIGHT) == SAWAMPERSAND_RIGHT)
+                  && min > RX_OFFS_I_GET(rx, 0).end
+                  )
+                min = RX_OFFS_I_GET(rx, 0).end;
+            }
+
+            sublen = max - min;
+
+            if (RX_MATCH_COPIED(rx)) {
+              if (sublen > RX_SUBLEN_GET(rx))
+                RX_SUBBEG_SET(rx, (char*)saferealloc(RX_SUBBEG_GET(rx), sublen+1));
+            }
+            else {
+              RX_SUBBEG_SET(rx, (char*)safemalloc(sublen+1));
+            }
+            Copy(strbeg + min, RX_SUBBEG_GET(rx), sublen, char);
+            RX_SUBBEG_GET(rx)[sublen] = '\0';
+            RX_SUBOFFSET_SET(rx, min);
+            RX_SUBLEN_SET(rx, sublen);
+            RX_MATCH_COPIED_on(rx);
+            if (isDebug) {
+              fprintf(stderr, "%s: ... subbeg=%p, suboffset=%d, sublen=%d\n", logHeader, RX_SUBBEG_GET(rx), RX_SUBCOFFSET_GET(rx), RX_SUBLEN_GET(rx));
+            }
+#endif /* RX_EXTFLAGS_CAN && RX_LASTPAREN_CAN && RX_OFFS_CAN */
+#endif /* REXEC_COPY_SKIP_POST && RXf_PMf_KEEPCOPY && PL_sawampersand && SAWAMPERSAND_RIGHT && SAWAMPERSAND_LEFT && REXEC_COPY_SKIP_PRE */
+        }
+#if RX_SUBCOFFSET_CAN && RX_SUBOFFSET_CAN
+        RX_SUBCOFFSET_SET(rx, RX_SUBOFFSET_GET(rx));
+        if (RX_SUBOFFSET_GET(rx) != 0 && utf8_target != 0) {
+            /* Convert byte offset to chars.
+             * XXX ideally should only compute this if @-/@+
+             * has been seen, a la PL_sawampersand ??? */
+
+            /* If there's a direct correspondence between the
+             * string which we're matching and the original SV,
+             * then we can use the utf8 len cache associated with
+             * the SV. In particular, it means that under //g,
+             * sv_pos_b2u() will use the previously cached
+             * position to speed up working out the new length of
+             * subcoffset, rather than counting from the start of
+             * the string each time. This stops
+             *   $x = "\x{100}" x 1E6; 1 while $x =~ /(.)/g;
+             * from going quadratic */
+#ifdef HAVE_SV_POS_B2U_FLAGS
+          if (SvPOKp(sv) && SvPVX(sv) == strbeg)
+            RX_SUBCOFFSET_SET(rx, sv_pos_b2u_flags(sv, RX_SUBCOFFSET_GET(rx),
+                                                   SV_GMAGIC|SV_CONST_RETURN));
+          else
+#endif
+            RX_SUBCOFFSET_SET(rx, utf8_length((U8*)strbeg,
+                                              (U8*)(strbeg + RX_SUBOFFSET_GET(rx))));
+        }
+        if (isDebug) {
+          fprintf(stderr, "%s: ... suboffset=%d and utf8target=%d => subcoffset=%d\n", logHeader, RX_SUBOFFSET_GET(rx), (int) utf8_target, RX_SUBCOFFSET_GET(rx));
+        }
+#endif /* RX_SUBCOFFSET_CAN && RX_SUBOFFSET_CAN */
+    }
+    else {
+#endif /* REXEC_COPY_STR */
+#ifdef RX_MATCH_COPY_FREE
+        RX_MATCH_COPY_FREE(rx);
+#if RX_SUBBEG_CAN && RX_SUBOFFSET_CAN && RX_SUBCOFFSET_CAN && RX_SUBLEN_CAN
+        RX_SUBBEG_SET(rx, strbeg);
+        RX_SUBOFFSET_SET(rx, 0);
+        RX_SUBCOFFSET_SET(rx, 0);
+        RX_SUBLEN_SET(rx, strend - strbeg);
+#endif /* RX_SUBBEG_CAN && RX_SUBOFFSET_CAN && RX_SUBCOFFSET_CAN && RX_SUBLEN_CAN */
+#endif /* RX_MATCH_COPY_FREE */
+#ifdef REXEC_COPY_STR
+    }
+#endif
+
+  if (isDebug) {
+    fprintf(stderr, "%s: return void\n", logHeader);
+  }
+
+}
+
 #ifdef PERL_STATIC_INLINE
 PERL_STATIC_INLINE
 #else
@@ -801,8 +1096,9 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     regoff_t            rc;
     U32                 i;
     struct re_registers regs;     /* for subexpression matches */
-    int                       isDebug;
-    char                     *logHeader = "[re::engine::GNU] GNU_exec";
+    int                 isDebug;
+    char               *logHeader = "[re::engine::GNU] GNU_exec";
+    short               utf8_target = DO_UTF8(sv) ? 1 : 0;
 
     regs.num_regs = 0;
     regs.start = NULL;
@@ -828,18 +1124,29 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
       return 0;
     }
 
-    RX_SUBBEG_SET(rx, strbeg);
-    RX_SUBLEN_SET(rx, strend - strbeg);
+    /* Why isn't it done by the higher level ? */
+    RX_MATCH_TAINTED_off(rx);
+    RX_MATCH_UTF8_set(rx, utf8_target);
+
     RX_LASTPAREN_SET(rx, RX_NPARENS_GET(rx));
     RX_LASTCLOSEPAREN_SET(rx, RX_NPARENS_GET(rx));
 
     /* There is always at least the index 0 for $& */
     for (i = 0; i < RX_NPARENS_GET(rx) + 1; i++) {
-      if (isDebug) {
-        fprintf(stderr, "%s: ... Match No %d positions: [%d,%d]\n", logHeader, i, (int) regs.start[i], (int) regs.end[i]);
-      }
-      RX_OFFS_I_SET(rx, i, regs.start[i], regs.end[i]);
+        if (isDebug) {
+          I32 start = (I32) utf8_distance(strbeg + regs.start[i], strbeg);
+          I32 end   = (I32) utf8_distance(strbeg + regs.end[i],   strbeg);
+          fprintf(stderr, "%s: ... Match No %d positions: bytes=[%d,%d], characters=[%d,%d]\n", logHeader, i, (int) regs.start[i], (int) regs.end[i], (int) utf8_distance(strbeg + regs.start[i], strbeg), (int) utf8_distance(strbeg + regs.end[i], strbeg));
+        }
+        /* It ASSUMED that RX_OFFS_CAN is 1 */
+        RX_OFFS_I_SET(rx, i, regs.start[i], regs.end[i]);
     }
+
+#ifdef REXEC_NOT_FIRST
+    if ( !(flags & REXEC_NOT_FIRST) ) {
+      GNU_exec_set_capture_string(aTHX_ rx, strbeg, strend, sv, flags, utf8_target);
+    }
+#endif
 
     if (regs.start != NULL) {
       _libc_free(regs.start);
@@ -1189,3 +1496,159 @@ RE_SYNTAX_SED(...)
 PROTOTYPE:
 PPCODE:
     XPUSHs(sv_2mortal(newSViv(RE_SYNTAX_SED)));
+
+void
+RE_BACKSLASH_ESCAPE_IN_LISTS(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_BACKSLASH_ESCAPE_IN_LISTS)));
+
+void
+RE_BK_PLUS_QM(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_BK_PLUS_QM)));
+
+void
+RE_CHAR_CLASSES(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_CHAR_CLASSES)));
+
+void
+RE_CONTEXT_INDEP_ANCHORS(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_CONTEXT_INDEP_ANCHORS)));
+
+void
+RE_CONTEXT_INDEP_OPS(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_CONTEXT_INDEP_OPS)));
+
+void
+RE_CONTEXT_INVALID_OPS(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_CONTEXT_INVALID_OPS)));
+
+void
+RE_DOT_NEWLINE(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_DOT_NEWLINE)));
+
+void
+RE_DOT_NOT_NULL(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_DOT_NOT_NULL)));
+
+void
+RE_HAT_LISTS_NOT_NEWLINE(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_HAT_LISTS_NOT_NEWLINE)));
+
+void
+RE_INTERVALS(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_INTERVALS)));
+
+void
+RE_LIMITED_OPS(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_LIMITED_OPS)));
+
+void
+RE_NEWLINE_ALT(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_NEWLINE_ALT)));
+
+void
+RE_NO_BK_BRACES(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_NO_BK_BRACES)));
+
+void
+RE_NO_BK_PARENS(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_NO_BK_PARENS)));
+
+void
+RE_NO_BK_REFS(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_NO_BK_REFS)));
+
+void
+RE_NO_BK_VBAR(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_NO_BK_VBAR)));
+
+void
+RE_NO_EMPTY_RANGES(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_NO_EMPTY_RANGES)));
+
+void
+RE_UNMATCHED_RIGHT_PAREN_ORD(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_UNMATCHED_RIGHT_PAREN_ORD)));
+
+void
+RE_NO_POSIX_BACKTRACKING(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_NO_POSIX_BACKTRACKING)));
+
+void
+RE_NO_GNU_OPS(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_NO_GNU_OPS)));
+
+void
+RE_DEBUG(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_DEBUG)));
+
+void
+RE_INVALID_INTERVAL_ORD(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_INVALID_INTERVAL_ORD)));
+
+void
+RE_ICASE(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_ICASE)));
+
+void
+RE_CARET_ANCHORS_HERE(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_CARET_ANCHORS_HERE)));
+
+void
+RE_CONTEXT_INVALID_DUP(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_CONTEXT_INVALID_DUP)));
+
+void
+RE_NO_SUB(...)
+PROTOTYPE:
+PPCODE:
+    XPUSHs(sv_2mortal(newSViv(RE_NO_SUB)));

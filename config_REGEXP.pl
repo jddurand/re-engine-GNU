@@ -62,6 +62,19 @@ sub do_config_REGEXP {
 #include \"perl.h\"
 #include \"XSUB.h\"" });
     }
+    print STDERR "...\n";
+    print STDERR "... portability\n";
+    print STDERR "...\n";
+    @funcs = qw/sv_pos_b2u_flags/;
+    foreach (@funcs) {
+        my $func = $_;
+        $ac->check_decl($func, { action_on_true => sub {
+            $ac->define_var('HAVE_' . uc($func), 1);
+                                 },
+                                 prologue => "#include \"EXTERN.h\"
+#include \"perl.h\"
+#include \"XSUB.h\"" });
+    }
     $ac->write_config_h($config);
 }
 
