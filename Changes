@@ -1,6 +1,13 @@
 Changelog for re-engine-GNU
 
-0.010 2015-03-14T11:11:09
+0.011 2015-03-15T16:08:22
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - more constants and utf8 fixes
+ - config_autoconf.pl: compile with _GNU_SOURCE and DEBUG
+ - GNU.pm: say that I18N is supported but collations are not
+ - RE_SYNTAX definitions
+
+0.010 2015-03-14T11:11:09Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - #define RE_ENABLE_I18N 1
 
