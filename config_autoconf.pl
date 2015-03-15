@@ -49,6 +49,8 @@ sub do_config_GNU {
     $ac->check_func('isblank', { prologue => '#include <ctype.h>' });
     $ac->check_func('iswctype', { prologue => '#include <wctype.h>' });
     $ac->check_decl('isblank', { action_on_true => sub { $ac->define_var('HAVE_DECL_ISBLANK', 1) }, prologue => '#include <ctype.h>' });
+    $ac->define_var('_GNU_SOURCE', 1);
+    $ac->define_var('DEBUG', 1);
     $ac->define_var('_REGEX_INCLUDE_LIMITS_H', 1);
     $ac->define_var('_REGEX_LARGE_OFFSETS', 1);
     $ac->define_var('RE_ENABLE_I18N', 1);
