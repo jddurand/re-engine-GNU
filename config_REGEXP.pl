@@ -15,17 +15,18 @@ do_config_REGEXP();
 exit(EXIT_SUCCESS);
 
 sub do_config_REGEXP {
+    my $config_wrapped = File::Spec->catfile('config_REGEXP_wrapped.h');
+    my $log_wrapped = File::Spec->catfile('config_REGEXP_wrapped.log');
     my $config = File::Spec->catfile('config_REGEXP.h');
-    my $log = File::Spec->catfile('config_REGEXP.log');
 
-    my $ac = Config::AutoConf->new(logfile => $log);
+    my $ac = Config::AutoConf->new(logfile => $log_wrapped);
 
     print STDERR "...\n";
     print STDERR "... regexp structure configuration\n";
     print STDERR "... ------------------------------\n";
     $ac->check_cc;
-    my @members = qw/engine mother_re paren_names extflags minlen minlenret gofs substrs nparens intflags pprivate lastparen lastcloseparen swap offs subbeg saved_copy sublen suboffset subcoffset maxlen pre_prefix compflags prelen precomp wrapped wraplen seen_evals refcnt/;
-    foreach (@members) {
+    my @regexpMembers = qw/engine mother_re paren_names extflags minlen minlenret gofs substrs nparens intflags pprivate lastparen lastcloseparen swap offs subbeg saved_copy sublen suboffset subcoffset maxlen pre_prefix compflags prelen precomp wrapped wraplen seen_evals refcnt/;
+    foreach (@regexpMembers) {
         $ac->check_member("regexp.$_", { prologue => "#include \"EXTERN.h\"
 #include \"perl.h\"
 #include \"XSUB.h\"
@@ -38,8 +39,7 @@ sub do_config_REGEXP {
     print STDERR "...\n";
     print STDERR "... regexp_engine structure configuration\n";
     print STDERR "...\n";
-    @members = qw/comp exec intuit checkstr free numbered_buff_FETCH numbered_buff_STORE numbered_buff_LENGTH named_buff named_buff_iter qr_package dupe op_comp/;
-    foreach (@members) {
+    foreach (qw/comp exec intuit checkstr free numbered_buff_FETCH numbered_buff_STORE numbered_buff_LENGTH named_buff named_buff_iter qr_package dupe op_comp/) {
         $ac->check_member("regexp_engine.$_", { prologue => "#include \"EXTERN.h\"
 #include \"perl.h\"
 #include \"XSUB.h\"
@@ -52,8 +52,7 @@ sub do_config_REGEXP {
     print STDERR "...\n";
     print STDERR "... regexp_engine perl functions\n";
     print STDERR "...\n";
-    my @funcs = qw/Perl_reg_numbered_buff_fetch Perl_reg_numbered_buff_store Perl_reg_numbered_buff_length Perl_reg_named_buff Perl_reg_named_buff_iter/;
-    foreach (@funcs) {
+    foreach (qw/Perl_reg_numbered_buff_fetch Perl_reg_numbered_buff_store Perl_reg_numbered_buff_length Perl_reg_named_buff Perl_reg_named_buff_iter/) {
         my $func = $_;
         $ac->check_decl($func, { action_on_true => sub {
             $ac->define_var('HAVE_' . uc($func), 1);
@@ -65,8 +64,7 @@ sub do_config_REGEXP {
     print STDERR "...\n";
     print STDERR "... portability\n";
     print STDERR "...\n";
-    @funcs = qw/sv_pos_b2u_flags/;
-    foreach (@funcs) {
+    foreach (qw/sv_pos_b2u_flags/) {
         my $func = $_;
         $ac->check_decl($func, { action_on_true => sub {
             $ac->define_var('HAVE_' . uc($func), 1);
@@ -75,7 +73,39 @@ sub do_config_REGEXP {
 #include \"perl.h\"
 #include \"XSUB.h\"" });
     }
-    $ac->write_config_h($config);
+    #
+    # Generate structure wrappers
+    #
+    my $fh;
+    open($fh, '>', $config) || die "Cannot open $config, $!";
+    print $fh "#ifndef __CONFIG_REGEXP_H\n";
+    print $fh "\n";
+    print $fh "#define __CONFIG_REGEXP_H\n";
+    print $fh "#include \"$config_wrapped\"\n";
+    foreach (@regexpMembers) {
+      my $can = "REGEXP_" . uc($_) . "_CAN";
+      my $get = "REGEXP_" . uc($_) . "_GET";
+      my $set = "REGEXP_" . uc($_) . "_SET";
+      print $fh "\n";
+      print $fh "#undef $can\n";
+      print $fh "#undef $get\n";
+      print $fh "#undef $set\n";
+      print $fh "#ifdef HAVE_REGEXP_" . uc($_) . "\n";
+      print $fh "#  define $can 1\n";
+      print $fh "#  define $get(rx) ((struct regexp *) (rx))->$_\n";
+      print $fh "#  define $set(rx, x) ((struct regexp *) (rx))->$_ = (x)\n";
+      print $fh "#else\n";
+      print $fh "#  define $can 0\n";
+      print $fh "#  define $get(rx)\n";
+      print $fh "#  define $set(rx, x)\n";
+      print $fh "#endif\n";
+    }
+    print $fh "#endif /* __CONFIG_REGEXP_H */\n";
+    close($fh) || warn "Cannot close $fh, $!";
+    #
+    # Generate wrapped config
+    #
+    $ac->write_config_h($config_wrapped);
 }
 
 #
