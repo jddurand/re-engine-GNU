@@ -35,7 +35,7 @@ typedef unsigned long size_t;
       #endif
     #endif
   #endif
-#define HAVE_SSIZE_T 1
+  #define HAVE_SSIZE_T 1
 #endif
 
 #endif /* NOTGENERATEDCONFIG_H */
