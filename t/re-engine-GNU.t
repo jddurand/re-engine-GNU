@@ -10,13 +10,12 @@ use warnings;
 use open ':std', ':encoding(utf-8)';
 
 use Test::More tests => 60;
-BEGIN { use_ok('re::engine::GNU') };
+BEGIN { require_ok('re::engine::GNU') };
 
 #########################
 
 # Insert your test code below, the Test::More module is use()ed here so read
 # its man page ( perldoc Test::More ) for help writing this test script.
-use re::engine::GNU -debug => ($ENV{AUTHOR_TEST} || 0);
 #
 # Syntax convenient flags
 #
@@ -62,41 +61,44 @@ ok (defined($re::engine::GNU::RE_ICASE), 'RE_ICASE');
 ok (defined($re::engine::GNU::RE_CARET_ANCHORS_HERE), 'RE_CARET_ANCHORS_HERE');
 ok (defined($re::engine::GNU::RE_CONTEXT_INVALID_DUP), 'RE_CONTEXT_INVALID_DUP');
 ok (defined($re::engine::GNU::RE_NO_SUB), 'RE_NO_SUB');
-#
-# qr input type
-#
-ok ('test' =~ /\(tes\)t/, "'test' =~ /\(tes\)t/");
-ok ('test' =~ [ 0, '\(tes\)t' ], "'test' =~ [ 0, '\(tes\)t' ]");
-ok ('test' =~ { syntax => 0, pattern => '\(tes\)t' }, "'test' =~ { syntax => 0, pattern => '\(tes\)t' }");
-#
-# Gnulib own test
-#
-ok ("\x{FF}\0\x{12}\x{A2}\x{AA}\x{C4}\x{B1},K\x{12}\x{C4}\x{B1}*\x{AC}K" !~ { syntax =>
-                   $re::engine::GNU::RE_SYNTAX_GREP |
-                   $re::engine::GNU::RE_HAT_LISTS_NOT_NEWLINE |
-                   $re::engine::GNU::RE_ICASE,
-                                                        pattern => "insert into"}, "http://sourceware.org/ml/libc-hacker/2006-09/msg00008.html");
-#
-# UTF-8
-#
-use Data::Dumper;
-ok ("\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}\x{103A}xy" =~ qr/\([^x]\)\(x\)/p, "\"\\x{1000}\\x{103B}\\x{103D}\\x{1014}\\x{103A}\\x{102F}\\x{1015}\\x{103A}xy\" =~ qr/\([^x]\)\(x\)/p");
-is ($1, "\x{103A}", "utf8 \$1");
-is ($2, "x", "utf8 \$2");
-is ($-[0], 7, "utf8 \$-[0]");
-is ($+[0], 9, "utf8 \$-[0]");
-is ($-[1], 7, "utf8 \$-[1]");
-is ($+[1], 8, "utf8 \$-[1]");
-is ($-[2], 8, "utf8 \$-[2]");
-is ($+[2], 9, "utf8 \$-[2]");
-is (${^PREMATCH}, "\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}", "utf8 \${^PREMATCH}");
-is (${^MATCH}, "\x{103A}x", "utf8 \${^MATCH}");
-is (${^POSTMATCH}, "y", "utf8 \${^POSTMATCH}");
-is ($`, "\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}", "utf8 \$\`");
-is ($&, "\x{103A}x", "utf8 \$&");
-is ($', "y", "utf8 \$'");
-my @matches = ();
-while ("\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}\x{103A}x" =~ m/\([^x]\)/g) {
-  push(@matches, $1);
+{
+  use re::engine::GNU -debug => 1;
+  #
+  # qr input type
+  #
+  ok ('test' =~ /\(tes\)t/, "'test' =~ /\(tes\)t/");
+  ok ('test' =~ [ 0, '\(tes\)t' ], "'test' =~ [ 0, '\(tes\)t' ]");
+  ok ('test' =~ { syntax => 0, pattern => '\(tes\)t' }, "'test' =~ { syntax => 0, pattern => '\(tes\)t' }");
+  #
+  # Gnulib own test
+  #
+  ok ("\x{FF}\0\x{12}\x{A2}\x{AA}\x{C4}\x{B1},K\x{12}\x{C4}\x{B1}*\x{AC}K" !~ { syntax =>
+                                                                                $re::engine::GNU::RE_SYNTAX_GREP |
+                                                                                $re::engine::GNU::RE_HAT_LISTS_NOT_NEWLINE |
+                                                                                $re::engine::GNU::RE_ICASE,
+                                                                                pattern => "insert into"}, "http://sourceware.org/ml/libc-hacker/2006-09/msg00008.html");
+  #
+  # UTF-8
+  #
+  ok ("\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}\x{103A}xy" =~ qr/\([^x]\)\(x\)/p, "\"\\x{1000}\\x{103B}\\x{103D}\\x{1014}\\x{103A}\\x{102F}\\x{1015}\\x{103A}xy\" =~ qr/\([^x]\)\(x\)/p");
+  is ($1, "\x{103A}", "utf8 \$1");
+  is ($2, "x", "utf8 \$2");
+  is ($-[0], 7, "utf8 \$-[0]");
+  is ($+[0], 9, "utf8 \$-[0]");
+  is ($-[1], 7, "utf8 \$-[1]");
+  is ($+[1], 8, "utf8 \$-[1]");
+  is ($-[2], 8, "utf8 \$-[2]");
+  is ($+[2], 9, "utf8 \$-[2]");
+  is (${^PREMATCH}, "\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}", "utf8 \${^PREMATCH}");
+  is (${^MATCH}, "\x{103A}x", "utf8 \${^MATCH}");
+  is (${^POSTMATCH}, "y", "utf8 \${^POSTMATCH}");
+  is ($`, "\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}", "utf8 \$\`");
+  is ($&, "\x{103A}x", "utf8 \$&");
+  is ($', "y", "utf8 \$'");
+  my @matches = ();
+  while ("\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}\x{103A}x" =~ m/\([^x]\)/g) {
+    push(@matches, $1);
+  }
+  is_deeply(\@matches, [ "\x{1000}", "\x{103B}", "\x{103D}", "\x{1014}", "\x{103A}", "\x{102F}", "\x{1015}", "\x{103A}" ], 'utf8 m//g');
+  no re::engine::GNU;
 }
-is_deeply(\@matches, [ "\x{1000}", "\x{103B}", "\x{103D}", "\x{1014}", "\x{103A}", "\x{102F}", "\x{1015}", "\x{103A}" ], 'utf8 m//g');
