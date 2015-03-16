@@ -1242,6 +1242,8 @@ GNU_free(pTHX_ REGEXP * const rx)
 
   GNU_key2int("re::engine::GNU/debug", isDebug);
 
+  fprintf(stderr, "isDebug=%d\n", isDebug);
+
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p\n", logHeader, rx);
   }

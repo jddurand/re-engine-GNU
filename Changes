@@ -1,6 +1,9 @@
 Changelog for re-engine-GNU
 
-0.011 2015-03-15T16:08:22
+0.012 2015-03-15T16:13:20
+ - No changes found
+
+0.011 2015-03-15T16:08:22Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - more constants and utf8 fixes
  - config_autoconf.pl: compile with _GNU_SOURCE and DEBUG
