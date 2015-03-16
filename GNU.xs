@@ -6,15 +6,27 @@
 #include "ppport.h"
 
 #include "config_REGEXP.h"
-# /* Things that MUST be supported */
+
+/* Things that MUST be supported */
+
 #if ! REGEXP_PPRIVATE_CAN
-#error "pprivate not found in structure regexp"
+#  error "pprivate not found in structure regexp"
 #endif
+
 #ifndef RX_WRAPPED
-#error "RX_WRAPPED macro not found"
+#  if ! REGEXP_WRAPPED_CAN
+#    error "RX_WRAPPED macro not found"
+#  else
+#    define RX_WRAPPED(rx) (rx)->wrapped
+#  endif
 #endif
+
 #ifndef RX_WRAPLEN
-#error "RX_WRAPLEN macro not found"
+#  if ! REGEXP_WRAPLEN_CAN
+#    error "RX_WRAPLEN macro not found"
+#  else
+#    define RX_WRAPLEN(rx) (rx)->wraplen
+#  endif
 #endif
 
 #include "config.h"
@@ -151,7 +163,6 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif
 {
     REGEXP                   *rx;
-    regexp                   *re;
     GNU_private_t            *ri;
     int                       isDebug;
     int                       defaultSyntax;
@@ -390,15 +401,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     Newxz(rx, 1, REGEXP);
 #endif
 
-    /* struct regexp (same adress as rx, different cast) */
-    re = _RegSV(rx);
-
-#if PERL_VERSION <= 10
-#ifdef HAVE_REGEXP_REFCNT
-    re->refcnt = 1;
-#endif
-#endif
-
+    REGEXP_REFCNT_SET(rx, 1);
     REGEXP_EXTFLAGS_SET(rx, extflags);
     REGEXP_ENGINE_SET(rx, &engine_GNU);
 
@@ -418,7 +421,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       croak("%s: %s", logHeader, __re_error_msgid + __re_error_msgid_idx[(int) ret]);
     }
 
-    re->pprivate = ri;
+    REGEXP_PPRIVATE_SET(rx, ri);
     REGEXP_LASTPAREN_SET(rx, 0);
     REGEXP_LASTCLOSEPAREN_SET(rx, 0);
     REGEXP_NPARENS_SET(rx, (U32)ri->regex.re_nsub); /* cast from size_t */
@@ -455,8 +458,8 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 
     sv_catpvn(wrapped, exp, plen);
     sv_catpvn(wrapped, ")", 1);
-    RX_WRAPLEN(rx) = SvCUR(wrapped);
     RX_WRAPPED(rx) = savepvn(SvPVX(wrapped), SvCUR(wrapped));
+    RX_WRAPLEN(rx) = SvCUR(wrapped);
     if (isDebug) {
       fprintf(stderr, "%s: ... stringification to %s\n", logHeader, RX_WRAPPED(rx));
     }
@@ -466,7 +469,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       them, at least one is always allocated for $&
      */
     /* Note: we made sure that offs is always supported whatever the perl version */
-    Newxz(re->offs, REGEXP_NPARENS_GET(rx) + 1, regexp_paren_pair);
+    Newxz(REGEXP_OFFS_GET(rx), REGEXP_NPARENS_GET(rx) + 1, regexp_paren_pair);
 
     if (isDebug) {
       fprintf(stderr, "%s: return %p\n", logHeader, rx);
@@ -730,8 +733,7 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, S
 GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I32 minend, SV * sv, void *data, U32 flags)
 #endif
 {
-    regexp             *re = _RegSV(rx);
-    GNU_private_t      *ri = re->pprivate;
+    GNU_private_t      *ri = REGEXP_PPRIVATE_GET(rx);
     regoff_t            rc;
     U32                 i;
     struct re_registers regs;     /* for subexpression matches */
@@ -863,7 +865,7 @@ void
 GNU_free(pTHX_ REGEXP * const rx)
 {
   regexp             *re = _RegSV(rx);
-  GNU_private_t      *ri = re->pprivate;
+  GNU_private_t      *ri = REGEXP_PPRIVATE_GET(rx);
   int                isDebug;
   char              *logHeader = "[re::engine::GNU] GNU_free";
 
@@ -919,8 +921,7 @@ GNU_STATIC
 void *
 GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
 {
-  regexp        *re = _RegSV(rx);
-  GNU_private_t *oldri = (GNU_private_t *) re->pprivate;
+  GNU_private_t *oldri = REGEXP_PPRIVATE_GET(rx);
   GNU_private_t *ri;
   reg_errcode_t  ret;
   int                       isDebug;
