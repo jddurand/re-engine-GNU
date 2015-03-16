@@ -10,7 +10,7 @@ BEGIN {
 use POSIX qw/EXIT_SUCCESS/;
 use File::Spec;
 
-my $DATA = do { local $/; <DATA>: };
+my $DATA = do { local $/; <DATA>; };
 $DATA //= '';
 do_config_REGEXP();
 
