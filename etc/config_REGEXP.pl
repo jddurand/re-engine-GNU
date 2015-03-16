@@ -10,6 +10,8 @@ BEGIN {
 use POSIX qw/EXIT_SUCCESS/;
 use File::Spec;
 
+my $DATA = do { local $/; <DATA>: };
+$DATA //= '';
 do_config_REGEXP();
 
 exit(EXIT_SUCCESS);
@@ -100,6 +102,10 @@ sub do_config_REGEXP {
       print $fh "#  define $set(rx, x)\n";
       print $fh "#endif\n";
     }
+    #
+    # Any eventual hardcoded stuff
+    #
+    print $fh "$DATA\n";
     print $fh "#endif /* __CONFIG_REGEXP_H */\n";
     close($fh) || warn "Cannot close $fh, $!";
     #
@@ -207,3 +213,64 @@ sub my_check_members {
     $have_members;
 };
 
+__DATA__
+/* Few compatibility issues */
+#if PERL_VERSION > 10
+#  define _RegSV(p) SvANY(p)
+#else
+#  define _RegSV(p) (p)
+#endif
+
+#ifndef PM_GETRE
+#  define PM_GETRE(o) ((o)->op_pmregexp)
+#endif
+
+#ifndef PERL_UNUSED_VAR
+#  define PERL_UNUSED_VAR(x) ((void)x)
+#endif
+
+#ifndef PERL_UNUSED_ARG
+#  define PERL_UNUSED_ARG(x) PERL_UNUSED_VAR(x)
+#endif
+
+#ifndef sv_setsv_cow
+#  define sv_setsv_cow(a,b) Perl_sv_setsv_cow(aTHX_ a,b)
+#endif
+
+#ifndef RX_MATCH_TAINTED_off
+#  ifdef RXf_TAINTED_SEEN
+#    ifdef NO_TAINT_SUPPORT
+#      define RX_MATCH_TAINTED_off(x)
+#    else
+#      define RX_MATCH_TAINTED_off(x) (RX_EXTFLAGS_SET(x, RX_EXTFLAGS_GET(x) & ~RXf_TAINTED_SEEN))
+#    endif
+#  else
+#    define RX_MATCH_TAINTED_off(x)
+#  endif
+#endif
+
+#ifndef RX_MATCH_UTF8_set
+#  ifdef RXf_MATCH_UTF8
+#    define RX_MATCH_UTF8_set(x, t) ((t) ? (RX_EXTFLAGS_SET(x, RX_EXTFLAGS_GET(x) |= RXf_MATCH_UTF8)) :(RX_EXTFLAGS_SET(x, RX_EXTFLAGS_GET(x) &= ~RXf_MATCH_UTF8)))
+#  else
+#    define RX_MATCH_UTF8_set(x, t)
+#  endif
+#endif
+
+#ifndef CopHINTHASH_get
+#  define CopHINTHASH_get(c) ((c)->cop_hints_hash)
+#endif
+
+#ifndef cophh_fetch_pvs
+#  ifdef STR_WITH_LEN
+#    define cophh_fetch_pvs(cophh, key, flags) Perl_refcounted_he_fetch(aTHX_ cophh, NULL, key, sizeof(key) - 1, 0, flags)
+#else
+#    define cophh_fetch_pvs(cophh, key, flags) Perl_refcounted_he_fetch(aTHX_ cophh, NULL, STR_WITH_LEN(key), 0, flags)
+#  endif
+#endif
+
+#ifdef PERL_STATIC_INLINE
+#  define GNU_STATIC PERL_STATIC_INLINE
+#else
+# define GNU_STATIC static
+#endif
