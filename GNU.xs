@@ -572,11 +572,12 @@ GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
       /* The following are optimizations that appeared in 5.20. This is almost */
       /* copied verbatim from it */
 #if REGEXP_EXTFLAGS_CAN && REGEXP_LASTPAREN_CAN && REGEXP_OFFS_CAN && REGEXP_SUBLEN_CAN && REGEXP_SUBBEG_CAN
-#if defined(RXf_PMf_KEEPCOPY) && defined(PL_sawampersand) && defined(REXEC_COPY_SKIP_POST) && defined(SAWAMPERSAND_RIGHT) && defined(REXEC_COPY_SKIP_PRE) && defined(SAWAMPERSAND_LEFT)
-      { /* $' and $` optimizations */
+      {
         SSize_t min = 0;
         SSize_t max = strend - strbeg;
         SSize_t sublen;
+#if defined(RXf_PMf_KEEPCOPY) && defined(PL_sawampersand) && defined(REXEC_COPY_SKIP_POST) && defined(SAWAMPERSAND_RIGHT) && defined(REXEC_COPY_SKIP_PRE) && defined(SAWAMPERSAND_LEFT)
+        /* $' and $` optimizations */
 
         if (((flags & REXEC_COPY_SKIP_POST) == REXEC_COPY_SKIP_POST)
             && !((REGEXP_EXTFLAGS_GET(rx) & RXf_PMf_KEEPCOPY) == RXf_PMf_KEEPCOPY) /* //p */
@@ -628,6 +629,7 @@ GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
               )
             min = REGEXP_OFFS_GET(rx)[0].end;
         }
+#endif /* RXf_PMf_KEEPCOPY && PL_sawampersand && REXEC_COPY_SKIP_POST && SAWAMPERSAND_RIGHT && REXEC_COPY_SKIP_PRE && SAWAMPERSAND_LEFT */
 
         sublen = max - min;
 
@@ -673,7 +675,6 @@ GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
                   );
         }
       }
-#endif /* RXf_PMf_KEEPCOPY && PL_sawampersand && REXEC_COPY_SKIP_POST && SAWAMPERSAND_RIGHT && REXEC_COPY_SKIP_PRE && SAWAMPERSAND_LEFT */
 #endif /* REGEXP_EXTFLAGS_CAN && REGEXP_LASTPAREN_CAN && REGEXP_OFFS_CAN && REGEXP_SUBLEN_CAN && REGEXP_SUBBEG_CAN */
 
 #if REGEXP_SUBCOFFSET_CAN && REGEXP_SUBOFFSET_CAN
