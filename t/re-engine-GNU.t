@@ -61,26 +61,22 @@ ok (defined($re::engine::GNU::RE_ICASE), 'RE_ICASE');
 ok (defined($re::engine::GNU::RE_CARET_ANCHORS_HERE), 'RE_CARET_ANCHORS_HERE');
 ok (defined($re::engine::GNU::RE_CONTEXT_INVALID_DUP), 'RE_CONTEXT_INVALID_DUP');
 ok (defined($re::engine::GNU::RE_NO_SUB), 'RE_NO_SUB');
-my ($r1, $r2, $r3, $r4, $r5);
 my ($t1, $t2, $t3, $t4, $t5);
 {
   use re::engine::GNU -debug => 1;
-  $r1 = qr/\(tes\)t/;
-  $t1 = 'test' =~ $r1;
+  $t1 = 'test' =~ qr/\(tes\)t/;
   no re::engine::GNU;
 }
 ok ($t1, "'test' =~ qr/\\(tes\\)t/");
 {
   use re::engine::GNU -debug => 1;
-  $r2 = [ 0, '\(tes\)t' ];
-  $t2 = 'test' =~ $r2;
+  $t2 = 'test' =~ [ 0, '\(tes\)t' ];
   no re::engine::GNU;
 }
 ok ($t2, "'test' =~ qr/\\(tes\\)t (array form)");
 {
   use re::engine::GNU -debug => 1;
-  $r3 = { syntax => 0, pattern => '\(tes\)t' };
-  $t3 = 'test' =~ $r3;
+  $t3 = 'test' =~ { syntax => 0, pattern => '\(tes\)t' };
   no re::engine::GNU;
 }
 ok ($t3, "'test' =~ qr/\\(tes\\)t (hash form)");
@@ -89,11 +85,11 @@ ok ($t3, "'test' =~ qr/\\(tes\\)t (hash form)");
   #
   # Gnulib own test
   #
-  $r4 = { syntax =>
-          $re::engine::GNU::RE_SYNTAX_GREP |
-          $re::engine::GNU::RE_HAT_LISTS_NOT_NEWLINE |
-          $re::engine::GNU::RE_ICASE,
-          pattern => "insert into"};
+  my $r4 = { syntax =>
+             $re::engine::GNU::RE_SYNTAX_GREP |
+             $re::engine::GNU::RE_HAT_LISTS_NOT_NEWLINE |
+             $re::engine::GNU::RE_ICASE,
+             pattern => "insert into"};
   $t4 = "\x{FF}\0\x{12}\x{A2}\x{AA}\x{C4}\x{B1},K\x{12}\x{C4}\x{B1}*\x{AC}K" !~ $r4;
   no re::engine::GNU;
 }
@@ -103,8 +99,7 @@ ok ($t4, "http://sourceware.org/ml/libc-hacker/2006-09/msg00008.html");
   #
   # UTF-8
   #
-  $r5 = qr/\([^x]\)\(x\)/;
-  $t5 = "\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}\x{103A}xy" =~ /$r5/p;
+  $t5 = "\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}\x{103A}xy" =~ qr/\([^x]\)\(x\)/p;
   is ($1, "\x{103A}", "utf8 \$1");
   is ($2, "x", "utf8 \$2");
   is ($-[0], 7, "utf8 \$-[0]");
