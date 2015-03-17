@@ -749,6 +749,7 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 
     if (isDebug) {
       fprintf(stderr, "%s: rx=%p, stringarg=%p, strend=%p, strbeg=%p, minend=%d, sv=%p, data=%p, flags=0x%lx\n", logHeader, rx, stringarg, strend, strbeg, (int) minend, sv, data, (unsigned long) flags);
+      fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
     }
 
     if (isDebug) {

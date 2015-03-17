@@ -61,40 +61,50 @@ ok (defined($re::engine::GNU::RE_ICASE), 'RE_ICASE');
 ok (defined($re::engine::GNU::RE_CARET_ANCHORS_HERE), 'RE_CARET_ANCHORS_HERE');
 ok (defined($re::engine::GNU::RE_CONTEXT_INVALID_DUP), 'RE_CONTEXT_INVALID_DUP');
 ok (defined($re::engine::GNU::RE_NO_SUB), 'RE_NO_SUB');
+my ($r1, $r2, $r3, $r4, $r5);
+my ($t1, $t2, $t3, $t4, $t5);
 {
   use re::engine::GNU -debug => 1;
+
+  $r1 = qr/\(tes\)t/;
+  $r2 = [ 0, '\(tes\)t' ];
+  $r3 = { syntax => 0, pattern => '\(tes\)t' };
   #
   # qr input type
   #
-  ok ('test' =~ /\(tes\)t/, "'test' =~ /\(tes\)t/");
-  ok ('test' =~ [ 0, '\(tes\)t' ], "'test' =~ [ 0, '\(tes\)t' ]");
-  ok ('test' =~ { syntax => 0, pattern => '\(tes\)t' }, "'test' =~ { syntax => 0, pattern => '\(tes\)t' }");
+  $t1 = 'test' =~ $r1;
+  $t2 = 'test' =~ $r2;
+  $t3 = 'test' =~ $r3;
   #
   # Gnulib own test
   #
-  ok ("\x{FF}\0\x{12}\x{A2}\x{AA}\x{C4}\x{B1},K\x{12}\x{C4}\x{B1}*\x{AC}K" !~ { syntax =>
-                                                                                $re::engine::GNU::RE_SYNTAX_GREP |
-                                                                                $re::engine::GNU::RE_HAT_LISTS_NOT_NEWLINE |
-                                                                                $re::engine::GNU::RE_ICASE,
-                                                                                pattern => "insert into"}, "http://sourceware.org/ml/libc-hacker/2006-09/msg00008.html");
+  $r4 = { syntax =>
+          $re::engine::GNU::RE_SYNTAX_GREP |
+          $re::engine::GNU::RE_HAT_LISTS_NOT_NEWLINE |
+          $re::engine::GNU::RE_ICASE,
+          pattern => "insert into"};
+  $t4 = "\x{FF}\0\x{12}\x{A2}\x{AA}\x{C4}\x{B1},K\x{12}\x{C4}\x{B1}*\x{AC}K" !~ $r4;
   #
   # UTF-8
   #
-  ok ("\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}\x{103A}xy" =~ qr/\([^x]\)\(x\)/p, "\"\\x{1000}\\x{103B}\\x{103D}\\x{1014}\\x{103A}\\x{102F}\\x{1015}\\x{103A}xy\" =~ qr/\([^x]\)\(x\)/p");
-  is ($1, "\x{103A}", "utf8 \$1");
-  is ($2, "x", "utf8 \$2");
-  is ($-[0], 7, "utf8 \$-[0]");
-  is ($+[0], 9, "utf8 \$-[0]");
-  is ($-[1], 7, "utf8 \$-[1]");
-  is ($+[1], 8, "utf8 \$-[1]");
-  is ($-[2], 8, "utf8 \$-[2]");
-  is ($+[2], 9, "utf8 \$-[2]");
-  is (${^PREMATCH}, "\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}", "utf8 \${^PREMATCH}");
-  is (${^MATCH}, "\x{103A}x", "utf8 \${^MATCH}");
-  is (${^POSTMATCH}, "y", "utf8 \${^POSTMATCH}");
-  is ($`, "\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}", "utf8 \$\`");
-  is ($&, "\x{103A}x", "utf8 \$&");
-  is ($', "y", "utf8 \$'");
+  $r5 = [0, '\\([^x]\\)\\(x\\)'];
+  $t5 = "\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}\x{103A}xy" =~ $r5;
+  if ("\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}\x{103A}xy" =~ $r5) {
+    is ($1, "\x{103A}", "utf8 \$1");
+    is ($2, "x", "utf8 \$2");
+    is ($-[0], 7, "utf8 \$-[0]");
+    is ($+[0], 9, "utf8 \$-[0]");
+    is ($-[1], 7, "utf8 \$-[1]");
+    is ($+[1], 8, "utf8 \$-[1]");
+    is ($-[2], 8, "utf8 \$-[2]");
+    is ($+[2], 9, "utf8 \$-[2]");
+    is (${^PREMATCH}, "\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}", "utf8 \${^PREMATCH}");
+    is (${^MATCH}, "\x{103A}x", "utf8 \${^MATCH}");
+    is (${^POSTMATCH}, "y", "utf8 \${^POSTMATCH}");
+    is ($`, "\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}", "utf8 \$\`");
+    is ($&, "\x{103A}x", "utf8 \$&");
+    is ($', "y", "utf8 \$'");
+  }
   my @matches = ();
   while ("\x{1000}\x{103B}\x{103D}\x{1014}\x{103A}\x{102F}\x{1015}\x{103A}x" =~ m/\([^x]\)/g) {
     push(@matches, $1);
@@ -102,3 +112,8 @@ ok (defined($re::engine::GNU::RE_NO_SUB), 'RE_NO_SUB');
   is_deeply(\@matches, [ "\x{1000}", "\x{103B}", "\x{103D}", "\x{1014}", "\x{103A}", "\x{102F}", "\x{1015}", "\x{103A}" ], 'utf8 m//g');
   no re::engine::GNU;
 }
+ok ($t1, "'test' =~ $r1");
+ok ($t2, "'test' =~ $r2 (array form)");
+ok ($t3, "'test' =~ $r3 (hash form)");
+ok ($t4, "http://sourceware.org/ml/libc-hacker/2006-09/msg00008.html");
+ok ($t5, "\"\\x{1000}\\x{103B}\\x{103D}\\x{1014}\\x{103A}\\x{102F}\\x{1015}\\x{103A}xy\" =~ $r5");
