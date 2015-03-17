@@ -786,9 +786,57 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 #endif
     }
 
-    if ( !(flags & REXEC_NOT_FIRST) ) {
+    if ((flags & REXEC_NOT_FIRST) != REXEC_NOT_FIRST) {
       GNU_exec_set_capture_string(aTHX_ rx, strbeg, strend, sv, flags, utf8_target);
+      goto SKIP;
     }
+
+    if ((flags & REXEC_NOT_FIRST) != REXEC_NOT_FIRST) {
+      const I32 length = strend - strbeg;
+#if REGEXP_SAVED_COPY_CAN
+      short canCow = 1;
+      short doCow = canCow ? (REGEXP_SAVED_COPY_GET(rx) != NULL
+                              && SvIsCOW(REGEXP_SAVED_COPY_GET(rx))
+                              && SvPOKp(REGEXP_SAVED_COPY_GET(rx))
+                              && SvIsCOW(sv)
+                              && SvPOKp(sv)
+                              && SvPVX(sv) == SvPVX(REGEXP_SAVED_COPY_GET(rx))) : 0;
+#else
+      short canCow = 0;
+      short doCow = 0;
+#endif
+      RX_MATCH_COPY_FREE(rx);
+      if ((flags & REXEC_COPY_STR) == REXEC_COPY_STR) {
+        /* Adapted from perl-5.10. Not performant, I know */
+        if (canCow != 0 && doCow != 0) {
+#if REGEXP_SAVED_COPY_CAN
+          if (isDebug) {
+            fprintf(stderr, "%s: ... reusing save_copy SV\n", logHeader);
+          }
+          REGEXP_SAVED_COPY_SET(rx, sv_setsv_cow(REGEXP_SAVED_COPY_GET(rx), sv));
+#if REGEXP_SUBBEG_CAN
+          {
+             SV *csv = REGEXP_SAVED_COPY_GET(rx);
+             char *s = (char *) SvPVX_const(csv);
+             REGEXP_SUBBEG_SET(rx, s);
+          }
+#endif
+#endif
+        } else {
+          RX_MATCH_COPIED_on(rx);
+#if REGEXP_SUBBEG_CAN
+          REGEXP_SUBBEG_SET(rx, savepvn(strbeg, length));
+#endif
+        }
+      } else {
+          REGEXP_SUBBEG_SET(rx, strbeg);
+      }
+      REGEXP_SUBLEN_SET(rx, length);
+      REGEXP_SUBOFFSET_SET(rx, 0);
+      REGEXP_SUBCOFFSET_SET(rx, 0);
+    }
+
+SKIP:
 
     if (regs.start != NULL) {
       _libc_free(regs.start);
