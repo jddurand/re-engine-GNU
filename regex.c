@@ -1,5 +1,5 @@
 /* Extended regular expression matching and search library.
-   Copyright (C) 2002-2015 Free Software Foundation, Inc.
+   Copyright (C) 2002-2014 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Isamu Hasegawa <isamu@yamato.ibm.com>.
 
@@ -18,7 +18,7 @@
    <http://www.gnu.org/licenses/>.  */
 
 #ifndef _LIBC
-# include "config.h"
+# include <config.h>
 
 # if (__GNUC__ == 4 && 6 <= __GNUC_MINOR__) || 4 < __GNUC__
 #  pragma GCC diagnostic ignored "-Wsuggest-attribute=pure"
@@ -64,7 +64,7 @@
    #undefs RE_DUP_MAX and sets it to the right value.  */
 #include <limits.h>
 
-#include "regex.h"
+#include <regex.h>
 #include "regex_internal.h"
 
 #include "regex_internal.c"

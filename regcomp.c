@@ -1,5 +1,5 @@
 /* Extended regular expression matching and search library.
-   Copyright (C) 2002-2015 Free Software Foundation, Inc.
+   Copyright (C) 2002-2014 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Isamu Hasegawa <isamu@yamato.ibm.com>.
 
@@ -16,11 +16,6 @@
    You should have received a copy of the GNU Lesser General Public
    License along with the GNU C Library; if not, see
    <http://www.gnu.org/licenses/>.  */
-
-/* Dependency on langinfo is DROPPED by REQUIRING that any string coming */
-/* from perl is ALREADY a sequence of octets. I.e.:                      */
-/* use Encode;                                                           */
-/* my $octets = encode_utf8($string);                                    */
 
 /* static */ reg_errcode_t re_compile_internal (regex_t *preg, const char * pattern,
 					  size_t length, reg_syntax_t syntax);
@@ -130,7 +125,7 @@ static reg_errcode_t mark_opt_subexp (void *extra, bin_tree_t *node);
    POSIX doesn't require that we do anything for REG_NOERROR,
    but why not be nice?  */
 
-/* static */ const char __re_error_msgid[] =
+static const char __re_error_msgid[] =
   {
 #define REG_NOERROR_IDX	0
     gettext_noop ("Success")	/* REG_NOERROR */
@@ -184,7 +179,7 @@ static reg_errcode_t mark_opt_subexp (void *extra, bin_tree_t *node);
     gettext_noop ("Unmatched ) or \\)") /* REG_ERPAREN */
   };
 
-/* static */ const size_t __re_error_msgid_idx[] =
+static const size_t __re_error_msgid_idx[] =
   {
     REG_NOERROR_IDX,
     REG_NOMATCH_IDX,
@@ -909,6 +904,7 @@ init_dfa (re_dfa_t *dfa, size_t pat_len)
   dfa->map_notascii = (_NL_CURRENT_WORD (LC_CTYPE, _NL_CTYPE_MAP_TO_NONASCII)
 		       != 0);
 #else
+/* We require that input coming from perl will always be utf-8 */
 #if 0
   codeset_name = nl_langinfo (CODESET);
   if ((codeset_name[0] == 'U' || codeset_name[0] == 'u')
@@ -916,7 +912,6 @@ init_dfa (re_dfa_t *dfa, size_t pat_len)
       && (codeset_name[2] == 'F' || codeset_name[2] == 'f')
       && strcmp (codeset_name + 3 + (codeset_name[3] == '-'), "8") == 0)
 #endif
-    /* Absolute requirement: any string in input is ALREADY a sequence of bytesm utf8 encoded */
     dfa->is_utf8 = 1;
 
   /* We check exhaustively in the loop below if this charset is a
@@ -2207,11 +2202,7 @@ parse_reg_exp (re_string_t *regexp, regex_t *preg, re_token_t *token,
 	{
 	  branch = parse_branch (regexp, preg, token, syntax, nest, err);
 	  if (BE (*err != REG_NOERROR && branch == NULL, 0))
-	    {
-	      if (tree != NULL)
-		postorder (tree, free_tree, NULL);
-	      return NULL;
-	    }
+	    return NULL;
 	}
       else
 	branch = NULL;
@@ -2472,22 +2463,14 @@ parse_expression (re_string_t *regexp, regex_t *preg, re_token_t *token,
   while (token->type == OP_DUP_ASTERISK || token->type == OP_DUP_PLUS
 	 || token->type == OP_DUP_QUESTION || token->type == OP_OPEN_DUP_NUM)
     {
-      bin_tree_t *dup_tree = parse_dup_op (tree, regexp, dfa, token,
-					   syntax, err);
-      if (BE (*err != REG_NOERROR && dup_tree == NULL, 0))
-	{
-	  if (tree != NULL)
-	    postorder (tree, free_tree, NULL);
-	  return NULL;
-	}
-      tree = dup_tree;
+      tree = parse_dup_op (tree, regexp, dfa, token, syntax, err);
+      if (BE (*err != REG_NOERROR && tree == NULL, 0))
+	return NULL;
       /* In BRE consecutive duplications are not allowed.  */
       if ((syntax & RE_CONTEXT_INVALID_DUP)
 	  && (token->type == OP_DUP_ASTERISK
 	      || token->type == OP_OPEN_DUP_NUM))
 	{
-	  if (tree != NULL)
-	    postorder (tree, free_tree, NULL);
 	  *err = REG_BADRPT;
 	  return NULL;
 	}
@@ -2643,8 +2626,6 @@ parse_dup_op (bin_tree_t *elem, re_string_t *regexp, re_dfa_t *dfa,
 
       /* Duplicate ELEM before it is marked optional.  */
       elem = duplicate_tree (elem, dfa);
-      if (BE (elem == NULL, 0))
-        goto parse_dup_op_espace;
       old_tree = tree;
     }
   else

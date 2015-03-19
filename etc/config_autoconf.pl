@@ -38,6 +38,11 @@ sub do_config_GNU {
     $ac->check_func('realloc', { prologue => '#include <stdlib.h>' });
     $ac->check_type('mbstate_t', { prologue => "#include <stddef.h>\n#include <stdio.h>\n#include <time.h>\n#include <wchar.h>" });
     $ac->check_type('_Bool');
+    $ac->check_header('assert.h');
+    $ac->check_header('ctype.h');
+    $ac->check_header('stdio.h');
+    $ac->check_header('stdlib.h');
+    $ac->check_header('string.h');
     $ac->check_header('wchar.h');
     $ac->check_header('wctype.h');
     $ac->check_header('stdbool.h');
@@ -49,27 +54,17 @@ sub do_config_GNU {
     $ac->check_func('isblank', { prologue => '#include <ctype.h>' });
     $ac->check_func('iswctype', { prologue => '#include <wctype.h>' });
     $ac->check_decl('isblank', { action_on_true => sub { $ac->define_var('HAVE_DECL_ISBLANK', 1) }, prologue => '#include <ctype.h>' });
-    $ac->define_var('DEBUG', 1);
     $ac->define_var('_REGEX_INCLUDE_LIMITS_H', 1);
     $ac->define_var('_REGEX_LARGE_OFFSETS', 1);
     $ac->define_var('RE_ENABLE_I18N', 1);
-    $ac->define_var('re_syntax_options', 'rpl_re_syntax_options');
-    $ac->define_var('re_set_syntax', 'rpl_re_set_syntax');
-    $ac->define_var('re_compile_pattern', 'rpl_re_compile_pattern');
-    $ac->define_var('re_compile_fastmap', 'rpl_re_compile_fastmap');
-    $ac->define_var('re_search', 'rpl_re_search');
-    $ac->define_var('re_search_2', 'rpl_re_search_2');
-    $ac->define_var('re_match', 'rpl_re_match');
-    $ac->define_var('re_match_2', 'rpl_re_match_2');
-    $ac->define_var('re_set_registers', 'rpl_re_set_registers');
-    $ac->define_var('re_comp', 'rpl_re_comp');
-    $ac->define_var('re_exec', 'rpl_re_exec');
-    $ac->define_var('regcomp', 'rpl_regcomp');
-    $ac->define_var('regexec', 'rpl_regexec');
-    $ac->define_var('regerror', 'rpl_regerror');
-    $ac->define_var('regfree', 'rpl_regfree');
+    $ac->define_var('NOT_IN_libc', 1);
     $ac->check_type('size_t');
     $ac->check_type('ssize_t');
+    $ac->check_sizeof_type('char');
+    $ac->check_sizeof_type('wchar_t');
+    #
+    # For ssize_t definition
+    #
     $ac->check_sizeof_type('size_t');
     $ac->check_sizeof_type('short');
     $ac->check_sizeof_type('int');

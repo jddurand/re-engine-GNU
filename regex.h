@@ -1,6 +1,6 @@
 /* Definitions for data structures and routines for the regular
    expression library.
-   Copyright (C) 1985, 1989-1993, 1995-1998, 2000-2003, 2005-2015 Free Software
+   Copyright (C) 1985, 1989-1993, 1995-1998, 2000-2003, 2005-2014 Free Software
    Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -608,7 +608,7 @@ extern void re_set_registers (struct re_pattern_buffer *__buffer,
 			      regoff_t *__starts, regoff_t *__ends);
 #endif	/* Use GNU */
 
-#if defined _REGEX_RE_COMP || (defined _LIBC && defined __USE_MISC)
+#if defined _REGEX_RE_COMP || (defined _LIBC && defined __USE_BSD)
 # ifndef _CRAY
 /* 4.2 bsd compatibility.  */
 extern char *re_comp (const char *);
@@ -659,8 +659,9 @@ extern size_t regerror (int __errcode, const regex_t *_Restrict_ __preg,
 
 extern void regfree (regex_t *__preg);
 
+
 /* GNU entry point is forcing newline_anchor                       */
-/* I do not want, so I force externalization of                    */
+/* I do not want that, so I force externalization of               */
 /* the internal implementation - this has another                  */
 /* advantage: getting rid of the global variable re_syntax_options */
 extern reg_errcode_t re_compile_internal (regex_t *preg, const char * pattern, size_t length, reg_syntax_t syntax);

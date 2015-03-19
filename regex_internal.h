@@ -1,5 +1,5 @@
 /* Extended regular expression matching and search library.
-   Copyright (C) 2002-2015 Free Software Foundation, Inc.
+   Copyright (C) 2002-2014 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Isamu Hasegawa <isamu@yamato.ibm.com>.
 
@@ -20,41 +20,53 @@
 #ifndef _REGEX_INTERNAL_H
 #define _REGEX_INTERNAL_H 1
 
-#include <assert.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#ifdef HAVE_ASSERT_H
+#  include <assert.h>
+#endif
+#ifdef HAVE_CTYPE_H
+#  include <ctype.h>
+#endif
+#ifdef HAVE_STDIO_H
+#  include <stdio.h>
+#endif
+#ifdef HAVE_STDLIB_H
+#  include <stdlib.h>
+#endif
+#ifdef HAVE_STRING_H
+#  include <string.h>
+#endif
 
+/* We do not want to include locale stuff: everything */
+/* will be done using perl API */
 #if 0
-#include <langinfo.h>
-#include <locale.h>
+#  include <langinfo.h>
+#  include <locale.h>
 #endif
 #ifdef HAVE_WCHAR_H
-#include <wchar.h>
+#  include <wchar.h>
 #endif
 #ifdef HAVE_WCTYPE_H
-#include <wctype.h>
+#  include <wctype.h>
 #endif
 #ifdef HAVE_STDBOOL_H
-#include <stdbool.h>
+#  include <stdbool.h>
 #else
-  #ifndef __cplusplus
-    #ifndef bool
-      #ifdef HAVE__BOOL
-        typedef _Bool bool;
-      #else
-        typedef unsigned char bool;
-      #endif
-    #endif
-    #ifndef true
-      #define true 1
-    #endif
-    #ifndef false
-      #define false 0
-    #endif
-    #define __bool_true_false_are_defined 1
-  #endif
+#  ifndef __cplusplus
+#    ifndef bool
+#      ifdef HAVE__BOOL
+typedef _Bool bool;
+#      else
+typedef unsigned char bool;
+#      endif
+#    endif
+#    ifndef true
+#      define true 1
+#    endif
+#    ifndef false
+#      define false 0
+#    endif
+#    define __bool_true_false_are_defined 1
+#  endif
 #endif
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
@@ -71,7 +83,7 @@
 # define lock_fini(lock) 0
 # define lock_lock(lock) __libc_lock_lock (lock)
 # define lock_unlock(lock) __libc_lock_unlock (lock)
-#elif defined GNULIB_LOCK && !defined USE_UNLOCKED_IO
+#elif defined GNULIB_LOCK
 # include "glthread/lock.h"
   /* Use gl_lock_define if empty macro arguments are known to work.
      Otherwise, fall back on less-portable substitutes.  */
@@ -93,7 +105,7 @@
 # define lock_fini(lock) glthread_lock_destroy (&(lock))
 # define lock_lock(lock) glthread_lock_lock (&(lock))
 # define lock_unlock(lock) glthread_lock_unlock (&(lock))
-#elif defined GNULIB_PTHREAD && !defined USE_UNLOCKED_IO
+#elif defined GNULIB_PTHREAD
 # include <pthread.h>
 # define lock_define(name) pthread_mutex_t name;
 # define lock_init(lock) pthread_mutex_init (&(lock), 0)
