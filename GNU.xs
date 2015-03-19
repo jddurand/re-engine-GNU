@@ -35,11 +35,10 @@
 static regexp_engine engine_GNU;
 
 typedef struct GNU_private {
-  SV *sv_pattern_copy;
-
-  char *pattern_utf8;
-  STRLEN len_pattern_utf8;
-
+#ifdef HAVE_REGEXP_ENGINE_DUPE
+  char   *native_utf8;
+  STRLEN  len_native_utf8;
+#endif
   regex_t regex;
 } GNU_private_t;
 
@@ -154,6 +153,34 @@ void _libc_free(void *ptr) {
   }                                                              \
 } while (0)
 
+GNU_STATIC
+char *sv2nativeutf8(pTHX_ SV *sv, short isDebug, STRLEN *len_native_utf8) {
+    char                     *perl_utf8;
+    STRLEN                    len_perl_utf8;
+    char                     *native_utf8;
+    bool                      is_utf8;
+    SV                        *sv_tmp;
+
+    /* Because we do not want to affect original sv */
+    sv_tmp = sv_mortalcopy(sv);
+
+    /* Upgrade sv_tmp to UTF-8 and get pointer to Perl's string */
+    /* Perl's internal utf8 representation is not utf8 */
+    perl_utf8 = SvPVutf8(sv_tmp, len_perl_utf8);
+
+    *len_native_utf8 = len_perl_utf8;
+    is_utf8 = 1;
+    native_utf8 = (char*)bytes_from_utf8((U8 *)perl_utf8, len_native_utf8, &is_utf8);
+
+    if (native_utf8 == perl_utf8) {
+      /* Oups, not allocated */
+      Newx(native_utf8, *len_native_utf8, char);
+      Copy(perl_utf8, native_utf8, *len_native_utf8, char);
+    }
+
+    return native_utf8;
+}
+
 #ifdef HAVE_REGEXP_ENGINE_COMP
 GNU_STATIC
 #if PERL_VERSION <= 10
@@ -167,6 +194,8 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     int                       isDebug;
     int                       defaultSyntax;
     char                     *logHeader = "[re::engine::GNU] GNU_comp";
+    char                     *native_utf8;
+    STRLEN                    len_native_utf8;
 
     /* Input as char * */
     STRLEN plen;
@@ -210,7 +239,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
         fprintf(stderr, "%s: ... input is a scalar\n", logHeader);
       }
 
-      sv_pattern = newSVsv((SV *)pattern);
+      sv_pattern = sv_2mortal(newSVsv((SV *)pattern));
 
     } else if (pattern_type == ARRAYREF) {
       AV *av = (AV *)SvRV(pattern);
@@ -234,8 +263,8 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
         croak("%s: array ref must have a scalar as first element, got %d", logHeader, get_type((SV *)a_syntax));
       }
 
-      sv_pattern = newSVsv(*a_pattern);
-      sv_syntax  = newSVsv(*a_syntax);
+      sv_pattern = sv_2mortal(newSVsv(*a_pattern));
+      sv_syntax  = sv_2mortal(newSVsv(*a_syntax));
 
     } else if (pattern_type == HASHREF) {
       HV  *hv        = (HV *)SvRV(pattern);
@@ -253,8 +282,8 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
         croak("%s: hash ref key must have a key 'syntax' refering to a scalar", logHeader);
       }
 
-      sv_pattern = newSVsv(*h_pattern);
-      sv_syntax  = newSVsv(*h_syntax);
+      sv_pattern = sv_2mortal(newSVsv(*h_pattern));
+      sv_syntax  = sv_2mortal(newSVsv(*h_syntax));
 
     } else {
       croak("%s: pattern must be a scalar, an array ref [syntax => pattern], or a hash ref {'syntax' => syntax, 'pattern' => pattern} where syntax and flavour are exclusive", logHeader);
@@ -307,9 +336,6 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif
     }
 
-    ri->sv_pattern_copy        = sv_pattern;
-    ri->pattern_utf8           = SvPVutf8(ri->sv_pattern_copy, ri->len_pattern_utf8);
-
     ri->regex.buffer           = NULL;
     ri->regex.allocated        = 0;
     ri->regex.used             = 0;
@@ -324,12 +350,6 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     ri->regex.not_bol          = 0;
     ri->regex.not_eol          = 0;
     ri->regex.newline_anchor   = 0;
-
-    if (sv_syntax != NULL) {
-      SvREFCNT_dec(sv_syntax);
-      sv_syntax = NULL;
-    }
-   
 
     /* /msixp flags */
 #ifdef RXf_PMf_MULTILINE
@@ -411,10 +431,20 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     REGEXP_PRECOMP_SET(rx, (exp != NULL) ? savepvn(exp, plen) : NULL);
     */
 
+    native_utf8 = sv2nativeutf8(aTHX_ sv_pattern, isDebug, &len_native_utf8);
     if (isDebug) {
-      fprintf(stderr, "%s: ... re_compile_internal(preg=%p, pattern=%p, length=%d, syntax=0x%lx)\n", logHeader, &(ri->regex), ri->pattern_utf8, (int) ri->len_pattern_utf8, (unsigned long) ri->regex.syntax);
+      fprintf(stderr, "%s: ... re_compile_internal(preg=%p, pattern=%p, length=%d, syntax=0x%lx)\n", logHeader, &(ri->regex), native_utf8, (int) len_native_utf8, (unsigned long) ri->regex.syntax);
     }
-    ret = re_compile_internal (&(ri->regex), ri->pattern_utf8, ri->len_pattern_utf8, ri->regex.syntax);
+    ret = re_compile_internal (&(ri->regex), native_utf8, len_native_utf8, ri->regex.syntax);
+#ifdef HAVE_REGEXP_ENGINE_DUPE
+    /*
+      Always do a copy of the pattern for the dupe method
+    */
+    ri->len_native_utf8 = len_native_utf8;
+    ri->native_utf8 = native_utf8;
+#else
+    Safefree(native_utf8);
+#endif
     if (ret != _REG_NOERROR) {
       extern const char __re_error_msgid[];
       extern const size_t __re_error_msgid_idx[];
@@ -741,6 +771,16 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     char               *logHeader = "[re::engine::GNU] GNU_exec";
     short               utf8_target = DO_UTF8(sv) ? 1 : 0;
 
+    char               *native_utf8;
+    STRLEN              len_native_utf8;
+
+    SV                 *sv_stringarg;
+    char               *nativestringarg_utf8;
+    STRLEN              len_nativestringarg_utf8;
+    bool                nativestringarg_utf8_tofree;
+
+    STRLEN              len_nativerange_utf8;
+
     regs.num_regs = 0;
     regs.start = NULL;
     regs.end = NULL;
@@ -755,7 +795,23 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     if (isDebug) {
       fprintf(stderr, "%s: ... re_search(bufp=%p, string=%p, length=%d, start=%d, range=%d, regs=%p)\n", logHeader, &(ri->regex), strbeg, (int) (strend - strbeg), (int) (stringarg - strbeg), (int) (strend - stringarg), &regs);
     }
-    rc = re_search(&(ri->regex), strbeg, strend - strbeg, stringarg - strbeg, strend - stringarg, &regs);
+    native_utf8 = sv2nativeutf8(aTHX_ sv, isDebug, &len_native_utf8);
+    if (stringarg != strbeg) {
+      sv_stringarg = sv_2mortal(newSVpvn_utf8(stringarg, strend - stringarg, utf8_target));
+      nativestringarg_utf8 = sv2nativeutf8(sv_stringarg, isDebug, &len_nativestringarg_utf8);
+      nativestringarg_utf8_tofree = 1;
+    } else {
+      len_nativestringarg_utf8 = len_native_utf8;
+      nativestringarg_utf8 = native_utf8;
+      nativestringarg_utf8_tofree = 0;
+    }
+    /* rc = re_search(&(ri->regex), strbeg, strend - strbeg, stringarg - strbeg, strend - stringarg, &regs); */
+    len_nativerange_utf8 = len_native_utf8 - len_nativestringarg_utf8;
+    rc = re_search(&(ri->regex), native_utf8, len_native_utf8, len_native_utf8 - len_nativerange_utf8, len_nativerange_utf8, &regs);
+    Safefree(native_utf8);
+    if (nativestringarg_utf8_tofree) {
+      Safefree(nativestringarg_utf8);
+    }
 
     if (rc <= -2) {
       croak("%s: Internal error in re_search()", logHeader);
@@ -767,8 +823,8 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     }
 
     /* Why isn't it done by the higher level ? */
-    RX_MATCH_TAINTED_off(rx);
     RX_MATCH_UTF8_set(rx, utf8_target);
+    RX_MATCH_TAINTED_off(rx);
 
     REGEXP_LASTPAREN_SET(rx, REGEXP_NPARENS_GET(rx));
     REGEXP_LASTCLOSEPAREN_SET(rx, REGEXP_NPARENS_GET(rx));
@@ -787,8 +843,8 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     }
 
     if ((flags & REXEC_NOT_FIRST) != REXEC_NOT_FIRST) {
-      GNU_exec_set_capture_string(aTHX_ rx, strbeg, strend, sv, flags, utf8_target);
-      goto SKIP;
+      // GNU_exec_set_capture_string(aTHX_ rx, strbeg, strend, sv, flags, utf8_target);
+      // goto SKIP;
     }
 
     if ((flags & REXEC_NOT_FIRST) != REXEC_NOT_FIRST) {
@@ -924,7 +980,9 @@ GNU_free(pTHX_ REGEXP * const rx)
     fprintf(stderr, "%s: rx=%p\n", logHeader, rx);
   }
 
-  SvREFCNT_dec(ri->sv_pattern_copy);
+#ifdef HAVE_REGEXP_ENGINE_DUPE
+  Safefree(ri->native_utf8);
+#endif
   if (isDebug) {
     fprintf(stderr, "%s: ... regfree(preg=%p)\n", logHeader, &(ri->regex));
   }
@@ -986,9 +1044,9 @@ GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
     fprintf(stderr, "%s: ... allocating GNU_private_t\n", logHeader);
   }
   Newxz(ri, 1, GNU_private_t);
-
-  ri->sv_pattern_copy = newSVsv(oldri->sv_pattern_copy);
-  ri->pattern_utf8    = SvPVutf8(ri->sv_pattern_copy, ri->len_pattern_utf8);
+  Newx(ri->native_utf8, oldri->len_native_utf8, char);
+  ri->len_native_utf8 = oldri->len_native_utf8;
+  Copy(oldri->native_utf8, ri->native_utf8, ri->len_native_utf8, char);
 
   ri->regex.buffer           = NULL;
   ri->regex.allocated        = 0;
