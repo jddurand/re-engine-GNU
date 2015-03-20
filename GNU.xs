@@ -31,9 +31,6 @@
 #  endif
 #endif
 
-#include "config.h"
-#include "regex.h"
-
 static regexp_engine engine_GNU;
 
 typedef struct GNU_private {

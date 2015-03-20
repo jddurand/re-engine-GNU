@@ -57,7 +57,6 @@ sub do_config_GNU {
     $ac->define_var('_REGEX_INCLUDE_LIMITS_H', 1);
     $ac->define_var('_REGEX_LARGE_OFFSETS', 1);
     $ac->define_var('RE_ENABLE_I18N', 1);
-    $ac->define_var('NOT_IN_libc', 1);
     $ac->check_type('size_t');
     $ac->check_type('ssize_t');
     $ac->check_sizeof_type('char');
