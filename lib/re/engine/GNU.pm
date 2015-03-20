@@ -3,6 +3,10 @@ use strict;
 use diagnostics;
 use 5.010000;
 use XSLoader ();
+#
+# Internally, in case of threads, we use SvLOCK and al.
+#
+use threads::shared;
 
 # ABSTRACT: GNU Regular Expression Engine
 
