@@ -17,14 +17,14 @@
    License along with the GNU C Library; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-static void re_string_construct_common (const char *str, Idx len,
+static void re_string_construct_common (pTHX_ const char *str, Idx len,
 					re_string_t *pstr,
 					RE_TRANSLATE_TYPE trans, bool icase,
 					const re_dfa_t *dfa) internal_function;
-static re_dfastate_t *create_ci_newstate (const re_dfa_t *dfa,
+static re_dfastate_t *create_ci_newstate (pTHX_ const re_dfa_t *dfa,
 					  const re_node_set *nodes,
 					  re_hashval_t hash) internal_function;
-static re_dfastate_t *create_cd_newstate (const re_dfa_t *dfa,
+static re_dfastate_t *create_cd_newstate (pTHX_ const re_dfa_t *dfa,
 					  const re_node_set *nodes,
 					  unsigned int context,
 					  re_hashval_t hash) internal_function;
@@ -36,7 +36,7 @@ static re_dfastate_t *create_cd_newstate (const re_dfa_t *dfa,
 
 static reg_errcode_t
 internal_function __attribute_warn_unused_result__
-re_string_allocate (re_string_t *pstr, const char *str, Idx len, Idx init_len,
+re_string_allocate (pTHX_ re_string_t *pstr, const char *str, Idx len, Idx init_len,
 		    RE_TRANSLATE_TYPE trans, bool icase, const re_dfa_t *dfa)
 {
   reg_errcode_t ret;
@@ -46,9 +46,9 @@ re_string_allocate (re_string_t *pstr, const char *str, Idx len, Idx init_len,
   if (init_len < dfa->mb_cur_max)
     init_len = dfa->mb_cur_max;
   init_buf_len = (len + 1 < init_len) ? len + 1: init_len;
-  re_string_construct_common (str, len, pstr, trans, icase, dfa);
+  re_string_construct_common (aTHX_ str, len, pstr, trans, icase, dfa);
 
-  ret = re_string_realloc_buffers (pstr, init_buf_len);
+  ret = re_string_realloc_buffers (aTHX_ pstr, init_buf_len);
   if (BE (ret != REG_NOERROR, 0))
     return ret;
 
@@ -64,16 +64,16 @@ re_string_allocate (re_string_t *pstr, const char *str, Idx len, Idx init_len,
 
 static reg_errcode_t
 internal_function __attribute_warn_unused_result__
-re_string_construct (re_string_t *pstr, const char *str, Idx len,
+re_string_construct (pTHX_ re_string_t *pstr, const char *str, Idx len,
 		     RE_TRANSLATE_TYPE trans, bool icase, const re_dfa_t *dfa)
 {
   reg_errcode_t ret;
   memset (pstr, '\0', sizeof (re_string_t));
-  re_string_construct_common (str, len, pstr, trans, icase, dfa);
+  re_string_construct_common (aTHX_ str, len, pstr, trans, icase, dfa);
 
   if (len > 0)
     {
-      ret = re_string_realloc_buffers (pstr, len + 1);
+      ret = re_string_realloc_buffers (aTHX_ pstr, len + 1);
       if (BE (ret != REG_NOERROR, 0))
 	return ret;
     }
@@ -86,32 +86,32 @@ re_string_construct (re_string_t *pstr, const char *str, Idx len,
 	{
 	  while (1)
 	    {
-	      ret = build_wcs_upper_buffer (pstr);
+	      ret = build_wcs_upper_buffer (aTHX_ pstr);
 	      if (BE (ret != REG_NOERROR, 0))
 		return ret;
 	      if (pstr->valid_raw_len >= len)
 		break;
 	      if (pstr->bufs_len > pstr->valid_len + dfa->mb_cur_max)
 		break;
-	      ret = re_string_realloc_buffers (pstr, pstr->bufs_len * 2);
+	      ret = re_string_realloc_buffers (aTHX_ pstr, pstr->bufs_len * 2);
 	      if (BE (ret != REG_NOERROR, 0))
 		return ret;
 	    }
 	}
       else
 #endif /* RE_ENABLE_I18N  */
-	build_upper_buffer (pstr);
+	build_upper_buffer (aTHX_ pstr);
     }
   else
     {
 #ifdef RE_ENABLE_I18N
       if (dfa->mb_cur_max > 1)
-	build_wcs_buffer (pstr);
+	build_wcs_buffer (aTHX_ pstr);
       else
 #endif /* RE_ENABLE_I18N  */
 	{
 	  if (trans != NULL)
-	    re_string_translate_buffer (pstr);
+	    re_string_translate_buffer (aTHX_ pstr);
 	  else
 	    {
 	      pstr->valid_len = pstr->bufs_len;
@@ -127,38 +127,26 @@ re_string_construct (re_string_t *pstr, const char *str, Idx len,
 
 static reg_errcode_t
 internal_function __attribute_warn_unused_result__
-re_string_realloc_buffers (re_string_t *pstr, Idx new_buf_len)
+re_string_realloc_buffers (pTHX_ re_string_t *pstr, Idx new_buf_len)
 {
 #ifdef RE_ENABLE_I18N
   if (pstr->mb_cur_max > 1)
     {
-      wint_t *new_wcs;
-
       /* Avoid overflow in realloc.  */
       const size_t max_object_size = MAX (sizeof (wint_t), sizeof (Idx));
       if (BE (MIN (IDX_MAX, SIZE_MAX / max_object_size) < new_buf_len, 0))
 	return REG_ESPACE;
 
-      new_wcs = re_realloc (pstr->wcs, wint_t, new_buf_len);
-      if (BE (new_wcs == NULL, 0))
-	return REG_ESPACE;
-      pstr->wcs = new_wcs;
+      re_realloc (pstr->wcs, wint_t, new_buf_len);
       if (pstr->offsets != NULL)
 	{
-	  Idx *new_offsets = re_realloc (pstr->offsets, Idx, new_buf_len);
-	  if (BE (new_offsets == NULL, 0))
-	    return REG_ESPACE;
-	  pstr->offsets = new_offsets;
+	  re_realloc (pstr->offsets, Idx, new_buf_len);
 	}
     }
 #endif /* RE_ENABLE_I18N  */
   if (pstr->mbs_allocated)
     {
-      unsigned char *new_mbs = re_realloc (pstr->mbs, unsigned char,
-					   new_buf_len);
-      if (BE (new_mbs == NULL, 0))
-	return REG_ESPACE;
-      pstr->mbs = new_mbs;
+      re_realloc (pstr->mbs, unsigned char,  new_buf_len);
     }
   pstr->bufs_len = new_buf_len;
   return REG_NOERROR;
@@ -167,7 +155,7 @@ re_string_realloc_buffers (re_string_t *pstr, Idx new_buf_len)
 
 static void
 internal_function
-re_string_construct_common (const char *str, Idx len, re_string_t *pstr,
+re_string_construct_common (pTHX_ const char *str, Idx len, re_string_t *pstr,
 			    RE_TRANSLATE_TYPE trans, bool icase,
 			    const re_dfa_t *dfa)
 {
@@ -199,7 +187,7 @@ re_string_construct_common (const char *str, Idx len, re_string_t *pstr,
 
 static void
 internal_function
-build_wcs_buffer (re_string_t *pstr)
+build_wcs_buffer (pTHX_ re_string_t *pstr)
 {
 #ifdef _LIBC
   unsigned char buf[MB_LEN_MAX];
@@ -268,7 +256,7 @@ build_wcs_buffer (re_string_t *pstr)
 
 static reg_errcode_t
 internal_function __attribute_warn_unused_result__
-build_wcs_upper_buffer (re_string_t *pstr)
+build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 {
   mbstate_t prev_st;
   Idx src_idx, byte_idx, end_idx, remain_len;
@@ -319,7 +307,7 @@ build_wcs_upper_buffer (re_string_t *pstr)
 		  wcu = towupper (wc);
 		  mbcdlen = wcrtomb (buf, wcu, &prev_st);
 		  if (BE (mbclen == mbcdlen, 1))
-		    memcpy (pstr->mbs + byte_idx, buf, mbclen);
+		    Copy (buf, pstr->mbs + byte_idx, mbclen, char);
 		  else
 		    {
 		      src_idx = byte_idx;
@@ -327,8 +315,7 @@ build_wcs_upper_buffer (re_string_t *pstr)
 		    }
 		}
 	      else
-		memcpy (pstr->mbs + byte_idx,
-			pstr->raw_mbs + pstr->raw_mbs_idx + byte_idx, mbclen);
+		Copy (pstr->raw_mbs + pstr->raw_mbs_idx + byte_idx, pstr->mbs + byte_idx, mbclen, char);
 	      pstr->wcs[byte_idx++] = wcu;
 	      /* Write paddings.  */
 	      for (remain_len = byte_idx + mbclen - 1; byte_idx < remain_len ;)
@@ -389,7 +376,7 @@ build_wcs_upper_buffer (re_string_t *pstr)
 		wcu = towupper (wc);
 		mbcdlen = wcrtomb ((char *) buf, wcu, &prev_st);
 		if (BE (mbclen == mbcdlen, 1))
-		  memcpy (pstr->mbs + byte_idx, buf, mbclen);
+		  Copy (buf, pstr->mbs + byte_idx, mbclen, char);
 		else if (mbcdlen != (size_t) -1)
 		  {
 		    size_t i;
@@ -402,10 +389,7 @@ build_wcs_upper_buffer (re_string_t *pstr)
 
 		    if (pstr->offsets == NULL)
 		      {
-			pstr->offsets = re_malloc (Idx, pstr->bufs_len);
-
-			if (pstr->offsets == NULL)
-			  return REG_ESPACE;
+			re_malloc (pstr->offsets, Idx, pstr->bufs_len);
 		      }
 		    if (!pstr->offsets_needed)
 		      {
@@ -414,7 +398,7 @@ build_wcs_upper_buffer (re_string_t *pstr)
 			pstr->offsets_needed = 1;
 		      }
 
-		    memcpy (pstr->mbs + byte_idx, buf, mbcdlen);
+		    Copy (buf, pstr->mbs + byte_idx, mbcdlen, char);
 		    pstr->wcs[byte_idx] = wcu;
 		    pstr->offsets[byte_idx] = src_idx;
 		    for (i = 1; i < mbcdlen; ++i)
@@ -433,10 +417,10 @@ build_wcs_upper_buffer (re_string_t *pstr)
 		    continue;
 		  }
 		else
-		  memcpy (pstr->mbs + byte_idx, p, mbclen);
+		  Copy (p, pstr->mbs + byte_idx, mbclen, char);
 	      }
 	    else
-	      memcpy (pstr->mbs + byte_idx, p, mbclen);
+	      Copy (p, pstr->mbs + byte_idx, mbclen, char);
 
 	    if (BE (pstr->offsets_needed != 0, 0))
 	      {
@@ -487,7 +471,7 @@ build_wcs_upper_buffer (re_string_t *pstr)
 
 static Idx
 internal_function
-re_string_skip_chars (re_string_t *pstr, Idx new_raw_idx, wint_t *last_wc)
+re_string_skip_chars (pTHX_ re_string_t *pstr, Idx new_raw_idx, wint_t *last_wc)
 {
   mbstate_t prev_st;
   Idx rawbuf_idx;
@@ -528,7 +512,7 @@ re_string_skip_chars (re_string_t *pstr, Idx new_raw_idx, wint_t *last_wc)
 
 static void
 internal_function
-build_upper_buffer (re_string_t *pstr)
+build_upper_buffer (pTHX_ re_string_t *pstr)
 {
   Idx char_idx, end_idx;
   end_idx = (pstr->bufs_len > pstr->len) ? pstr->len : pstr->bufs_len;
@@ -551,7 +535,7 @@ build_upper_buffer (re_string_t *pstr)
 
 static void
 internal_function
-re_string_translate_buffer (re_string_t *pstr)
+re_string_translate_buffer (pTHX_ re_string_t *pstr)
 {
   Idx buf_idx, end_idx;
   end_idx = (pstr->bufs_len > pstr->len) ? pstr->len : pstr->bufs_len;
@@ -572,7 +556,7 @@ re_string_translate_buffer (re_string_t *pstr)
 
 static reg_errcode_t
 internal_function __attribute_warn_unused_result__
-re_string_reconstruct (re_string_t *pstr, Idx idx, int eflags)
+re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 {
   Idx offset;
 
@@ -621,7 +605,7 @@ re_string_reconstruct (re_string_t *pstr, Idx idx, int eflags)
 	      while (low < high);
 	      if (pstr->offsets[mid] < offset)
 		++mid;
-	      pstr->tip_context = re_string_context_at (pstr, mid - 1,
+	      pstr->tip_context = re_string_context_at (aTHX_ pstr, mid - 1,
 							eflags);
 	      /* This can be quite complicated, so handle specially
 		 only the common and easy case where the character with
@@ -630,9 +614,8 @@ re_string_reconstruct (re_string_t *pstr, Idx idx, int eflags)
 	      if (pstr->valid_len > offset
 		  && mid == offset && pstr->offsets[mid] == offset)
 		{
-		  memmove (pstr->wcs, pstr->wcs + offset,
-			   (pstr->valid_len - offset) * sizeof (wint_t));
-		  memmove (pstr->mbs, pstr->mbs + offset, pstr->valid_len - offset);
+		  Move (pstr->wcs + offset, pstr->wcs, pstr->valid_len - offset, wint_t);
+		  Move (pstr->mbs + offset, pstr->mbs, pstr->valid_len - offset, char);
 		  pstr->valid_len -= offset;
 		  pstr->valid_raw_len -= offset;
 		  for (low = 0; low < pstr->valid_len; low++)
@@ -670,16 +653,14 @@ re_string_reconstruct (re_string_t *pstr, Idx idx, int eflags)
 	  else
 #endif
 	    {
-	      pstr->tip_context = re_string_context_at (pstr, offset - 1,
+	      pstr->tip_context = re_string_context_at (aTHX_ pstr, offset - 1,
 							eflags);
 #ifdef RE_ENABLE_I18N
 	      if (pstr->mb_cur_max > 1)
-		memmove (pstr->wcs, pstr->wcs + offset,
-			 (pstr->valid_len - offset) * sizeof (wint_t));
+		Move (pstr->wcs + offset, pstr->wcs, pstr->valid_len - offset, wint_t);
 #endif /* RE_ENABLE_I18N */
 	      if (BE (pstr->mbs_allocated, 0))
-		memmove (pstr->mbs, pstr->mbs + offset,
-			 pstr->valid_len - offset);
+		Move (pstr->mbs + offset, pstr->mbs, pstr->valid_len - offset, char);
 	      pstr->valid_len -= offset;
 	      pstr->valid_raw_len -= offset;
 #if DEBUG
@@ -764,10 +745,10 @@ re_string_reconstruct (re_string_t *pstr, Idx idx, int eflags)
 		}
 
 	      if (wc == WEOF)
-		pstr->valid_len = re_string_skip_chars (pstr, idx, &wc) - idx;
+		pstr->valid_len = re_string_skip_chars (aTHX_ pstr, idx, &wc) - idx;
 	      if (wc == WEOF)
 		pstr->tip_context
-		  = re_string_context_at (pstr, prev_valid_len - 1, eflags);
+		  = re_string_context_at (aTHX_ pstr, prev_valid_len - 1, eflags);
 	      else
 		pstr->tip_context = ((BE (pstr->word_ops_used != 0, 0)
 				      && IS_WIDE_WORD_CHAR (wc))
@@ -791,7 +772,7 @@ re_string_reconstruct (re_string_t *pstr, Idx idx, int eflags)
 	      pstr->valid_raw_len = 0;
 	      if (pstr->trans)
 		c = pstr->trans[c];
-	      pstr->tip_context = (bitset_contain (pstr->word_char, c)
+	      pstr->tip_context = (bitset_contain (aTHX_ pstr->word_char, c)
 				   ? CONTEXT_WORD
 				   : ((IS_NEWLINE (c) && pstr->newline_anchor)
 				      ? CONTEXT_NEWLINE : 0));
@@ -810,21 +791,21 @@ re_string_reconstruct (re_string_t *pstr, Idx idx, int eflags)
     {
       if (pstr->icase)
 	{
-	  reg_errcode_t ret = build_wcs_upper_buffer (pstr);
+	  reg_errcode_t ret = build_wcs_upper_buffer (aTHX_ pstr);
 	  if (BE (ret != REG_NOERROR, 0))
 	    return ret;
 	}
       else
-	build_wcs_buffer (pstr);
+	build_wcs_buffer (aTHX_ pstr);
     }
   else
 #endif /* RE_ENABLE_I18N */
     if (BE (pstr->mbs_allocated, 0))
       {
 	if (pstr->icase)
-	  build_upper_buffer (pstr);
+	  build_upper_buffer (aTHX_ pstr);
 	else if (pstr->trans != NULL)
-	  re_string_translate_buffer (pstr);
+	  re_string_translate_buffer (aTHX_ pstr);
       }
     else
       pstr->valid_len = pstr->len;
@@ -835,19 +816,19 @@ re_string_reconstruct (re_string_t *pstr, Idx idx, int eflags)
 
 static unsigned char
 internal_function __attribute__ ((pure))
-re_string_peek_byte_case (const re_string_t *pstr, Idx idx)
+re_string_peek_byte_case (pTHX_ const re_string_t *pstr, Idx idx)
 {
   int ch;
   Idx off;
 
   /* Handle the common (easiest) cases first.  */
   if (BE (!pstr->mbs_allocated, 1))
-    return re_string_peek_byte (pstr, idx);
+    return re_string_peek_byte (aTHX_ pstr, idx);
 
 #ifdef RE_ENABLE_I18N
   if (pstr->mb_cur_max > 1
-      && ! re_string_is_single_byte_char (pstr, pstr->cur_idx + idx))
-    return re_string_peek_byte (pstr, idx);
+      && ! re_string_is_single_byte_char (aTHX_ pstr, pstr->cur_idx + idx))
+    return re_string_peek_byte (aTHX_ pstr, idx);
 #endif
 
   off = pstr->cur_idx + idx;
@@ -864,7 +845,7 @@ re_string_peek_byte_case (const re_string_t *pstr, Idx idx)
      DOTLESS SMALL LETTER I.  The latter would confuse the parser,
      since peek_byte_case doesn't advance cur_idx in any way.  */
   if (pstr->offsets_needed && !isascii (ch))
-    return re_string_peek_byte (pstr, idx);
+    return re_string_peek_byte (aTHX_ pstr, idx);
 #endif
 
   return ch;
@@ -872,10 +853,10 @@ re_string_peek_byte_case (const re_string_t *pstr, Idx idx)
 
 static unsigned char
 internal_function
-re_string_fetch_byte_case (re_string_t *pstr)
+re_string_fetch_byte_case (pTHX_ re_string_t *pstr)
 {
   if (BE (!pstr->mbs_allocated, 1))
-    return re_string_fetch_byte (pstr);
+    return re_string_fetch_byte (aTHX_ pstr);
 
 #ifdef RE_ENABLE_I18N
   if (pstr->offsets_needed)
@@ -890,17 +871,17 @@ re_string_fetch_byte_case (re_string_t *pstr)
 	 [[: DOTLESS SMALL LETTER I return [[:I, as doing
 	 anything else would complicate things too much.  */
 
-      if (!re_string_first_byte (pstr, pstr->cur_idx))
-	return re_string_fetch_byte (pstr);
+      if (!re_string_first_byte (aTHX_ pstr, pstr->cur_idx))
+	return re_string_fetch_byte (aTHX_ pstr);
 
       off = pstr->offsets[pstr->cur_idx];
       ch = pstr->raw_mbs[pstr->raw_mbs_idx + off];
 
       if (! isascii (ch))
-	return re_string_fetch_byte (pstr);
+	return re_string_fetch_byte (aTHX_ pstr);
 
-      re_string_skip_bytes (pstr,
-			    re_string_char_size_at (pstr, pstr->cur_idx));
+      re_string_skip_bytes (aTHX_ pstr,
+			    re_string_char_size_at (aTHX_ pstr, pstr->cur_idx));
       return ch;
     }
 #endif
@@ -910,7 +891,7 @@ re_string_fetch_byte_case (re_string_t *pstr)
 
 static void
 internal_function
-re_string_destruct (re_string_t *pstr)
+re_string_destruct (pTHX_ re_string_t *pstr)
 {
 #ifdef RE_ENABLE_I18N
   re_free (pstr->wcs);
@@ -924,7 +905,7 @@ re_string_destruct (re_string_t *pstr)
 
 static unsigned int
 internal_function
-re_string_context_at (const re_string_t *input, Idx idx, int eflags)
+re_string_context_at (pTHX_ const re_string_t *input, Idx idx, int eflags)
 {
   int c;
   if (BE (! REG_VALID_INDEX (idx), 0))
@@ -958,8 +939,8 @@ re_string_context_at (const re_string_t *input, Idx idx, int eflags)
   else
 #endif
     {
-      c = re_string_byte_at (input, idx);
-      if (bitset_contain (input->word_char, c))
+      c = re_string_byte_at (aTHX_ input, idx);
+      if (bitset_contain (aTHX_ input->word_char, c))
 	return CONTEXT_WORD;
       return IS_NEWLINE (c) && input->newline_anchor ? CONTEXT_NEWLINE : 0;
     }
@@ -969,40 +950,31 @@ re_string_context_at (const re_string_t *input, Idx idx, int eflags)
 
 static reg_errcode_t
 internal_function __attribute_warn_unused_result__
-re_node_set_alloc (re_node_set *set, Idx size)
+re_node_set_alloc (pTHX_ re_node_set *set, Idx size)
 {
   set->alloc = size;
   set->nelem = 0;
-  set->elems = re_malloc (Idx, size);
-  if (BE (set->elems == NULL, 0) && (MALLOC_0_IS_NONNULL || size != 0))
-    return REG_ESPACE;
+  re_malloc (set->elems, Idx, size);
   return REG_NOERROR;
 }
 
 static reg_errcode_t
 internal_function __attribute_warn_unused_result__
-re_node_set_init_1 (re_node_set *set, Idx elem)
+re_node_set_init_1 (pTHX_ re_node_set *set, Idx elem)
 {
   set->alloc = 1;
   set->nelem = 1;
-  set->elems = re_malloc (Idx, 1);
-  if (BE (set->elems == NULL, 0))
-    {
-      set->alloc = set->nelem = 0;
-      return REG_ESPACE;
-    }
+  re_malloc (set->elems, Idx, 1);
   set->elems[0] = elem;
   return REG_NOERROR;
 }
 
 static reg_errcode_t
 internal_function __attribute_warn_unused_result__
-re_node_set_init_2 (re_node_set *set, Idx elem1, Idx elem2)
+re_node_set_init_2 (pTHX_ re_node_set *set, Idx elem1, Idx elem2)
 {
   set->alloc = 2;
-  set->elems = re_malloc (Idx, 2);
-  if (BE (set->elems == NULL, 0))
-    return REG_ESPACE;
+  re_malloc (set->elems, Idx, 2);
   if (elem1 == elem2)
     {
       set->nelem = 1;
@@ -1027,19 +999,14 @@ re_node_set_init_2 (re_node_set *set, Idx elem1, Idx elem2)
 
 static reg_errcode_t
 internal_function __attribute_warn_unused_result__
-re_node_set_init_copy (re_node_set *dest, const re_node_set *src)
+re_node_set_init_copy (pTHX_ re_node_set *dest, const re_node_set *src)
 {
   dest->nelem = src->nelem;
   if (src->nelem > 0)
     {
       dest->alloc = dest->nelem;
-      dest->elems = re_malloc (Idx, dest->alloc);
-      if (BE (dest->elems == NULL, 0))
-	{
-	  dest->alloc = dest->nelem = 0;
-	  return REG_ESPACE;
-	}
-      memcpy (dest->elems, src->elems, src->nelem * sizeof (Idx));
+      re_malloc (dest->elems, Idx, dest->alloc);
+      Copy (src->elems, dest->elems, src->nelem, Idx);
     }
   else
     re_node_set_init_empty (dest);
@@ -1052,7 +1019,7 @@ re_node_set_init_copy (re_node_set *dest, const re_node_set *src)
 
 static reg_errcode_t
 internal_function __attribute_warn_unused_result__
-re_node_set_add_intersect (re_node_set *dest, const re_node_set *src1,
+re_node_set_add_intersect (pTHX_ re_node_set *dest, const re_node_set *src1,
 			   const re_node_set *src2)
 {
   Idx i1, i2, is, id, delta, sbase;
@@ -1064,10 +1031,7 @@ re_node_set_add_intersect (re_node_set *dest, const re_node_set *src1,
   if (src1->nelem + src2->nelem + dest->nelem > dest->alloc)
     {
       Idx new_alloc = src1->nelem + src2->nelem + dest->alloc;
-      Idx *new_elems = re_realloc (dest->elems, Idx, new_alloc);
-      if (BE (new_elems == NULL, 0))
-	return REG_ESPACE;
-      dest->elems = new_elems;
+      re_realloc (dest->elems, Idx, new_alloc);
       dest->alloc = new_alloc;
     }
 
@@ -1133,7 +1097,7 @@ re_node_set_add_intersect (re_node_set *dest, const re_node_set *src1,
       }
 
   /* Copy remaining SRC elements.  */
-  memcpy (dest->elems, dest->elems + sbase, delta * sizeof (Idx));
+  Copy (dest->elems + sbase, dest->elems, delta, Idx);
 
   return REG_NOERROR;
 }
@@ -1143,23 +1107,21 @@ re_node_set_add_intersect (re_node_set *dest, const re_node_set *src1,
 
 static reg_errcode_t
 internal_function __attribute_warn_unused_result__
-re_node_set_init_union (re_node_set *dest, const re_node_set *src1,
+re_node_set_init_union (pTHX_ re_node_set *dest, const re_node_set *src1,
 			const re_node_set *src2)
 {
   Idx i1, i2, id;
   if (src1 != NULL && src1->nelem > 0 && src2 != NULL && src2->nelem > 0)
     {
       dest->alloc = src1->nelem + src2->nelem;
-      dest->elems = re_malloc (Idx, dest->alloc);
-      if (BE (dest->elems == NULL, 0))
-	return REG_ESPACE;
+      re_malloc (dest->elems, Idx, dest->alloc);
     }
   else
     {
       if (src1 != NULL && src1->nelem > 0)
-	return re_node_set_init_copy (dest, src1);
+	return re_node_set_init_copy (aTHX_ dest, src1);
       else if (src2 != NULL && src2->nelem > 0)
-	return re_node_set_init_copy (dest, src2);
+	return re_node_set_init_copy (aTHX_ dest, src2);
       else
 	re_node_set_init_empty (dest);
       return REG_NOERROR;
@@ -1177,14 +1139,12 @@ re_node_set_init_union (re_node_set *dest, const re_node_set *src1,
     }
   if (i1 < src1->nelem)
     {
-      memcpy (dest->elems + id, src1->elems + i1,
-	     (src1->nelem - i1) * sizeof (Idx));
+      Copy (src1->elems + i1, dest->elems + id, src1->nelem - i1, Idx);
       id += src1->nelem - i1;
     }
   else if (i2 < src2->nelem)
     {
-      memcpy (dest->elems + id, src2->elems + i2,
-	     (src2->nelem - i2) * sizeof (Idx));
+      Copy (src2->elems + i2, dest->elems + id, src2->nelem - i2, Idx);
       id += src2->nelem - i2;
     }
   dest->nelem = id;
@@ -1196,7 +1156,7 @@ re_node_set_init_union (re_node_set *dest, const re_node_set *src1,
 
 static reg_errcode_t
 internal_function __attribute_warn_unused_result__
-re_node_set_merge (re_node_set *dest, const re_node_set *src)
+re_node_set_merge (pTHX_ re_node_set *dest, const re_node_set *src)
 {
   Idx is, id, sbase, delta;
   if (src == NULL || src->nelem == 0)
@@ -1204,17 +1164,14 @@ re_node_set_merge (re_node_set *dest, const re_node_set *src)
   if (dest->alloc < 2 * src->nelem + dest->nelem)
     {
       Idx new_alloc = 2 * (src->nelem + dest->alloc);
-      Idx *new_buffer = re_realloc (dest->elems, Idx, new_alloc);
-      if (BE (new_buffer == NULL, 0))
-	return REG_ESPACE;
-      dest->elems = new_buffer;
+      re_realloc (dest->elems, Idx, new_alloc);
       dest->alloc = new_alloc;
     }
 
   if (BE (dest->nelem == 0, 0))
     {
       dest->nelem = src->nelem;
-      memcpy (dest->elems, src->elems, src->nelem * sizeof (Idx));
+      Copy (src->elems, dest->elems, src->nelem, Idx);
       return REG_NOERROR;
     }
 
@@ -1236,7 +1193,7 @@ re_node_set_merge (re_node_set *dest, const re_node_set *src)
     {
       /* If DEST is exhausted, the remaining items of SRC must be unique.  */
       sbase -= is + 1;
-      memcpy (dest->elems + sbase, src->elems, (is + 1) * sizeof (Idx));
+      Copy (src->elems, dest->elems + sbase, is + 1, Idx);
     }
 
   id = dest->nelem - 1;
@@ -1264,8 +1221,7 @@ re_node_set_merge (re_node_set *dest, const re_node_set *src)
 	  if (! REG_VALID_INDEX (--id))
 	    {
 	      /* Copy remaining SRC elements.  */
-	      memcpy (dest->elems, dest->elems + sbase,
-		      delta * sizeof (Idx));
+	      Copy (dest->elems + sbase, dest->elems, delta, Idx);
 	      break;
 	    }
 	}
@@ -1280,12 +1236,12 @@ re_node_set_merge (re_node_set *dest, const re_node_set *src)
 
 static bool
 internal_function __attribute_warn_unused_result__
-re_node_set_insert (re_node_set *set, Idx elem)
+re_node_set_insert (pTHX_ re_node_set *set, Idx elem)
 {
   Idx idx;
   /* In case the set is empty.  */
   if (set->alloc == 0)
-    return BE (re_node_set_init_1 (set, elem) == REG_NOERROR, 1);
+    return BE (re_node_set_init_1 (aTHX_ set, elem) == REG_NOERROR, 1);
 
   if (BE (set->nelem, 0) == 0)
     {
@@ -1298,12 +1254,8 @@ re_node_set_insert (re_node_set *set, Idx elem)
   /* Realloc if we need.  */
   if (set->alloc == set->nelem)
     {
-      Idx *new_elems;
       set->alloc = set->alloc * 2;
-      new_elems = re_realloc (set->elems, Idx, set->alloc);
-      if (BE (new_elems == NULL, 0))
-	return false;
-      set->elems = new_elems;
+      re_realloc (set->elems, Idx, set->alloc);
     }
 
   /* Move the elements which follows the new element.  Test the
@@ -1332,17 +1284,13 @@ re_node_set_insert (re_node_set *set, Idx elem)
 
 static bool
 internal_function __attribute_warn_unused_result__
-re_node_set_insert_last (re_node_set *set, Idx elem)
+re_node_set_insert_last (pTHX_ re_node_set *set, Idx elem)
 {
   /* Realloc if we need.  */
   if (set->alloc == set->nelem)
     {
-      Idx *new_elems;
       set->alloc = (set->alloc + 1) * 2;
-      new_elems = re_realloc (set->elems, Idx, set->alloc);
-      if (BE (new_elems == NULL, 0))
-	return false;
-      set->elems = new_elems;
+      re_realloc (set->elems, Idx, set->alloc);
     }
 
   /* Insert the new element.  */
@@ -1355,7 +1303,7 @@ re_node_set_insert_last (re_node_set *set, Idx elem)
 
 static bool
 internal_function __attribute__ ((pure))
-re_node_set_compare (const re_node_set *set1, const re_node_set *set2)
+re_node_set_compare (pTHX_ const re_node_set *set1, const re_node_set *set2)
 {
   Idx i;
   if (set1 == NULL || set2 == NULL || set1->nelem != set2->nelem)
@@ -1370,7 +1318,7 @@ re_node_set_compare (const re_node_set *set1, const re_node_set *set2)
 
 static Idx
 internal_function __attribute__ ((pure))
-re_node_set_contains (const re_node_set *set, Idx elem)
+re_node_set_contains (pTHX_ const re_node_set *set, Idx elem)
 {
   __re_size_t idx, right, mid;
   if (! REG_VALID_NONZERO_INDEX (set->nelem))
@@ -1392,7 +1340,7 @@ re_node_set_contains (const re_node_set *set, Idx elem)
 
 static void
 internal_function
-re_node_set_remove_at (re_node_set *set, Idx idx)
+re_node_set_remove_at (pTHX_ re_node_set *set, Idx idx)
 {
   if (idx < 0 || idx >= set->nelem)
     return;
@@ -1407,14 +1355,11 @@ re_node_set_remove_at (re_node_set *set, Idx idx)
 
 static Idx
 internal_function
-re_dfa_add_node (re_dfa_t *dfa, re_token_t token)
+re_dfa_add_node (pTHX_ re_dfa_t *dfa, re_token_t token)
 {
   if (BE (dfa->nodes_len >= dfa->nodes_alloc, 0))
     {
       size_t new_nodes_alloc = dfa->nodes_alloc * 2;
-      Idx *new_nexts, *new_indices;
-      re_node_set *new_edests, *new_eclosures;
-      re_token_t *new_nodes;
 
       /* Avoid overflows in realloc.  */
       const size_t max_object_size = MAX (sizeof (re_token_t),
@@ -1423,21 +1368,11 @@ re_dfa_add_node (re_dfa_t *dfa, re_token_t token)
       if (BE (MIN (IDX_MAX, SIZE_MAX / max_object_size) < new_nodes_alloc, 0))
 	return REG_MISSING;
 
-      new_nodes = re_realloc (dfa->nodes, re_token_t, new_nodes_alloc);
-      if (BE (new_nodes == NULL, 0))
-	return REG_MISSING;
-      dfa->nodes = new_nodes;
-      new_nexts = re_realloc (dfa->nexts, Idx, new_nodes_alloc);
-      new_indices = re_realloc (dfa->org_indices, Idx, new_nodes_alloc);
-      new_edests = re_realloc (dfa->edests, re_node_set, new_nodes_alloc);
-      new_eclosures = re_realloc (dfa->eclosures, re_node_set, new_nodes_alloc);
-      if (BE (new_nexts == NULL || new_indices == NULL
-	      || new_edests == NULL || new_eclosures == NULL, 0))
-	return REG_MISSING;
-      dfa->nexts = new_nexts;
-      dfa->org_indices = new_indices;
-      dfa->edests = new_edests;
-      dfa->eclosures = new_eclosures;
+      re_realloc (dfa->nodes, re_token_t, new_nodes_alloc);
+      re_realloc (dfa->nexts, Idx, new_nodes_alloc);
+      re_realloc (dfa->org_indices, Idx, new_nodes_alloc);
+      re_realloc (dfa->edests, re_node_set, new_nodes_alloc);
+      re_realloc (dfa->eclosures, re_node_set, new_nodes_alloc);
       dfa->nodes_alloc = new_nodes_alloc;
     }
   dfa->nodes[dfa->nodes_len] = token;
@@ -1455,7 +1390,7 @@ re_dfa_add_node (re_dfa_t *dfa, re_token_t token)
 
 static re_hashval_t
 internal_function
-calc_state_hash (const re_node_set *nodes, unsigned int context)
+calc_state_hash (pTHX_ const re_node_set *nodes, unsigned int context)
 {
   re_hashval_t hash = nodes->nelem + context;
   Idx i;
@@ -1475,7 +1410,7 @@ calc_state_hash (const re_node_set *nodes, unsigned int context)
 
 static re_dfastate_t *
 internal_function __attribute_warn_unused_result__
-re_acquire_state (reg_errcode_t *err, const re_dfa_t *dfa,
+re_acquire_state (pTHX_ reg_errcode_t *err, const re_dfa_t *dfa,
 		  const re_node_set *nodes)
 {
   re_hashval_t hash;
@@ -1491,7 +1426,7 @@ re_acquire_state (reg_errcode_t *err, const re_dfa_t *dfa,
       *err = REG_NOERROR;
       return NULL;
     }
-  hash = calc_state_hash (nodes, 0);
+  hash = calc_state_hash (aTHX_ nodes, 0);
   spot = dfa->state_table + (hash & dfa->state_hash_mask);
 
   for (i = 0 ; i < spot->num ; i++)
@@ -1499,12 +1434,12 @@ re_acquire_state (reg_errcode_t *err, const re_dfa_t *dfa,
       re_dfastate_t *state = spot->array[i];
       if (hash != state->hash)
 	continue;
-      if (re_node_set_compare (&state->nodes, nodes))
+      if (re_node_set_compare (aTHX_ &state->nodes, nodes))
 	return state;
     }
 
   /* There are no appropriate state in the dfa, create the new one.  */
-  new_state = create_ci_newstate (dfa, nodes, hash);
+  new_state = create_ci_newstate (aTHX_ dfa, nodes, hash);
   if (BE (new_state == NULL, 0))
     *err = REG_ESPACE;
 
@@ -1523,7 +1458,7 @@ re_acquire_state (reg_errcode_t *err, const re_dfa_t *dfa,
 
 static re_dfastate_t *
 internal_function __attribute_warn_unused_result__
-re_acquire_state_context (reg_errcode_t *err, const re_dfa_t *dfa,
+re_acquire_state_context (pTHX_ reg_errcode_t *err, const re_dfa_t *dfa,
 			  const re_node_set *nodes, unsigned int context)
 {
   re_hashval_t hash;
@@ -1539,7 +1474,7 @@ re_acquire_state_context (reg_errcode_t *err, const re_dfa_t *dfa,
       *err = REG_NOERROR;
       return NULL;
     }
-  hash = calc_state_hash (nodes, context);
+  hash = calc_state_hash (aTHX_ nodes, context);
   spot = dfa->state_table + (hash & dfa->state_hash_mask);
 
   for (i = 0 ; i < spot->num ; i++)
@@ -1547,11 +1482,11 @@ re_acquire_state_context (reg_errcode_t *err, const re_dfa_t *dfa,
       re_dfastate_t *state = spot->array[i];
       if (state->hash == hash
 	  && state->context == context
-	  && re_node_set_compare (state->entrance_nodes, nodes))
+	  && re_node_set_compare (aTHX_ state->entrance_nodes, nodes))
 	return state;
     }
   /* There are no appropriate state in 'dfa', create the new one.  */
-  new_state = create_cd_newstate (dfa, nodes, context, hash);
+  new_state = create_cd_newstate (aTHX_ dfa, nodes, context, hash);
   if (BE (new_state == NULL, 0))
     *err = REG_ESPACE;
 
@@ -1564,7 +1499,7 @@ re_acquire_state_context (reg_errcode_t *err, const re_dfa_t *dfa,
 
 static reg_errcode_t
 __attribute_warn_unused_result__
-register_state (const re_dfa_t *dfa, re_dfastate_t *newstate,
+register_state (pTHX_ const re_dfa_t *dfa, re_dfastate_t *newstate,
 		re_hashval_t hash)
 {
   struct re_state_table_entry *spot;
@@ -1572,14 +1507,14 @@ register_state (const re_dfa_t *dfa, re_dfastate_t *newstate,
   Idx i;
 
   newstate->hash = hash;
-  err = re_node_set_alloc (&newstate->non_eps_nodes, newstate->nodes.nelem);
+  err = re_node_set_alloc (aTHX_ &newstate->non_eps_nodes, newstate->nodes.nelem);
   if (BE (err != REG_NOERROR, 0))
     return REG_ESPACE;
   for (i = 0; i < newstate->nodes.nelem; i++)
     {
       Idx elem = newstate->nodes.elems[i];
       if (!IS_EPSILON_NODE (dfa->nodes[elem].type))
-	if (! re_node_set_insert_last (&newstate->non_eps_nodes, elem))
+	if (! re_node_set_insert_last (aTHX_ &newstate->non_eps_nodes, elem))
 	  return REG_ESPACE;
     }
 
@@ -1587,11 +1522,7 @@ register_state (const re_dfa_t *dfa, re_dfastate_t *newstate,
   if (BE (spot->alloc <= spot->num, 0))
     {
       Idx new_alloc = 2 * spot->num + 2;
-      re_dfastate_t **new_array = re_realloc (spot->array, re_dfastate_t *,
-					      new_alloc);
-      if (BE (new_array == NULL, 0))
-	return REG_ESPACE;
-      spot->array = new_array;
+      re_realloc (spot->array, re_dfastate_t *, new_alloc);
       spot->alloc = new_alloc;
     }
   spot->array[spot->num++] = newstate;
@@ -1599,16 +1530,16 @@ register_state (const re_dfa_t *dfa, re_dfastate_t *newstate,
 }
 
 static void
-free_state (re_dfastate_t *state)
+free_state (pTHX_ re_dfastate_t *state)
 {
-  re_node_set_free (&state->non_eps_nodes);
-  re_node_set_free (&state->inveclosure);
+  re_node_set_free (aTHX_ &state->non_eps_nodes);
+  re_node_set_free (aTHX_ &state->inveclosure);
   if (state->entrance_nodes != &state->nodes)
     {
-      re_node_set_free (state->entrance_nodes);
+      re_node_set_free (aTHX_ state->entrance_nodes);
       re_free (state->entrance_nodes);
     }
-  re_node_set_free (&state->nodes);
+  re_node_set_free (aTHX_ &state->nodes);
   re_free (state->word_trtable);
   re_free (state->trtable);
   re_free (state);
@@ -1619,17 +1550,18 @@ free_state (re_dfastate_t *state)
 
 static re_dfastate_t *
 internal_function __attribute_warn_unused_result__
-create_ci_newstate (const re_dfa_t *dfa, const re_node_set *nodes,
+create_ci_newstate (pTHX_ const re_dfa_t *dfa, const re_node_set *nodes,
 		    re_hashval_t hash)
 {
   Idx i;
   reg_errcode_t err;
   re_dfastate_t *newstate;
 
-  newstate = (re_dfastate_t *) calloc (sizeof (re_dfastate_t), 1);
+  re_calloc(newstate, re_dfastate_t, 1);
+  /* newstate = (re_dfastate_t *) calloc (sizeof (re_dfastate_t), 1); */
   if (BE (newstate == NULL, 0))
     return NULL;
-  err = re_node_set_init_copy (&newstate->nodes, nodes);
+  err = re_node_set_init_copy (aTHX_ &newstate->nodes, nodes);
   if (BE (err != REG_NOERROR, 0))
     {
       re_free (newstate);
@@ -1655,10 +1587,10 @@ create_ci_newstate (const re_dfa_t *dfa, const re_node_set *nodes,
       else if (type == ANCHOR || node->constraint)
 	newstate->has_constraint = 1;
     }
-  err = register_state (dfa, newstate, hash);
+  err = register_state (aTHX_ dfa, newstate, hash);
   if (BE (err != REG_NOERROR, 0))
     {
-      free_state (newstate);
+      free_state (aTHX_ newstate);
       newstate = NULL;
     }
   return newstate;
@@ -1669,17 +1601,18 @@ create_ci_newstate (const re_dfa_t *dfa, const re_node_set *nodes,
 
 static re_dfastate_t *
 internal_function __attribute_warn_unused_result__
-create_cd_newstate (const re_dfa_t *dfa, const re_node_set *nodes,
+create_cd_newstate (pTHX_ const re_dfa_t *dfa, const re_node_set *nodes,
 		    unsigned int context, re_hashval_t hash)
 {
   Idx i, nctx_nodes = 0;
   reg_errcode_t err;
   re_dfastate_t *newstate;
 
-  newstate = (re_dfastate_t *) calloc (sizeof (re_dfastate_t), 1);
+  re_calloc(newstate, re_dfastate_t, 1);
+  /* newstate = (re_dfastate_t *) calloc (sizeof (re_dfastate_t), 1); */
   if (BE (newstate == NULL, 0))
     return NULL;
-  err = re_node_set_init_copy (&newstate->nodes, nodes);
+  err = re_node_set_init_copy (aTHX_ &newstate->nodes, nodes);
   if (BE (err != REG_NOERROR, 0))
     {
       re_free (newstate);
@@ -1711,13 +1644,8 @@ create_cd_newstate (const re_dfa_t *dfa, const re_node_set *nodes,
 	{
 	  if (newstate->entrance_nodes == &newstate->nodes)
 	    {
-	      newstate->entrance_nodes = re_malloc (re_node_set, 1);
-	      if (BE (newstate->entrance_nodes == NULL, 0))
-		{
-		  free_state (newstate);
-		  return NULL;
-		}
-	      if (re_node_set_init_copy (newstate->entrance_nodes, nodes)
+	      re_malloc (newstate->entrance_nodes, re_node_set, 1);
+	      if (re_node_set_init_copy (aTHX_ newstate->entrance_nodes, nodes)
 		  != REG_NOERROR)
 		return NULL;
 	      nctx_nodes = 0;
@@ -1726,15 +1654,15 @@ create_cd_newstate (const re_dfa_t *dfa, const re_node_set *nodes,
 
 	  if (NOT_SATISFY_PREV_CONSTRAINT (constraint,context))
 	    {
-	      re_node_set_remove_at (&newstate->nodes, i - nctx_nodes);
+	      re_node_set_remove_at (aTHX_ &newstate->nodes, i - nctx_nodes);
 	      ++nctx_nodes;
 	    }
 	}
     }
-  err = register_state (dfa, newstate, hash);
+  err = register_state (aTHX_ dfa, newstate, hash);
   if (BE (err != REG_NOERROR, 0))
     {
-      free_state (newstate);
+      free_state (aTHX_ newstate);
       newstate = NULL;
     }
   return  newstate;

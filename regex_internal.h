@@ -493,17 +493,17 @@ typedef struct re_dfa_t re_dfa_t;
 #endif
 
 #ifndef NOT_IN_libc
-static reg_errcode_t re_string_realloc_buffers (re_string_t *pstr,
+static reg_errcode_t re_string_realloc_buffers (pTHX_ re_string_t *pstr,
 						Idx new_buf_len)
      internal_function;
 # ifdef RE_ENABLE_I18N
-static void build_wcs_buffer (re_string_t *pstr) internal_function;
-static reg_errcode_t build_wcs_upper_buffer (re_string_t *pstr)
+static void build_wcs_buffer (pTHX_ re_string_t *pstr) internal_function;
+static reg_errcode_t build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
   internal_function;
 # endif /* RE_ENABLE_I18N */
-static void build_upper_buffer (re_string_t *pstr) internal_function;
-static void re_string_translate_buffer (re_string_t *pstr) internal_function;
-static unsigned int re_string_context_at (const re_string_t *input, Idx idx,
+static void build_upper_buffer (pTHX_ re_string_t *pstr) internal_function;
+static void re_string_translate_buffer (pTHX_ re_string_t *pstr) internal_function;
+static unsigned int re_string_context_at (pTHX_ const re_string_t *input, Idx idx,
 					  int eflags)
      internal_function __attribute__ ((pure));
 #endif
@@ -556,9 +556,19 @@ static unsigned int re_string_context_at (const re_string_t *input, Idx idx,
 # define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
-#define re_malloc(t,n) ((t *) malloc ((n) * sizeof (t)))
-#define re_realloc(p,t,n) ((t *) realloc (p, (n) * sizeof (t)))
-#define re_free(p) free (p)
+/*  t* p = malloc(n) <==> Newx(p, n, t) */
+/* #define re_malloc(t,n) ((t *) malloc ((n) * sizeof (t))) */
+#define re_malloc(dst,t,n) Newx(dst, (n) * sizeof (t), t)
+
+/* p = ((t *) realloc(p, n)) <==> Renew(p, n, t) */
+/* #define re_realloc(p,t,n) ((t *) realloc (p, (n) * sizeof (t))) */
+#define re_realloc(p,t,n) Renew(p, (n) * sizeof (t), t)
+
+#define re_calloc(dst,t,n) Newxz(dst, (n) * sizeof (t), t)
+
+/*  free(p) <==> Safefree(p) */
+/* #define re_free(p) free (p) */
+#define re_free(p) Safefree (p)
 
 struct bin_tree_t
 {
@@ -782,7 +792,10 @@ struct re_dfa_t
   lock_define (lock)
 };
 
-#define re_node_set_init_empty(set) memset (set, '\0', sizeof (re_node_set))
+/*  memset(dst, 0, n * sizeof(t)) <==> Zero(dst, n, t) */
+/* #define re_node_set_init_empty(set) memset (set, '\0', sizeof (re_node_set)) */
+#define re_node_set_init_empty(set) Zero(set, 1, re_node_set)
+
 #define re_node_set_remove(set,id) \
   (re_node_set_remove_at (set, re_node_set_contains (set, id) - 1))
 #define re_node_set_empty(p) ((p)->nelem = 0)
@@ -813,7 +826,7 @@ typedef struct
 /* Functions for bitset_t operation.  */
 
 static void
-bitset_set (bitset_t set, Idx i)
+bitset_set (pTHX_ bitset_t set, Idx i)
 {
   set[i / BITSET_WORD_BITS] |= (bitset_word_t) 1 << i % BITSET_WORD_BITS;
 }
@@ -825,19 +838,19 @@ bitset_clear (bitset_t set, Idx i)
 }
 
 static bool
-bitset_contain (const bitset_t set, Idx i)
+bitset_contain (pTHX_ const bitset_t set, Idx i)
 {
   return (set[i / BITSET_WORD_BITS] >> i % BITSET_WORD_BITS) & 1;
 }
 
 static void
-bitset_empty (bitset_t set)
+bitset_empty (pTHX_ bitset_t set)
 {
-  memset (set, '\0', sizeof (bitset_t));
+  Zero(set, 1, bitset_t);
 }
 
 static void
-bitset_set_all (bitset_t set)
+bitset_set_all (pTHX_ bitset_t set)
 {
   memset (set, -1, sizeof (bitset_word_t) * (SBC_MAX / BITSET_WORD_BITS));
   if (SBC_MAX % BITSET_WORD_BITS != 0)
@@ -846,13 +859,13 @@ bitset_set_all (bitset_t set)
 }
 
 static void
-bitset_copy (bitset_t dest, const bitset_t src)
+bitset_copy (pTHX_ bitset_t dest, const bitset_t src)
 {
-  memcpy (dest, src, sizeof (bitset_t));
+  Copy (src, dest, 1, bitset_t);
 }
 
 static void __attribute__ ((unused))
-bitset_not (bitset_t set)
+bitset_not (pTHX_ bitset_t set)
 {
   int bitset_i;
   for (bitset_i = 0; bitset_i < SBC_MAX / BITSET_WORD_BITS; ++bitset_i)
@@ -864,7 +877,7 @@ bitset_not (bitset_t set)
 }
 
 static void __attribute__ ((unused))
-bitset_merge (bitset_t dest, const bitset_t src)
+bitset_merge (pTHX_ bitset_t dest, const bitset_t src)
 {
   int bitset_i;
   for (bitset_i = 0; bitset_i < BITSET_WORDS; ++bitset_i)
@@ -872,7 +885,7 @@ bitset_merge (bitset_t dest, const bitset_t src)
 }
 
 static void __attribute__ ((unused))
-bitset_mask (bitset_t dest, const bitset_t src)
+bitset_mask (pTHX_ bitset_t dest, const bitset_t src)
 {
   int bitset_i;
   for (bitset_i = 0; bitset_i < BITSET_WORDS; ++bitset_i)
@@ -883,7 +896,7 @@ bitset_mask (bitset_t dest, const bitset_t src)
 /* Functions for re_string.  */
 static int
 internal_function __attribute__ ((pure, unused))
-re_string_char_size_at (const re_string_t *pstr, Idx idx)
+re_string_char_size_at (pTHX_ const re_string_t *pstr, Idx idx)
 {
   int byte_idx;
   if (pstr->mb_cur_max == 1)
@@ -896,7 +909,7 @@ re_string_char_size_at (const re_string_t *pstr, Idx idx)
 
 static wint_t
 internal_function __attribute__ ((pure, unused))
-re_string_wchar_at (const re_string_t *pstr, Idx idx)
+re_string_wchar_at (pTHX_ const re_string_t *pstr, Idx idx)
 {
   if (pstr->mb_cur_max == 1)
     return (wint_t) pstr->mbs[idx];
@@ -906,7 +919,7 @@ re_string_wchar_at (const re_string_t *pstr, Idx idx)
 # ifndef NOT_IN_libc
 static int
 internal_function __attribute__ ((pure, unused))
-re_string_elem_size_at (const re_string_t *pstr, Idx idx)
+re_string_elem_size_at (pTHX_ const re_string_t *pstr, Idx idx)
 {
 #  ifdef _LIBC
   const unsigned char *p, *extra;
