@@ -113,12 +113,12 @@ typedef unsigned char bool;
 # define lock_lock(lock) pthread_mutex_lock (&(lock))
 # define lock_unlock(lock) pthread_mutex_unlock (&(lock))
 #else
-# define lock_define(name)
-# define lock_init(lock) 0
-# define lock_fini(lock) ((void) 0)
-  /* The 'dfa' avoids an "unused variable 'dfa'" warning from GCC.  */
-# define lock_lock(lock) ((void) dfa)
-# define lock_unlock(lock) ((void) 0)
+# define lock_define(name) SV *name;
+/* GNU regex expect lock_init(lock) to return 0 if success */
+# define lock_init(lock) (SvREFCNT_inc(lock), SvSHARE(lock), 0)
+# define lock_fini(lock) SvREFCNT_dec(lock)
+# define lock_lock(lock) SvLOCK(lock)
+# define lock_unlock(lock) SvUNLOCK(lock)
 #endif
 
 /* In case that the system doesn't have isblank().  */
