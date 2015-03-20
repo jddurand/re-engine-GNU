@@ -5,9 +5,9 @@
 
 #include "ppport.h"
 
-#include "libc_calls.c"
-
 #include "config_REGEXP.h"
+
+#include "regex.c"
 
 /* Things that MUST be supported */
 
