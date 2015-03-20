@@ -1,9 +1,11 @@
-#define PERL_GET_NO_CONTEXT 1
+#define PERL_NO_GET_CONTEXT 1
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
 
 #include "ppport.h"
+
+#include "libc_calls.c"
 
 #include "config_REGEXP.h"
 
@@ -124,25 +126,6 @@ get_type(SV* sv) {
   /* Getting here should not be possible */
   return UNKNOWN;
 }
-
-/* Call to malloc free() */
-#ifdef free
-#define _SAVE_FREE_DEFINITION free
-#undef free
-#else
-#undef _SAVE_FREE_DEFINITION
-#endif
-#ifdef PERL_STATIC_INLINE
-PERL_STATIC_INLINE
-#else
-static
-#endif
-void _libc_free(void *ptr) {
-  free(ptr);
-}
-#ifdef _SAVE_FREE_DEFINITION
-#define free _SAVE_FREE_DEFINITION
-#endif
 
 #define GNU_key2int(key, value) do {                             \
   SV* val = cophh_fetch_pvs(CopHINTHASH_get(PL_curcop), key, 0); \
