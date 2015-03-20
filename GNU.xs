@@ -64,7 +64,7 @@ PERL_STATIC_INLINE
 static
 #endif
 IV
-get_type(SV* sv) {
+get_type(pTHX_ SV* sv) {
   IV type = 0;
 
   if (SvTYPE(sv) == SVt_PVGV) {
@@ -185,7 +185,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     U32 extflags = flags;
 
     /* SVs that are in input */
-    IV pattern_type = get_type((SV *)pattern);
+    IV pattern_type = get_type(aTHX_ (SV *)pattern);
     SV *sv_pattern;
     SV *sv_syntax = NULL;
 
@@ -236,11 +236,11 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       a_pattern = av_fetch(av, 1, 1);
       a_syntax = av_fetch(av, 0, 1);
 
-      if (a_pattern == NULL || get_type((SV *)*a_pattern) != SCALAR) {
-        croak("%s: array ref must have a scalar as second element, got %d", logHeader, get_type((SV *)a_pattern));
+      if (a_pattern == NULL || get_type(aTHX_ (SV *)*a_pattern) != SCALAR) {
+        croak("%s: array ref must have a scalar as second element, got %d", logHeader, get_type(aTHX_ (SV *)a_pattern));
       }
-      if (a_syntax == NULL || get_type((SV *)*a_syntax) != SCALAR) {
-        croak("%s: array ref must have a scalar as first element, got %d", logHeader, get_type((SV *)a_syntax));
+      if (a_syntax == NULL || get_type(aTHX_ (SV *)*a_syntax) != SCALAR) {
+        croak("%s: array ref must have a scalar as first element, got %d", logHeader, get_type(aTHX_ (SV *)a_syntax));
       }
 
       sv_pattern = sv_2mortal(newSVsv(*a_pattern));
@@ -255,10 +255,10 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
         fprintf(stderr, "%s: ... input is a hash ref\n", logHeader);
       }
 
-      if (h_pattern == NULL || get_type((SV *)*h_pattern) != SCALAR) {
+      if (h_pattern == NULL || get_type(aTHX_ (SV *)*h_pattern) != SCALAR) {
         croak("%s: hash ref key must have a key 'pattern' refering to a scalar", logHeader);
       }
-      if (h_syntax == NULL || get_type((SV *)*h_syntax) != SCALAR) {
+      if (h_syntax == NULL || get_type(aTHX_ (SV *)*h_syntax) != SCALAR) {
         croak("%s: hash ref key must have a key 'syntax' refering to a scalar", logHeader);
       }
 
@@ -875,11 +875,11 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 SKIP:
 
     if (regs.start != NULL) {
-      _libc_free(regs.start);
+      free(regs.start);
     }
 
     if (regs.end != NULL) {
-      _libc_free(regs.end);
+      free(regs.end);
     }
 
     if (isDebug) {
