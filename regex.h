@@ -534,7 +534,7 @@ typedef struct
 #ifdef __USE_GNU
 /* Sets the current default syntax to SYNTAX, and return the old syntax.
    You can also simply assign to the 're_syntax_options' variable.  */
-extern reg_syntax_t re_set_syntax (reg_syntax_t __syntax);
+extern reg_syntax_t re_set_syntax (aTHX_ reg_syntax_t __syntax);
 
 /* Compile the regular expression PATTERN, with length LENGTH
    and syntax given by the global 're_syntax_options', into the buffer
@@ -544,14 +544,14 @@ extern reg_syntax_t re_set_syntax (reg_syntax_t __syntax);
    Note that the translate table must either have been initialised by
    'regcomp', with a malloc'ed value, or set to NULL before calling
    'regfree'.  */
-extern const char *re_compile_pattern (const char *__pattern, size_t __length,
+extern const char *re_compile_pattern (aTHX_ const char *__pattern, size_t __length,
 				       struct re_pattern_buffer *__buffer);
 
 
 /* Compile a fastmap for the compiled pattern in BUFFER; used to
    accelerate searches.  Return 0 if successful and -2 if was an
    internal error.  */
-extern int re_compile_fastmap (struct re_pattern_buffer *__buffer);
+extern int re_compile_fastmap (aTHX_ struct re_pattern_buffer *__buffer);
 
 
 /* Search in the string STRING (with length LENGTH) for the pattern
@@ -559,7 +559,7 @@ extern int re_compile_fastmap (struct re_pattern_buffer *__buffer);
    characters.  Return the starting position of the match, -1 for no
    match, or -2 for an internal error.  Also return register
    information in REGS (if REGS and BUFFER->no_sub are nonzero).  */
-extern regoff_t re_search (struct re_pattern_buffer *__buffer,
+extern regoff_t re_search (aTHX_ struct re_pattern_buffer *__buffer,
 			   const char *__string, __re_idx_t __length,
 			   __re_idx_t __start, regoff_t __range,
 			   struct re_registers *__regs);
@@ -567,7 +567,7 @@ extern regoff_t re_search (struct re_pattern_buffer *__buffer,
 
 /* Like 're_search', but search in the concatenation of STRING1 and
    STRING2.  Also, stop searching at index START + STOP.  */
-extern regoff_t re_search_2 (struct re_pattern_buffer *__buffer,
+extern regoff_t re_search_2 (aTHX_ struct re_pattern_buffer *__buffer,
 			     const char *__string1, __re_idx_t __length1,
 			     const char *__string2, __re_idx_t __length2,
 			     __re_idx_t __start, regoff_t __range,
@@ -577,13 +577,13 @@ extern regoff_t re_search_2 (struct re_pattern_buffer *__buffer,
 
 /* Like 're_search', but return how many characters in STRING the regexp
    in BUFFER matched, starting at position START.  */
-extern regoff_t re_match (struct re_pattern_buffer *__buffer,
+extern regoff_t re_match (aTHX_ struct re_pattern_buffer *__buffer,
 			  const char *__string, __re_idx_t __length,
 			  __re_idx_t __start, struct re_registers *__regs);
 
 
 /* Relates to 're_match' as 're_search_2' relates to 're_search'.  */
-extern regoff_t re_match_2 (struct re_pattern_buffer *__buffer,
+extern regoff_t re_match_2 (aTHX_ struct re_pattern_buffer *__buffer,
 			    const char *__string1, __re_idx_t __length1,
 			    const char *__string2, __re_idx_t __length2,
 			    __re_idx_t __start, struct re_registers *__regs,
@@ -602,7 +602,7 @@ extern regoff_t re_match_2 (struct re_pattern_buffer *__buffer,
    Unless this function is called, the first search or match using
    BUFFER will allocate its own register data, without
    freeing the old data.  */
-extern void re_set_registers (struct re_pattern_buffer *__buffer,
+extern void re_set_registers (aTHX_ struct re_pattern_buffer *__buffer,
 			      struct re_registers *__regs,
 			      __re_size_t __num_regs,
 			      regoff_t *__starts, regoff_t *__ends);
@@ -611,8 +611,8 @@ extern void re_set_registers (struct re_pattern_buffer *__buffer,
 #if defined _REGEX_RE_COMP || (defined _LIBC && defined __USE_BSD)
 # ifndef _CRAY
 /* 4.2 bsd compatibility.  */
-extern char *re_comp (const char *);
-extern int re_exec (const char *);
+extern char *re_comp (aTHX_ const char *);
+extern int re_exec (aTHX_ const char *);
 # endif
 #endif
 
@@ -645,26 +645,26 @@ extern int re_exec (const char *);
 #endif
 
 /* POSIX compatibility.  */
-extern int regcomp (regex_t *_Restrict_ __preg,
+extern int regcomp (aTHX_ regex_t *_Restrict_ __preg,
 		    const char *_Restrict_ __pattern,
 		    int __cflags);
 
-extern int regexec (const regex_t *_Restrict_ __preg,
+extern int regexec (aTHX_ const regex_t *_Restrict_ __preg,
 		    const char *_Restrict_ __string, size_t __nmatch,
 		    regmatch_t __pmatch[_Restrict_arr_],
 		    int __eflags);
 
-extern size_t regerror (int __errcode, const regex_t *_Restrict_ __preg,
+extern size_t regerror (aTHX_ int __errcode, const regex_t *_Restrict_ __preg,
 			char *_Restrict_ __errbuf, size_t __errbuf_size);
 
-extern void regfree (regex_t *__preg);
+extern void regfree (aTHX_ regex_t *__preg);
 
 
 /* GNU entry point is forcing newline_anchor                       */
 /* I do not want that, so I force externalization of               */
 /* the internal implementation - this has another                  */
 /* advantage: getting rid of the global variable re_syntax_options */
-extern reg_errcode_t re_compile_internal (regex_t *preg, const char * pattern, size_t length, reg_syntax_t syntax);
+extern reg_errcode_t re_compile_internal (aTHX_ regex_t *preg, const char * pattern, size_t length, reg_syntax_t syntax);
 
 #ifdef __cplusplus
 }
