@@ -6,11 +6,9 @@
 #include "ppport.h"
 
 #include "config_REGEXP.h"
-
 #include "regex.c"
 
 /* Things that MUST be supported */
-
 #if ! REGEXP_PPRIVATE_CAN
 #  error "pprivate not found in structure regexp"
 #endif
@@ -31,6 +29,8 @@
 #  endif
 #endif
 
+/* #define PERL_5_10_METHOD */
+
 static regexp_engine engine_GNU;
 
 typedef struct GNU_private {
@@ -38,6 +38,7 @@ typedef struct GNU_private {
   char   *native_utf8;
   STRLEN  len_native_utf8;
 #endif
+  int     isDebug;
   regex_t regex;
 } GNU_private_t;
 
@@ -124,14 +125,34 @@ get_type(pTHX_ SV* sv) {
   return UNKNOWN;
 }
 
-#define GNU_key2int(key, value) do {                             \
-  SV* val = cophh_fetch_pvs(CopHINTHASH_get(PL_curcop), key, 0); \
-  if (val != &PL_sv_placeholder) {                               \
-    value = SvIV(val);                                           \
-  } else {                                                       \
-    value = 0;                                                   \
-  }                                                              \
-} while (0)
+SV* debugkey_sv;
+SV* syntaxkey_sv;
+int GNU_key2int(const char *key, SV * const key_sv) {
+  void *PL_cop;
+
+  if (GvHV(PL_hintgv) && (PL_hints & HINT_LOCALIZE_HH) == HINT_LOCALIZE_HH) {
+    HE* const he = hv_fetch_ent(GvHV(PL_hintgv), key_sv, FALSE, 0U);
+    if (he != NULL) {
+      SV* val = HeVAL(he);
+      if (val != &PL_sv_placeholder) {
+        return SvIV(val);
+      }
+    }
+  }
+
+  /* This should not happen */
+  if (PL_curcop != NULL) {
+    void *hash = CopHINTHASH_get(PL_curcop);
+    if (hash != NULL) {
+      SV* val = cophh_fetch_pvs(hash, key, 0);
+      if (val != &PL_sv_placeholder) {
+        return SvIV(val);
+      }
+    }
+  }
+
+  return 0;
+}
 
 GNU_STATIC
 char *sv2nativeutf8(pTHX_ SV *sv, short isDebug, STRLEN *len_native_utf8, SV **sv_tmpp) {
@@ -175,8 +196,8 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     REGEXP                   *rx;     /* SV */
     struct regexp            *r;      /* union part that really points to regexp structure */
     GNU_private_t            *ri;
-    int                       isDebug;
-    int                       defaultSyntax;
+    int                       isDebug = GNU_key2int("re::engine::GNU/debug", debugkey_sv);
+    int                       defaultSyntax = GNU_key2int("re::engine::GNU/syntax", syntaxkey_sv);
     char                     *logHeader = "[re::engine::GNU] GNU_comp";
     char                     *native_utf8;
     STRLEN                    len_native_utf8;
@@ -195,9 +216,6 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 
     reg_errcode_t ret;
     SV * sv_wrapped; /* For stringification */
-
-    GNU_key2int("re::engine::GNU/debug", isDebug);
-    GNU_key2int("re::engine::GNU/syntax", defaultSyntax);
 
     if (isDebug) {
       fprintf(stderr, "%s: pattern=%p flags=0x%lx\n", logHeader, pattern, (unsigned long) flags);
@@ -226,7 +244,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       sv_pattern = newSVsv((SV *)pattern);
 
     } else if (pattern_type == ARRAYREF) {
-      AV *av = (AV *)SvRV(pattern);
+      AV *av = (AV *)SvRV((SV *) pattern);
       SV **a_pattern;
       SV **a_syntax;
 
@@ -251,7 +269,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
       sv_syntax  = newSVsv(*a_syntax);
 
     } else if (pattern_type == HASHREF) {
-      HV  *hv        = (HV *)SvRV(pattern);
+      HV  *hv        = (HV *)SvRV((SV *) pattern);
       SV **h_pattern = hv_fetch(hv, "pattern", 7, 0);
       SV **h_syntax  = hv_fetch(hv, "syntax", 6, 0);
 
@@ -320,6 +338,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif
     }
 
+    ri->isDebug                = isDebug;
     ri->regex.buffer           = NULL;
     ri->regex.allocated        = 0;
     ri->regex.used             = 0;
@@ -517,11 +536,10 @@ GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
                             U32 flags,
                             short utf8_target)
 {
-  int   isDebug;
-  char *logHeader = "[re::engine::GNU] GNU_exec_set_capture_string";
+  char          *logHeader = "[re::engine::GNU] GNU_exec_set_capture_string";
   struct regexp *r = _RegSV(rx);
-
-  GNU_key2int("re::engine::GNU/debug", isDebug);
+  GNU_private_t *ri = REGEXP_PPRIVATE_GET(r);
+  int            isDebug = ri->isDebug;
 
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p, strbeg=%p, strend=%p, sv=%p, flags=0x%lx, utf8_target=%d\n", logHeader, rx, strbeg, strend, sv, (unsigned long) flags, (int) utf8_target);
@@ -759,10 +777,10 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 {
     struct regexp      *r = _RegSV(rx);
     GNU_private_t      *ri = REGEXP_PPRIVATE_GET(r);
+    int                 isDebug = ri->isDebug;
     regoff_t            rc;
     U32                 i;
     struct re_registers regs;     /* for subexpression matches */
-    int                 isDebug;
     char               *logHeader = "[re::engine::GNU] GNU_exec";
     short               utf8_target = DO_UTF8(sv) ? 1 : 0;
 
@@ -778,9 +796,6 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     regs.num_regs = 0;
     regs.start = NULL;
     regs.end = NULL;
-
-    GNU_key2int("re::engine::GNU/debug", isDebug);
-    isDebug = 1;
 
     if (isDebug) {
       fprintf(stderr, "%s: rx=%p, stringarg=%p, strend=%p, strbeg=%p, minend=%d, sv=%p, data=%p, flags=0x%lx\n", logHeader, rx, stringarg, strend, strbeg, (int) minend, sv, data, (unsigned long) flags);
@@ -844,7 +859,10 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
           I32 startUtf8Offset;
           I32 endUtf8Offset;
           I32 startCharNumber;
-          I32 lengthCharNumber;
+          I32 endCharNumber;
+          I32 startOffset;
+          I32 endOffset;
+          I32 length;
 
           len[0] = regs.start[i];
           perlutf8[0] = bytes_to_utf8(native_utf8, &(len[0]));
@@ -862,24 +880,35 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 
           /* Now get the character numbers -; */
           startCharNumber = startUtf8Offset;
-          lengthCharNumber = endUtf8Offset - startUtf8Offset;
-          sv_pos_u2b(sv_utf8, &startCharNumber, &lengthCharNumber);
+          endCharNumber = endUtf8Offset;
+          sv_pos_b2u(sv_utf8, &startCharNumber);
+          sv_pos_b2u(sv_utf8, &endCharNumber);
 
           if (isDebug) {
-            fprintf(stderr, "%s: ... Match No %d start at character No %d, length is %d\n", logHeader, i, (int) startCharNumber, (int) (startCharNumber + lengthCharNumber));
+            fprintf(stderr, "%s: ... Match No %d range in characters (perl utf8): [%d,%d]\n", logHeader, i, (int) startCharNumber, (int) endCharNumber);
           }
 
-          REGEXP_OFFS_GET(r)[i].start = startUtf8Offset;
-          REGEXP_OFFS_GET(r)[i].end = endUtf8Offset;
+          /* And finally the real offset in the original SV */
+          startOffset = startCharNumber;
+          length = endCharNumber - startCharNumber;
+          sv_pos_u2b(sv, &startOffset, &length);
+          endOffset = startOffset + length;
+
+        if (isDebug) {
+          fprintf(stderr, "%s: ... Match No %d range in bytes (original sv): [%d,%d]\n", logHeader, i, (int) startOffset, (int) endOffset);
+        }
+          REGEXP_OFFS_GET(r)[i].start = startOffset;
+          REGEXP_OFFS_GET(r)[i].end = endOffset;
         }
 #endif
     }
 
+#ifndef PERL_5_10_METHOD
     if ((flags & REXEC_NOT_FIRST) != REXEC_NOT_FIRST) {
-      // GNU_exec_set_capture_string(aTHX_ rx, strbeg, strend, sv, flags, utf8_target);
-      // goto SKIP;
+      GNU_exec_set_capture_string(aTHX_ rx, strbeg, strend, sv, flags, utf8_target);
     }
-
+#else
+    /* This is the perl-5.10 method */
     if ((flags & REXEC_NOT_FIRST) != REXEC_NOT_FIRST) {
       const I32 length = strend - strbeg;
 #if REGEXP_SAVED_COPY_CAN
@@ -924,8 +953,7 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
       REGEXP_SUBOFFSET_SET(r, 0);
       REGEXP_SUBCOFFSET_SET(r, 0);
     }
-
-SKIP:
+#endif /* PERL_5_10_METHOD */
 
     Safefree(native_utf8);
     if (nativestringarg_utf8_tofree) {
@@ -957,8 +985,10 @@ GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, const char *strbeg, char *strpos, c
 GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, char *strpos, char *strend, U32 flags, re_scream_pos_data *data)
 #endif
 {
-  int                       isDebug;
-  char                     *logHeader = "[re::engine::GNU] GNU_intuit";
+  struct regexp *r = _RegSV(rx);
+  GNU_private_t *ri = REGEXP_PPRIVATE_GET(r);
+  int            isDebug = ri->isDebug;
+  char          *logHeader = "[re::engine::GNU] GNU_intuit";
 
   PERL_UNUSED_ARG(rx);
   PERL_UNUSED_ARG(sv);
@@ -970,10 +1000,9 @@ GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, char *strpos, char *strend, U32 fla
   PERL_UNUSED_ARG(flags);
   PERL_UNUSED_ARG(data);
 
-  GNU_key2int("re::engine::GNU/debug", isDebug);
-
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p, sv=%p, strpos=%p, strend=%p, flags=0x%lx, data=%p\n", logHeader, rx, sv, strpos, strend, (unsigned long) flags, data);
+    fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
     fprintf(stderr, "%s: return NULL\n", logHeader);
   }
 
@@ -986,15 +1015,16 @@ GNU_STATIC
 SV *
 GNU_checkstr(pTHX_ REGEXP * const rx)
 {
-  int                       isDebug;
-  char                     *logHeader = "[re::engine::GNU] GNU_checkstr";
+  struct regexp *r = _RegSV(rx);
+  GNU_private_t *ri = REGEXP_PPRIVATE_GET(r);
+  int            isDebug = ri->isDebug;
+  char          *logHeader = "[re::engine::GNU] GNU_checkstr";
 
   PERL_UNUSED_ARG(rx);
 
-  GNU_key2int("re::engine::GNU/debug", isDebug);
-
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p\n", logHeader, rx);
+    fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
     fprintf(stderr, "%s: return NULL\n", logHeader);
   }
 
@@ -1007,15 +1037,14 @@ GNU_STATIC
 void
 GNU_free(pTHX_ REGEXP * const rx)
 {
-  struct regexp      *r = _RegSV(rx);
-  GNU_private_t      *ri = REGEXP_PPRIVATE_GET(r);
-  int                isDebug;
-  char              *logHeader = "[re::engine::GNU] GNU_free";
-
-  GNU_key2int("re::engine::GNU/debug", isDebug);
+  struct regexp *r = _RegSV(rx);
+  GNU_private_t *ri = REGEXP_PPRIVATE_GET(r);
+  int            isDebug = ri->isDebug;
+  char          *logHeader = "[re::engine::GNU] GNU_free";
 
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p\n", logHeader, rx);
+    fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
   }
 
 #ifdef HAVE_REGEXP_ENGINE_DUPE
@@ -1038,16 +1067,17 @@ GNU_STATIC
 SV *
 GNU_qr_package(pTHX_ REGEXP * const rx)
 {
-  int                isDebug;
-  char              *logHeader = "[re::engine::GNU] GNU_qr_package";
-  SV                *rc;
+  struct regexp *r = _RegSV(rx);
+  GNU_private_t *ri = REGEXP_PPRIVATE_GET(r);
+  int            isDebug = ri->isDebug;
+  char          *logHeader = "[re::engine::GNU] GNU_qr_package";
+  SV            *rc;
 
   PERL_UNUSED_ARG(rx);
 
-  GNU_key2int("re::engine::GNU/debug", isDebug);
-
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p\n", logHeader, rx);
+    fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
   }
 
   rc = newSVpvs("re::engine::GNU");
@@ -1077,6 +1107,7 @@ GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
 
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p, param=%p\n", logHeader, rx, param);
+    fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
   }
 
   if (isDebug) {
@@ -1124,6 +1155,8 @@ MODULE = re::engine::GNU		PACKAGE = re::engine::GNU
 PROTOTYPES: ENABLE
 
 BOOT:
+    debugkey_sv = newSVpvs_share("re::engine::GNU/debug");
+    syntaxkey_sv = newSVpvs_share("re::engine::GNU/syntax");
 #ifdef HAVE_REGEXP_ENGINE_COMP
   engine_GNU.comp = GNU_comp;
 #endif
