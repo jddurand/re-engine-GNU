@@ -70,7 +70,7 @@
             "IO::Handle" : "0",
             "IPC::Open3" : "0",
             "Test::More" : "0",
-            "open" : "0",
+            "Thread" : "0",
             "perl" : "5.010000",
             "warnings" : "0"
          }
@@ -79,7 +79,7 @@
    "provides" : {
       "re::engine::GNU" : {
          "file" : "lib/re/engine/GNU.pm",
-         "version" : "0.012"
+         "version" : "0.013"
       }
    },
    "release_status" : "stable",
@@ -95,7 +95,7 @@
          "web" : "https://github.com/jddurand/re-engine-gnu"
       }
    },
-   "version" : "0.012",
+   "version" : "0.013",
    "x_authority" : "cpan:JDDPAUSE"
 }
 

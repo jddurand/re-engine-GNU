@@ -1,6 +1,15 @@
 Changelog for re-engine-GNU
 
-0.012 2015-03-21T14:01:50
+0.013 2015-03-21T21:17:16
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - GNU.pm: fix POD
+ - removal of libc_calls.c
+ - .
+ - README.GNU.txt
+ - threaded perl support
+ - GNU.xs: added missing *THX_
+
+0.012 2015-03-21T14:01:50Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - cop* stuff removal
  - GNU.xs: fix memory leak
