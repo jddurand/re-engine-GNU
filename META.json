@@ -4,13 +4,13 @@
       "Jean-Damien Durand <jeandamiendurand@free.fr>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Dist::Zilla version 5.032, CPAN::Meta::Converter version 2.142060",
+   "generated_by" : "Dist::Zilla version 5.033, CPAN::Meta::Converter version 2.150001",
    "license" : [
       "perl_5"
    ],
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
-      "version" : "2"
+      "version" : 2
    },
    "name" : "re-engine-GNU",
    "no_index" : {
@@ -24,7 +24,8 @@
          "requires" : {
             "Capture::Tiny" : "0",
             "Config::AutoConf" : "0.310",
-            "File::Temp" : "0"
+            "File::Temp" : "0",
+            "Perl::OSType" : "0"
          }
       },
       "configure" : {
@@ -54,7 +55,8 @@
             "XSLoader" : "0",
             "diagnostics" : "0",
             "perl" : "5.010000",
-            "strict" : "0"
+            "strict" : "0",
+            "threads::shared" : "0"
          }
       },
       "test" : {
@@ -62,7 +64,6 @@
             "CPAN::Meta" : "2.120900"
          },
          "requires" : {
-            "Data::Dumper" : "0",
             "ExtUtils::MakeMaker" : "0",
             "File::Spec" : "0",
             "File::Temp" : "0",

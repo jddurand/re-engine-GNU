@@ -1,7 +1,38 @@
 Changelog for re-engine-GNU
 
-0.012 2015-03-15T16:13:20
- - No changes found
+0.012 2015-03-21T14:01:50
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - cop* stuff removal
+ - GNU.xs: fix memory leak
+ - general fix with offsets
+ - regex_internal.h; handle bool conflict with perl
+ - Fix access to rx with MATCH macros and double-free
+ - Fix memory errors
+ - regcomp.c: warnings fix
+ - regcomp.orig.c
+ - dev+
+ - use threads::shared
+ - lock macros
+ - aTHX_
+ - back to pure xs
+ - compile regex.c directly in the XS to profit from perl macros
+ - generic calls to libc regardless if in XS or not
+ - Moving the NOT_IN_libc model
+ - GNU.xs
+ - Original regex sources
+ - debug+
+ - t/re-engine-GNU-dev.t removed
+ - t+
+ - utf8: t+
+ - utf8: dev+
+ - utf8 dev+
+ - macros: dev+
+ - Make the code more readable: dev+
+ - dist.ini: generate pl filenames with File::Spec
+ - etc/config_autoconf.pl: removed forced _GNU_SOURCE, handled in config.h
+ - Moved *.pl to etc
+ - config_REGEXP.pl: generate the wrappers
+ - GNU.xs: use of initialized value
 
 0.011 2015-03-15T16:08:22Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
