@@ -313,9 +313,13 @@ This is setting a bit in the syntax value, saying that "." can also match newlin
 
 This is making the regular expression case insensitive.
 
+=item //p
+
+Please refer to perlvar section about MATCH family.
+
 =back
 
-The perl modifiers //xp are explicited dropped.
+The perl modifiers //x is explicited dropped.
 
 =head2 EXPORT
 
@@ -323,24 +327,12 @@ None by default.
 
 =head1 NOTES
 
-=over
-
-=item
-
-I18N is supported without collation.
-
-=item
-
-The GNU regex library is compiled with -DDEBUG.
-
-=item
-
-This engine does not respect the "last successful match" perl semantics: "last match" applies.
-
-=back
+Except for the //msip perl semantics, applied at compile-time, the GNU regex semantic applies. For instance, under the scene this the libc with which perl was compiled that applies, and the "last successful match" perl semantic is ignored.
 
 =head1 SEE ALSO
 
-http://www.regular-expressions.info/gnu.html
+L<GNU Gnulib Regular expressions|https://www.gnu.org/software/gnulib/manual/html_node/Regular-expressions.html>
+
+L<perlre>
 
 =cut
