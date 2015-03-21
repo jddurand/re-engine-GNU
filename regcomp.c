@@ -921,7 +921,7 @@ init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len)
 	{
 	  int i, j, ch;
 
-          re_calloc(dfa->sb_char, bitset_t, 1);
+          re_calloc(dfa->sb_char, bitset_word_t, 1);
 	  /* dfa->sb_char = (re_bitset_ptr_t) calloc (sizeof (bitset_t), 1); */
 	  if (BE (dfa->sb_char == NULL, 0))
 	    return REG_ESPACE;
@@ -3077,7 +3077,7 @@ parse_bracket_exp (pTHX_ re_string_t *regexp, re_dfa_t *dfa, re_token_t *token,
 						   _NL_COLLATE_SYMB_EXTRAMB);
     }
 #endif
-  re_calloc(sbcset, bitset_t, 1);
+  re_calloc(sbcset, bitset_word_t, 1);
   /* sbcset = (re_bitset_ptr_t) calloc (sizeof (bitset_t), 1); */
 #ifdef RE_ENABLE_I18N
   re_calloc(mbcset, re_charset_t, 1);
@@ -3613,7 +3613,7 @@ build_charclass_op (pTHX_ re_dfa_t *dfa, RE_TRANSLATE_TYPE trans,
   re_token_t br_token;
   bin_tree_t *tree;
 
-  re_calloc(sbcset, bitset_t, 1);
+  re_calloc(sbcset, bitset_word_t, 1);
   /* sbcset = (re_bitset_ptr_t) calloc (sizeof (bitset_t), 1); */
 #ifdef RE_ENABLE_I18N
   re_calloc(mbcset, re_charset_t, 1);
