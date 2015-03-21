@@ -128,23 +128,10 @@ get_type(pTHX_ SV* sv) {
 SV* debugkey_sv;
 SV* syntaxkey_sv;
 int GNU_key2int(const char *key, SV * const key_sv) {
-  void *PL_cop;
-
   if (GvHV(PL_hintgv) && (PL_hints & HINT_LOCALIZE_HH) == HINT_LOCALIZE_HH) {
     HE* const he = hv_fetch_ent(GvHV(PL_hintgv), key_sv, FALSE, 0U);
     if (he != NULL) {
       SV* val = HeVAL(he);
-      if (val != &PL_sv_placeholder) {
-        return SvIV(val);
-      }
-    }
-  }
-
-  /* This should not happen */
-  if (PL_curcop != NULL) {
-    void *hash = CopHINTHASH_get(PL_curcop);
-    if (hash != NULL) {
-      SV* val = cophh_fetch_pvs(hash, key, 0);
       if (val != &PL_sv_placeholder) {
         return SvIV(val);
       }

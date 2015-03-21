@@ -257,18 +257,6 @@ __DATA__
 #  endif
 #endif
 
-#ifndef CopHINTHASH_get
-#  define CopHINTHASH_get(c) ((c)->cop_hints_hash)
-#endif
-
-#ifndef cophh_fetch_pvs
-#  ifdef STR_WITH_LEN
-#    define cophh_fetch_pvs(cophh, key, flags) Perl_refcounted_he_fetch(aTHX_ cophh, NULL, key, sizeof(key) - 1, 0, flags)
-#else
-#    define cophh_fetch_pvs(cophh, key, flags) Perl_refcounted_he_fetch(aTHX_ cophh, NULL, STR_WITH_LEN(key), 0, flags)
-#  endif
-#endif
-
 #ifdef PERL_STATIC_INLINE
 #  define GNU_STATIC PERL_STATIC_INLINE
 #else
