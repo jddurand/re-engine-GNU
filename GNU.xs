@@ -548,17 +548,17 @@ GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
         if (isDebug) {
           fprintf(stderr, "%s: ... reusing save_copy SV\n", logHeader);
         }
-        if (RX_MATCH_COPIED(r)) {
+        if (RX_MATCH_COPIED(rx)) {
 #if REGEXP_SUBBEG_CAN
           Safefree(REGEXP_SUBBEG_GET(r));
 #endif /* REGEXP_SUBBEG_CAN */
-          RX_MATCH_COPIED_off(r);
+          RX_MATCH_COPIED_off(rx);
         }
       } else {
         if (isDebug) {
           fprintf(stderr, "%s: ... creating new COW sv\n", logHeader);
         }
-        RX_MATCH_COPY_FREE(r);
+        RX_MATCH_COPY_FREE(rx);
         REGEXP_SAVED_COPY_SET(r, sv_setsv_cow(REGEXP_SAVED_COPY_GET(r), sv));
       }
       REGEXP_SUBBEG_SET(r, (char *)SvPVX_const(REGEXP_SAVED_COPY_GET(r)));
@@ -660,7 +660,7 @@ GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
 
         sublen = max - min;
 
-        if (RX_MATCH_COPIED(r)) {
+        if (RX_MATCH_COPIED(rx)) {
           if (sublen > REGEXP_SUBLEN_GET(r))
             REGEXP_SUBBEG_SET(r, (char*)saferealloc(REGEXP_SUBBEG_GET(r), sublen+1));
         }
@@ -671,7 +671,7 @@ GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
         REGEXP_SUBBEG_GET(r)[sublen] = '\0';
         REGEXP_SUBOFFSET_SET(r, min);
         REGEXP_SUBLEN_SET(r, sublen);
-        RX_MATCH_COPIED_on(r);
+        RX_MATCH_COPIED_on(rx);
         if (isDebug) {
           fprintf(stderr, "%s: ... "
 #if REGEXP_SUBBEG_CAN
@@ -736,7 +736,7 @@ GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
 #endif /* REGEXP_SUBCOFFSET_CAN && REGEXP_SUBOFFSET_CAN */
     }
   } else {
-    RX_MATCH_COPY_FREE(r);
+    RX_MATCH_COPY_FREE(rx);
     REGEXP_SUBBEG_SET(r, strbeg);
     REGEXP_SUBOFFSET_SET(r, 0);
     REGEXP_SUBCOFFSET_SET(r, 0);
@@ -804,10 +804,6 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
       fprintf(stderr, "%s: ... re_search(bufp=%p, string=%p, length=%d, start=%d, range=%d, regs=%p)\n", logHeader, &(ri->regex), native_utf8, (int) len_native_utf8, (int) (len_native_utf8 - len_nativestringarg_utf8), (int) len_nativestringarg_utf8, &regs);
     }
     rc = re_search(aTHX_ &(ri->regex), native_utf8, len_native_utf8, len_native_utf8 - len_nativestringarg_utf8, len_nativestringarg_utf8, &regs);
-    Safefree(native_utf8);
-    if (nativestringarg_utf8_tofree) {
-      Safefree(nativestringarg_utf8);
-    }
 
     if (rc <= -2) {
       croak("%s: Internal error in re_search()", logHeader);
@@ -816,12 +812,16 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
         fprintf(stderr, "%s: return 0 (no match)\n", logHeader);
       }
       SvREFCNT_dec(sv_utf8);
+      Safefree(native_utf8);
+      if (nativestringarg_utf8_tofree) {
+        Safefree(nativestringarg_utf8);
+      }
       return 0;
     }
 
     /* Why isn't it done by the higher level ? */
-    RX_MATCH_UTF8_set(r, utf8_target);
-    RX_MATCH_TAINTED_off(r);
+    RX_MATCH_UTF8_set(rx, utf8_target);
+    RX_MATCH_TAINTED_off(rx);
 
     REGEXP_LASTPAREN_SET(r, REGEXP_NPARENS_GET(r));
     REGEXP_LASTCLOSEPAREN_SET(r, REGEXP_NPARENS_GET(r));
@@ -894,7 +894,7 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
       short canCow = 0;
       short doCow = 0;
 #endif
-      RX_MATCH_COPY_FREE(r);
+      RX_MATCH_COPY_FREE(rx);
       if ((flags & REXEC_COPY_STR) == REXEC_COPY_STR) {
         /* Adapted from perl-5.10. Not performant, I know */
         if (canCow != 0 && doCow != 0) {
@@ -912,7 +912,7 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 #endif
 #endif
         } else {
-          RX_MATCH_COPIED_on(r);
+          RX_MATCH_COPIED_on(rx);
 #if REGEXP_SUBBEG_CAN
           REGEXP_SUBBEG_SET(r, savepvn(strbeg, length));
 #endif
@@ -927,10 +927,15 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 
 SKIP:
 
+    Safefree(native_utf8);
+    if (nativestringarg_utf8_tofree) {
+      Safefree(nativestringarg_utf8);
+    }
+    SvREFCNT_dec(sv_utf8);
+
     if (regs.start != NULL) {
       Safefree(regs.start);
     }
-
     if (regs.end != NULL) {
       Safefree(regs.end);
     }
@@ -939,7 +944,6 @@ SKIP:
       fprintf(stderr, "%s: return 1 (match)\n", logHeader);
     }
 
-    SvREFCNT_dec(sv_utf8);
     return 1;
 }
 #endif /* HAVE_REGEXP_ENGINE_EXEC */
