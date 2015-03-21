@@ -225,10 +225,10 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     /********************/
     /* GNU engine setup */
     /********************/
-    if (isDebug) {
-      fprintf(stderr, "%s: ... allocating GNU_private_t\n", logHeader);
-    }
     Newxz(ri, 1, GNU_private_t);
+    if (isDebug) {
+      fprintf(stderr, "%s: ... allocated private structure ri=%p\n", logHeader, ri);
+    }
 
     /* We accept in input:                                                  */
     /* - a scalar                                                           */
@@ -1054,6 +1054,10 @@ GNU_free(pTHX_ REGEXP * const rx)
     fprintf(stderr, "%s: ... regfree(preg=%p)\n", logHeader, &(ri->regex));
   }
   regfree(aTHX_ &(ri->regex));
+  if (isDebug) {
+    fprintf(stderr, "%s: ... Safefree(ri=%p)\n", logHeader, ri);
+  }
+  Safefree(ri);
 
   if (isDebug) {
     fprintf(stderr, "%s: return void\n", logHeader);
