@@ -127,7 +127,7 @@ get_type(pTHX_ SV* sv) {
 
 SV* debugkey_sv;
 SV* syntaxkey_sv;
-int GNU_key2int(const char *key, SV * const key_sv) {
+int GNU_key2int(pTHX_ const char *key, SV * const key_sv) {
   if (GvHV(PL_hintgv) && (PL_hints & HINT_LOCALIZE_HH) == HINT_LOCALIZE_HH) {
     HE* const he = hv_fetch_ent(GvHV(PL_hintgv), key_sv, FALSE, 0U);
     if (he != NULL) {
@@ -183,8 +183,8 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     REGEXP                   *rx;     /* SV */
     struct regexp            *r;      /* union part that really points to regexp structure */
     GNU_private_t            *ri;
-    int                       isDebug = GNU_key2int("re::engine::GNU/debug", debugkey_sv);
-    int                       defaultSyntax = GNU_key2int("re::engine::GNU/syntax", syntaxkey_sv);
+    int                       isDebug = GNU_key2int(aTHX_ "re::engine::GNU/debug", debugkey_sv);
+    int                       defaultSyntax = GNU_key2int(aTHX_ "re::engine::GNU/syntax", syntaxkey_sv);
     char                     *logHeader = "[re::engine::GNU] GNU_comp";
     char                     *native_utf8;
     STRLEN                    len_native_utf8;
