@@ -48,17 +48,31 @@
 #ifdef HAVE_WCTYPE_H
 #  include <wctype.h>
 #endif
-#ifdef HAVE_STDBOOL_H
-#  include <stdbool.h>
-#else
-#  ifndef __cplusplus
-#    ifndef bool
-#      ifdef HAVE__BOOL
+#ifndef HAS_BOOL
+/* Because perl usually already defined it */
+#  ifdef HAVE_STDBOOL_H
+#    include <stdbool.h>
+#  else
+#    ifndef __cplusplus
+#      ifndef bool
+#        ifdef HAVE__BOOL
 typedef _Bool bool;
-#      else
+#        else
 typedef unsigned char bool;
+#        endif
 #      endif
+#      ifndef true
+#        define true 1
+#      endif
+#      ifndef false
+#        define false 0
+#      endif
+#      define __bool_true_false_are_defined 1
 #    endif
+#  endif
+#else
+/* This is perl's bool style. Though it usually does not define true or false */
+#  ifndef __bool_true_false_are_defined
 #    ifndef true
 #      define true 1
 #    endif
@@ -67,7 +81,7 @@ typedef unsigned char bool;
 #    endif
 #    define __bool_true_false_are_defined 1
 #  endif
-#endif
+#endif /* HAS_BOOL */
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
 #endif
