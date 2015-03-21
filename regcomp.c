@@ -20,11 +20,11 @@
 /* memset calls are left as they are: they are ok from Perl memory pool point of view IMHO */
 
 /* static */ reg_errcode_t re_compile_internal (pTHX_ regex_t *preg, const char * pattern,
-					  size_t length, reg_syntax_t syntax);
+                                                size_t length, reg_syntax_t syntax, SV *sv_lock);
 static void re_compile_fastmap_iter (pTHX_ regex_t *bufp,
 				     const re_dfastate_t *init_state,
 				     char *fastmap);
-static reg_errcode_t init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len);
+static reg_errcode_t init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock);
 #ifdef RE_ENABLE_I18N
 static void free_charset (pTHX_ re_charset_t *cset);
 #endif /* RE_ENABLE_I18N */
@@ -213,14 +213,15 @@ static const size_t __re_error_msgid_idx[] =
 
 #ifdef _LIBC
 const char *
-re_compile_pattern (pTHX_ pattern, length, bufp)
+re_compile_pattern (pTHX_ pattern, length, bufp, sv)
     const char *pattern;
     size_t length;
     struct re_pattern_buffer *bufp;
+    SV *sv_lock
 #else /* size_t might promote */
 const char *
 re_compile_pattern (pTHX_ const char *pattern, size_t length,
-		    struct re_pattern_buffer *bufp)
+		    struct re_pattern_buffer *bufp, SV *sv_lock)
 #endif
 {
   reg_errcode_t ret;
@@ -233,7 +234,7 @@ re_compile_pattern (pTHX_ const char *pattern, size_t length,
   /* Match anchors at newline.  */
   bufp->newline_anchor = 1;
 
-  ret = re_compile_internal (aTHX_ bufp, pattern, length, re_syntax_options);
+  ret = re_compile_internal (aTHX_ bufp, pattern, length, re_syntax_options, sv_lock);
 
   if (!ret)
     return NULL;
@@ -470,7 +471,7 @@ re_compile_fastmap_iter (pTHX_ regex_t *bufp, const re_dfastate_t *init_state,
    the return codes and their meanings.)  */
 
 int
-regcomp (pTHX_ regex_t *_Restrict_ preg, const char *_Restrict_ pattern, int cflags)
+regcomp (pTHX_ regex_t *_Restrict_ preg, const char *_Restrict_ pattern, int cflags, SV *sv_lock)
 {
   reg_errcode_t ret;
   reg_syntax_t syntax = ((cflags & REG_EXTENDED) ? RE_SYNTAX_POSIX_EXTENDED
@@ -500,7 +501,7 @@ regcomp (pTHX_ regex_t *_Restrict_ preg, const char *_Restrict_ pattern, int cfl
   preg->no_sub = !!(cflags & REG_NOSUB);
   preg->translate = NULL;
 
-  ret = re_compile_internal (aTHX_ preg, pattern, strlen (pattern), syntax);
+  ret = re_compile_internal (aTHX_ preg, pattern, strlen (pattern), syntax, sv_lock);
 
   /* POSIX doesn't distinguish between an unmatched open-group and an
      unmatched close-group: both are REG_EPAREN.  */
@@ -681,8 +682,9 @@ char *
    regcomp/regexec above without link errors.  */
 weak_function
 # endif
-re_comp (s)
+re_comp (s, sv_lock)
      const char *s;
+     SV *sv_lock
 {
   reg_errcode_t ret;
   char *fastmap;
@@ -718,7 +720,7 @@ re_comp (s)
   /* Match anchors at newlines.  */
   re_comp_buf.newline_anchor = 1;
 
-  ret = re_compile_internal (aTHX_ &re_comp_buf, s, strlen (s), re_syntax_options);
+  ret = re_compile_internal (aTHX_ &re_comp_buf, s, strlen (s), re_syntax_options, sv_lock);
 
   if (!ret)
     return NULL;
@@ -742,7 +744,7 @@ libc_freeres_fn (free_mem)
 
 /* static */ reg_errcode_t
 re_compile_internal (pTHX_ regex_t *preg, const char * pattern, size_t length,
-		     reg_syntax_t syntax)
+		     reg_syntax_t syntax, SV *sv_lock)
 {
   reg_errcode_t err = REG_NOERROR;
   re_dfa_t *dfa;
@@ -775,7 +777,7 @@ re_compile_internal (pTHX_ regex_t *preg, const char * pattern, size_t length,
     }
   preg->used = sizeof (re_dfa_t);
 
-  err = init_dfa (aTHX_ dfa, length);
+  err = init_dfa (aTHX_ dfa, length, sv_lock);
   if (BE (err == REG_NOERROR && lock_init (dfa->lock) != 0, 0))
     err = REG_ESPACE;
   if (BE (err != REG_NOERROR, 0))
@@ -844,7 +846,7 @@ re_compile_internal (pTHX_ regex_t *preg, const char * pattern, size_t length,
    as the initial length of some arrays.  */
 
 static reg_errcode_t
-init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len)
+init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock)
 {
   __re_size_t table_size;
 #ifndef _LIBC
@@ -941,6 +943,8 @@ init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len)
 	}
     }
 #endif
+
+  dfa->lock = sv_lock;
 
   if (BE (dfa->nodes == NULL || dfa->state_table == NULL, 0))
     return REG_ESPACE;

@@ -1,13 +1,5 @@
-# Before 'make install' is performed this script should be runnable with
-# 'make test'. After 'make install' it should work as 'perl re-engine-GNU.t'
-
-#########################
-
-# change 'tests => 1' to 'tests => last_test_to_print';
-
 use strict;
 use warnings;
-use open ':std', ':encoding(utf-8)';
 
 use Test::More tests => 60;
 BEGIN { require_ok('re::engine::GNU') };
@@ -116,7 +108,7 @@ ok ($t4, "http://sourceware.org/ml/libc-hacker/2006-09/msg00008.html");
   is ($', "y", "utf8 \$'");
   no re::engine::GNU;
 }
-ok ($t5, "\"\\x{1000}\\x{103B}\\x{103D}\\x{1014}\\x{103A}\\x{102F}\\x{1015}\\x{103A}xy\" =~ qr/\\([^x]\\)\\(x\\)/");
+ok ($t5, "\"\\x{1000}\\x{103B}\\x{103D}\\x{1014}\\x{103A}\\x{102F}\\x{1015}\\x{103A}xy\" =~ qr/\\([^x]\\)\\(x\\)/p");
 {
   use re::engine::GNU -debug => $ENV{AUTHOR_TEST} || 0;
   my @matches = ();
@@ -126,3 +118,5 @@ ok ($t5, "\"\\x{1000}\\x{103B}\\x{103D}\\x{1014}\\x{103A}\\x{102F}\\x{1015}\\x{1
   is_deeply(\@matches, [ "\x{1000}", "\x{103B}", "\x{103D}", "\x{1014}", "\x{103A}", "\x{102F}", "\x{1015}", "\x{103A}" ], 'utf8 m//g');
   no re::engine::GNU;
 }
+
+1;

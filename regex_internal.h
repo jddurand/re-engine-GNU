@@ -129,8 +129,8 @@ typedef unsigned char bool;
 #else
 # define lock_define(name) SV *name;
 /* GNU regex expect lock_init(lock) to return 0 if success */
-# define lock_init(lock) (SvREFCNT_inc(lock), SvSHARE(lock), 0)
-# define lock_fini(lock) SvREFCNT_dec(lock)
+# define lock_init(lock) (SvSHARE(lock), 0)
+# define lock_fini(lock) /* There is no SvUNSHARE */
 # define lock_lock(lock) SvLOCK(lock)
 # define lock_unlock(lock) SvUNLOCK(lock)
 #endif
