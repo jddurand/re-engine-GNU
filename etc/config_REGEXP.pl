@@ -94,12 +94,12 @@ sub do_config_REGEXP {
       print $fh "#undef $set\n";
       print $fh "#ifdef HAVE_REGEXP_" . uc($_) . "\n";
       print $fh "#  define $can 1\n";
-      print $fh "#  define $get(rx) ((struct regexp *) (rx))->$_\n";
-      print $fh "#  define $set(rx, x) ((struct regexp *) (rx))->$_ = (x)\n";
+      print $fh "#  define $get(r) ((r))->$_\n";
+      print $fh "#  define $set(r, x) ((r))->$_ = (x)\n";
       print $fh "#else\n";
       print $fh "#  define $can 0\n";
-      print $fh "#  define $get(rx)\n";
-      print $fh "#  define $set(rx, x)\n";
+      print $fh "#  define $get(r)\n";
+      print $fh "#  define $set(r, x)\n";
       print $fh "#endif\n";
     }
     #
