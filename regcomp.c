@@ -325,7 +325,7 @@ re_compile_fastmap_iter (pTHX_ regex_t *bufp, const re_dfastate_t *init_state,
 	      unsigned char buf[MB_LEN_MAX];
 	      unsigned char *p;
 	      wchar_t wc;
-	      mbstate_t state;
+	      __mbstate_t state;
 
 	      p = buf;
 	      *p++ = dfa->nodes[node].opr.c;
@@ -336,7 +336,7 @@ re_compile_fastmap_iter (pTHX_ regex_t *bufp, const re_dfastate_t *init_state,
 	      memset (&state, '\0', sizeof (state));
 	      if (__mbrtowc (&wc, (const char *) buf, p - buf,
 			     &state) == p - buf
-		  && (__wcrtomb ((char *) buf, towlower (wc), &state)
+		  && (__wcrtomb ((char *) buf, __towlower (wc), &state)
 		      != (size_t) -1))
 		re_set_fastmap (aTHX_ fastmap, false, buf[0]);
 	    }
@@ -376,6 +376,8 @@ re_compile_fastmap_iter (pTHX_ regex_t *bufp, const re_dfastate_t *init_state,
 		    if (table[i] < 0)
 		      re_set_fastmap (aTHX_ fastmap, icase, i);
 		}
+# else
+
 # endif /* _LIBC */
 
 	  /* See if we have to start the match at all multibyte characters,
@@ -392,7 +394,7 @@ re_compile_fastmap_iter (pTHX_ regex_t *bufp, const re_dfastate_t *init_state,
 	      unsigned char c = 0;
 	      do
 		{
-		  mbstate_t mbs;
+		  __mbstate_t mbs;
 		  memset (&mbs, 0, sizeof (mbs));
 		  if (__mbrtowc (NULL, (char *) &c, 1, &mbs) == (size_t) -2)
 		    re_set_fastmap (aTHX_ fastmap, false, (int) c);
@@ -406,13 +408,13 @@ re_compile_fastmap_iter (pTHX_ regex_t *bufp, const re_dfastate_t *init_state,
 	      for (i = 0; i < cset->nmbchars; ++i)
 		{
 		  char buf[256];
-		  mbstate_t state;
+		  __mbstate_t state;
 		  memset (&state, '\0', sizeof (state));
 		  if (__wcrtomb (buf, cset->mbchars[i], &state) != (size_t) -1)
 		    re_set_fastmap (aTHX_ fastmap, icase, *(unsigned char *) buf);
 		  if ((bufp->syntax & RE_ICASE) && dfa->mb_cur_max > 1)
 		    {
-		      if (__wcrtomb (buf, towlower (cset->mbchars[i]), &state)
+		      if (__wcrtomb (buf, __towlower (cset->mbchars[i]), &state)
 			  != (size_t) -1)
 			re_set_fastmap (aTHX_ fastmap, false, *(unsigned char *) buf);
 		    }
@@ -891,7 +893,7 @@ init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock)
   /* dfa->state_table = calloc (sizeof (struct re_state_table_entry), table_size); */
   dfa->state_hash_mask = table_size - 1;
 
-  dfa->mb_cur_max = MB_CUR_MAX;
+  dfa->mb_cur_max = __MB_CUR_MAX;
 #ifdef _LIBC
   if (dfa->mb_cur_max == 6
       && strcmp (_NL_CURRENT (LC_CTYPE, _NL_CTYPE_CODESET_NAME), "UTF-8") == 0)
@@ -2866,7 +2868,7 @@ parse_bracket_exp (pTHX_ re_string_t *regexp, re_dfa_t *dfa, re_token_t *token,
       if (br_elem->type == SB_CHAR)
 	{
 	  /*
-	  if (MB_CUR_MAX == 1)
+	  if (__MB_CUR_MAX == 1)
 	  */
 	  if (nrules == 0)
 	    return collseqmb[br_elem->opr.ch];
@@ -2980,7 +2982,7 @@ parse_bracket_exp (pTHX_ re_string_t *regexp, re_dfa_t *dfa, re_token_t *token,
 	{
 	  uint32_t ch_collseq;
 	  /*
-	  if (MB_CUR_MAX == 1)
+	  if (__MB_CUR_MAX == 1)
 	  */
 	  if (nrules == 0)
 	    ch_collseq = collseqmb[ch];
@@ -3071,7 +3073,7 @@ parse_bracket_exp (pTHX_ re_string_t *regexp, re_dfa_t *dfa, re_token_t *token,
   if (nrules)
     {
       /*
-      if (MB_CUR_MAX > 1)
+      if (__MB_CUR_MAX > 1)
       */
       collseqwc = _NL_CURRENT (LC_COLLATE, _NL_COLLATE_COLLSEQWC);
       table_size = _NL_CURRENT_WORD (LC_COLLATE, _NL_COLLATE_SYMB_HASH_SIZEMB);

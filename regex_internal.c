@@ -195,7 +195,7 @@ build_wcs_buffer (pTHX_ re_string_t *pstr)
 #else
   unsigned char buf[64];
 #endif
-  mbstate_t prev_st;
+  __mbstate_t prev_st;
   Idx byte_idx, end_idx, remain_len;
   size_t mbclen;
 
@@ -258,7 +258,7 @@ static reg_errcode_t
 internal_function __attribute_warn_unused_result__
 build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 {
-  mbstate_t prev_st;
+  __mbstate_t prev_st;
   Idx src_idx, byte_idx, end_idx, remain_len;
   size_t mbclen;
 #ifdef _LIBC
@@ -473,7 +473,7 @@ static Idx
 internal_function
 re_string_skip_chars (pTHX_ re_string_t *pstr, Idx new_raw_idx, wint_t *last_wc)
 {
-  mbstate_t prev_st;
+  __mbstate_t prev_st;
   Idx rawbuf_idx;
   size_t mbclen;
   wint_t wc = WEOF;
@@ -567,7 +567,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
       /* Reset buffer.  */
 #ifdef RE_ENABLE_I18N
       if (pstr->mb_cur_max > 1)
-	memset (&pstr->cur_state, '\0', sizeof (mbstate_t));
+	memset (&pstr->cur_state, '\0', sizeof (__mbstate_t));
 #endif /* RE_ENABLE_I18N */
       pstr->len = pstr->raw_len;
       pstr->stop = pstr->raw_stop;
@@ -704,7 +704,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 		     case, ASCII characters, skip the conversion step.  */
 		  if (isascii (*p) && BE (pstr->trans == NULL, 1))
 		    {
-		      memset (&pstr->cur_state, '\0', sizeof (mbstate_t));
+		      memset (&pstr->cur_state, '\0', sizeof (__mbstate_t));
 		      /* pstr->valid_len = 0; */
 		      wc = (wchar_t) *p;
 		    }
@@ -713,7 +713,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 		    for (; p >= end; --p)
 		      if ((*p & 0xc0) != 0x80)
 			{
-			  mbstate_t cur_state;
+			  __mbstate_t cur_state;
 			  wchar_t wc2;
 			  Idx mlen = raw + pstr->len - p;
 			  unsigned char buf[6];
@@ -736,7 +736,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 			      && mbclen < (size_t) -2)
 			    {
 			      memset (&pstr->cur_state, '\0',
-				      sizeof (mbstate_t));
+				      sizeof (__mbstate_t));
 			      pstr->valid_len = mbclen - (raw + offset - p);
 			      wc = wc2;
 			    }

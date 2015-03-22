@@ -57,6 +57,7 @@ sub do_config_GNU {
     $ac->define_var('_REGEX_INCLUDE_LIMITS_H', 1);
     $ac->define_var('_REGEX_LARGE_OFFSETS', 1);
     $ac->define_var('RE_ENABLE_I18N', 1);
+    $ac->define_var('_PERL_I18N', 1);
     $ac->define_var('re_syntax_options', 'rpl_re_syntax_options');
     $ac->define_var('re_set_syntax', 'rpl_re_set_syntax');
     $ac->define_var('re_compile_pattern', 'rpl_re_compile_pattern');

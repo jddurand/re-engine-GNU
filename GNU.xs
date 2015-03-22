@@ -841,11 +841,14 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
           I32 endOffset;
           I32 length;
 
+          /* regs[] is thinking in terms of inclusive offsets */
+          /* bytes_to_utf8 is thinking in terms of length */
           len[0] = regs.start[i];
+          len[1] = regs.end[i];
+
           perlutf8[0] = bytes_to_utf8(native_utf8, &(len[0]));
           startUtf8Offset = utf8_distance(perlutf8[0] + len[0], perlutf8[0]);
 
-          len[1] = regs.end[i];
           perlutf8[1] = bytes_to_utf8(native_utf8, &(len[1]));
           endUtf8Offset = utf8_distance(perlutf8[1] + len[1], perlutf8[1]);
 
@@ -858,8 +861,13 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
           /* Now get the character numbers -; */
           startCharNumber = startUtf8Offset;
           endCharNumber = endUtf8Offset;
+#ifdef sv_pos_b2u_flags
+          sv_pos_b2u_flags(sv_utf8, &startCharNumber, SV_GMAGIC|SV_CONST_RETURN);
+          sv_pos_b2u_flags(sv_utf8, &endCharNumber, SV_GMAGIC|SV_CONST_RETURN);
+#else
           sv_pos_b2u(sv_utf8, &startCharNumber);
           sv_pos_b2u(sv_utf8, &endCharNumber);
+#endif
 
           if (isDebug) {
             fprintf(stderr, "%s: ... Match No %d range in characters (perl utf8): [%d,%d]\n", logHeader, i, (int) startCharNumber, (int) endCharNumber);

@@ -167,10 +167,6 @@ typedef unsigned char bool;
 # define gettext_noop(String) String
 #endif
 
-#if (defined MB_CUR_MAX && HAVE_WCTYPE_H && HAVE_ISWCTYPE) || _LIBC
-# define RE_ENABLE_I18N
-#endif
-
 #if __GNUC__ >= 3
 # define BE(expr, val) __builtin_expect (expr, val)
 #else
@@ -193,14 +189,33 @@ typedef unsigned char bool;
 #ifndef _LIBC
 # undef __wctype
 # undef __iswctype
-# define __wctype wctype
-# define __iswctype iswctype
-# define __btowc btowc
-# define __mbrtowc mbrtowc
-# define __wcrtomb wcrtomb
+# ifndef _PERL_I18N
+#   define __wctype wctype
+#   define __iswctype iswctype
+#   define __btowc btowc
+#   define __mbrtowc mbrtowc
+#   define __wcrtomb wcrtomb
+#   define __towlower towlower
+#   define __mbstate_t mbstate_t 
+#   define __MB_CUR_MAX MB_CUR_MAX
+# else
+#   define __wctype wctype
+#   define __iswctype iswctype
+#   define __btowc btowc
+#   define __mbrtowc Perl_mbrtowc
+#   define __wcrtomb Perl_wcrtomb
+#   define __towlower Perl_towlower
+#   define __mbstate_t Perl_mbstate_t 
+#   define __MB_CUR_MAX MB_LEN_MAX /* Only perl knows the encoding */
+typedef char[MB_LEN_MAX] Perl_mbstate_t;
+# endif
 # define __regfree regfree
 # define attribute_hidden
 #endif /* not _LIBC */
+
+#if (defined MB_CUR_MAX && HAVE_WCTYPE_H && HAVE_ISWCTYPE) || _LIBC
+# define RE_ENABLE_I18N
+#endif
 
 #if __GNUC__ < 3 + (__GNUC_MINOR__ < 1)
 # define __attribute__(arg)
@@ -454,7 +469,7 @@ struct re_string_t
   /* Store the wide character string which is corresponding to MBS.  */
   wint_t *wcs;
   Idx *offsets;
-  mbstate_t cur_state;
+  __mbstate_t cur_state;
 #endif
   /* Index in RAW_MBS.  Each character mbs[i] corresponds to
      raw_mbs[raw_mbs_idx + i].  */
@@ -930,6 +945,135 @@ re_string_wchar_at (pTHX_ const re_string_t *pstr, Idx idx)
   return (wint_t) pstr->wcs[idx];
 }
 
+#ifndef _LIBC
+#ifdef _PERL_I18N
+static Perl_mbstate_t Perl_internal_state;
+
+size_t Perl_wcrtomb(char *restrict s, wchar_t wc, __mbstate_t *restrict ps) {
+  U8     d[UTF8_MAXBYTES+1];
+  char   buf[__MB_CUR_MAX];
+  bool   is_utf8 = 1;
+  U8    *bytes;
+  STRLEN len;
+
+  if (s == NULL) {
+    s = buf;
+    wc = L'\0';
+  }
+
+  uvchr_to_utf8(d, (UV) wc);
+  bytes = bytes_from_utf8(d, &len, &is_utf8);
+  if (len > __MB_CUR_MAX) {
+    fprintf(stderr, "Perl_wcrtomb(%ld) warning: len > %d\n", (unsigned long) wc, __MB_CUR_MAX);
+    len = __MB_CUR_MAX;
+  }
+  memcpy(s, bytes, (len > __MB_CUR_MAX) ?__MB_CUR_MAX : len);
+
+  Safefree(bytes);
+  
+  fprintf(stderr, "Perl_wcrtomb(%ld) ==> %d\n", (unsigned long) wc, (int) len);
+
+  return len;
+}
+
+wint_t Perl_towlower(wint_t wc) {
+  U8     s[UTF8_MAXBYTES_CASE+1];
+  wint_t rc;
+  STRLEN len;
+
+  rc = (wint_t) toLOWER_uni((UV) wc, s, &len);
+
+  fprintf(stderr, "Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc);
+
+  return rc;
+
+}
+
+size_t Perl_mbrtowc(wchar_t *restrict pwc, const char *restrict s, size_t n, void *restrict ps)
+{
+  STRLEN len;
+  STRLEN ch_len;
+  U8*    utf8;
+  UV     ord;
+  size_t rc;
+  U8    *native;
+  bool   is_utf8 = 1;
+
+  if (s == NULL) {
+    pwc = NULL;
+    s = "";
+    n = 1;
+  }
+
+  if (n == 0) {
+    return (size_t)(-2);
+  }
+
+  len = n;
+  fprintf(stderr, "Perl_mbrtowc ==> converting \"%s\", len=%d\n", s, (int) len);
+  utf8 = bytes_to_utf8((U8 *)s, &len);
+  fprintf(stderr, "Perl_mbrtowc ==> converted to \"%s\", len=%d\n", utf8, (int) len);
+
+  /* Get information on the first character */
+  ord = utf8n_to_uvchr(utf8, len, &ch_len, 0
+#ifdef UTF8_DISALLOW_SURROGATE
+                       | UTF8_DISALLOW_SURROGATE
+#endif
+#ifdef UTF8_DISALLOW_NONCHAR
+                       | UTF8_DISALLOW_NONCHAR
+#endif
+#ifdef UTF8_DISALLOW_SUPER
+                       | UTF8_DISALLOW_SUPER
+#endif
+                       );
+
+  if (ord == 0) {
+    if (s[0] == 0) {
+      /* It is really NUL */
+      fprintf(stderr, "Perl_mbrtowc ==> NULL character\n");
+      if (pwc != NULL) {
+        *pwc = (wchar_t) 0;
+      }
+      rc = 0;
+    } else {
+      /* It is a malformed character */
+      if (ch_len >= n) {
+        fprintf(stderr, "Perl_mbrtowc ==> Incomplete but potentially valid character on %d bytes\n", (int) ch_len);
+        rc = (size_t)-2;
+      } else {
+#ifdef EILSEQ
+        errno = EILSEQ;
+#else
+        errno = EINVAL;
+#endif
+        fprintf(stderr, "Perl_mbrtowc ==> Encoding error\n", (int) ch_len);
+        rc = (size_t)-1;
+      }
+    }
+  } else {
+    /* It is a wellformed character */
+    if (pwc != NULL) {
+      *pwc = (wchar_t) ord;
+    }
+    /* We want to return the length in native encoding */
+    fprintf(stderr, "Perl_mbrtowc ==> first character has perl UTF-8 length %d\n", ch_len);
+    native = bytes_from_utf8(utf8, &ch_len, &is_utf8);
+    fprintf(stderr, "Perl_mbrtowc ==> first character has native utf-8 length %d\n", ch_len);
+    rc = ch_len;
+    if (native != utf8) {
+      Safefree(native);
+    }
+  }
+
+  Safefree(utf8);
+
+  fprintf(stderr, "Perl_mbrtowc ==> %d\n", (int) rc);
+
+  return rc;
+}
+#endif /* _PERL_I18N */
+#endif /* _LIBC */
+
 # ifndef NOT_IN_libc
 static int
 internal_function __attribute__ ((pure, unused))
@@ -953,6 +1097,23 @@ re_string_elem_size_at (pTHX_ const re_string_t *pstr, Idx idx)
       return p - pstr->mbs - idx;
     }
   else
+#  else
+#    ifdef _PERL_I18N
+    {
+      STRLEN len = pstr->len - idx;
+      U8* utf8 = bytes_to_utf8((U8 *)(pstr->mbs + idx), &len);
+      SV *sv_tmp = newSVpvn_utf8(utf8, len, 1);
+      I32 startOffset = 0;
+      I32 length = 1;
+
+      sv_pos_u2b(sv_tmp, &startOffset, &length);
+
+      Safefree(utf8);
+      SvREFCNT_dec(sv_tmp);
+
+      return length;
+    }
+#    endif
 #  endif /* _LIBC */
     return 1;
 }
