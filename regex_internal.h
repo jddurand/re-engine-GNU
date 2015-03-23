@@ -1104,7 +1104,7 @@ size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t 
     /* Get information on the first character */
     ord = utf8n_to_uvchr(utf8, len, &ch_len, 0);
 
-    if (ord >= 0) {
+    if (ord > 0 || *s == 0) {
       U8   *native;
       bool  is_utf8 = 1;
 
