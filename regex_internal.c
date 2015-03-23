@@ -280,7 +280,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 	  wchar_t wc;
 
 	  if (isascii (pstr->raw_mbs[pstr->raw_mbs_idx + byte_idx])
-	      && mbsinit (&pstr->cur_state))
+	      && __mbsinit (&pstr->cur_state))
 	    {
 	      /* In case of a singlebyte character.  */
 	      pstr->mbs[byte_idx]
@@ -304,8 +304,8 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 		{
 		  size_t mbcdlen;
 
-		  wcu = towupper (wc);
-		  mbcdlen = wcrtomb (buf, wcu, &prev_st);
+		  wcu = __towupper (wc);
+		  mbcdlen = __wcrtomb (buf, wcu, &prev_st);
 		  if (BE (mbclen == mbcdlen, 1))
 		    Copy (buf, pstr->mbs + byte_idx, mbclen, char);
 		  else
@@ -373,8 +373,8 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 	      {
 		size_t mbcdlen;
 
-		wcu = towupper (wc);
-		mbcdlen = wcrtomb ((char *) buf, wcu, &prev_st);
+		wcu = __towupper (wc);
+		mbcdlen = __wcrtomb ((char *) buf, wcu, &prev_st);
 		if (BE (mbclen == mbcdlen, 1))
 		  Copy (buf, pstr->mbs + byte_idx, mbclen, char);
 		else if (mbcdlen != (size_t) -1)
