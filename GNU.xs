@@ -130,7 +130,7 @@ int GNU_key2int(pTHX_ const char *key, SV * const key_sv) {
     if (he != NULL) {
       SV* val = HeVAL(he);
       if (val != &PL_sv_placeholder) {
-        return SvIV(val);
+        return (int)SvIV(val);
       }
     }
   }
@@ -326,7 +326,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     ri->regex.buffer           = NULL;
     ri->regex.allocated        = 0;
     ri->regex.used             = 0;
-    ri->regex.syntax           = (sv_syntax != NULL) ? SvUV(sv_syntax) : defaultSyntax;
+    ri->regex.syntax           = (sv_syntax != NULL) ? (int)SvUV(sv_syntax) : defaultSyntax;
     ri->regex.fastmap          = NULL;
     ri->regex.translate        = NULL;
     ri->regex.re_nsub          = 0;
@@ -847,10 +847,10 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
           len[1] = regs.end[i];
 
           perlutf8[0] = bytes_to_utf8(native_utf8, &(len[0]));
-          startUtf8Offset = utf8_distance(perlutf8[0] + len[0], perlutf8[0]);
+          startUtf8Offset = (I32)utf8_distance(perlutf8[0] + len[0], perlutf8[0]);
 
           perlutf8[1] = bytes_to_utf8(native_utf8, &(len[1]));
-          endUtf8Offset = utf8_distance(perlutf8[1] + len[1], perlutf8[1]);
+          endUtf8Offset = (I32)utf8_distance(perlutf8[1] + len[1], perlutf8[1]);
 
           if (isDebug) {
             fprintf(stderr, "%s: ... Match No %d range in bytes (perl utf8): [%d,%d]\n", logHeader, i, (int) startUtf8Offset, (int) endUtf8Offset);

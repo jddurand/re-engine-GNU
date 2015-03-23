@@ -199,7 +199,7 @@ static Idx group_nodes_into_DFAstates (pTHX_ const re_dfa_t *dfa,
 static bool check_node_accept (pTHX_ const re_match_context_t *mctx,
 			       const re_token_t *node, Idx idx)
      internal_function;
-static reg_errcode_t extend_buffers (pTHX_ re_match_context_t *mctx, int min_len)
+static reg_errcode_t extend_buffers (pTHX_ re_match_context_t *mctx, Idx min_len)
      internal_function;
 
 /* Entry point for POSIX code.  */
@@ -1388,7 +1388,7 @@ set_regs (pTHX_ const regex_t *preg, const re_match_context_t *mctx, size_t nmat
     }
   Copy (pmatch, prev_idx_match, nmatch, regmatch_t);
 
-  for (idx = pmatch[0].rm_so; idx <= pmatch[0].rm_eo ;)
+  for (idx = (Idx)pmatch[0].rm_so; idx <= (Idx)pmatch[0].rm_eo ;)
     {
       update_regs (aTHX_ dfa, pmatch, prev_idx_match, cur_node, idx, nmatch);
 
@@ -1491,7 +1491,7 @@ update_regs (pTHX_ const re_dfa_t *dfa, regmatch_t *pmatch,
       if (reg_num < nmatch)
 	{
 	  /* We are at the last node of this sub expression.  */
-	  if (pmatch[reg_num].rm_so < cur_idx)
+	  if ((Idx)pmatch[reg_num].rm_so < cur_idx)
 	    {
 	      pmatch[reg_num].rm_eo = cur_idx;
 	      /* This is a non-empty match or we are not inside an optional
@@ -4031,7 +4031,7 @@ check_node_accept (pTHX_ const re_match_context_t *mctx, const re_token_t *node,
 
 static reg_errcode_t
 internal_function __attribute_warn_unused_result__
-extend_buffers (pTHX_ re_match_context_t *mctx, int min_len)
+extend_buffers (pTHX_ re_match_context_t *mctx, Idx min_len)
 {
   reg_errcode_t ret;
   re_string_t *pstr = &mctx->input;

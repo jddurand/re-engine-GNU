@@ -190,6 +190,7 @@ typedef unsigned char bool;
 # undef __wctype
 # undef __iswctype
 # ifndef _PERL_I18N
+#   define __mbsinit Perl_mbsinit
 #   define __wctype wctype
 #   define __iswctype iswctype
 #   define __btowc btowc
@@ -199,15 +200,16 @@ typedef unsigned char bool;
 #   define __mbstate_t mbstate_t 
 #   define __MB_CUR_MAX MB_CUR_MAX
 # else
+#   define __mbsinit mbsinit
 #   define __wctype wctype
 #   define __iswctype iswctype
 #   define __btowc btowc
-#   define __mbrtowc Perl_mbrtowc
-#   define __wcrtomb Perl_wcrtomb
-#   define __towlower Perl_towlower
+#   define __mbrtowc(pwc, s, n, ps) Perl_mbrtowc(aTHX_ pwc, s, n, ps)
+#   define __wcrtomb(s, wc, ps) Perl_wcrtomb(aTHX_ s, wc, ps)
+#   define __towlower(wc) Perl_towlower(aTHX_ wc)
 #   define __mbstate_t Perl_mbstate_t 
-#   define __MB_CUR_MAX MB_LEN_MAX /* Only perl knows the encoding */
-typedef struct { int not_used; }  Perl_mbstate_t;
+#   define __MB_CUR_MAX UTF8_MAXBYTES_CASE
+typedef int Perl_mbstate_t;
 # endif
 # define __regfree regfree
 # define attribute_hidden
@@ -947,9 +949,14 @@ re_string_wchar_at (pTHX_ const re_string_t *pstr, Idx idx)
 
 #ifndef _LIBC
 #ifdef _PERL_I18N
+int Perl_mbsinit(const __mbstate_t *ps) {
+  const char *pstate = (const char *)ps;
+  return (pstate == NULL) || (pstate[0] == 0);
+}
+
 static Perl_mbstate_t Perl_internal_state;
 
-size_t Perl_wcrtomb(char *restrict s, wchar_t wc, __mbstate_t *restrict ps) {
+size_t Perl_wcrtomb(pTHX_ char *restrict s, wchar_t wc, __mbstate_t *restrict ps) {
   U8     d[UTF8_MAXBYTES+1];
   char   buf[__MB_CUR_MAX];
   bool   is_utf8 = 1;
@@ -976,7 +983,7 @@ size_t Perl_wcrtomb(char *restrict s, wchar_t wc, __mbstate_t *restrict ps) {
   return len;
 }
 
-wint_t Perl_towlower(wint_t wc) {
+wint_t Perl_towlower(pTHX_ wint_t wc) {
   U8     s[UTF8_MAXBYTES_CASE+1];
   wint_t rc;
   STRLEN len;
@@ -989,7 +996,7 @@ wint_t Perl_towlower(wint_t wc) {
 
 }
 
-size_t Perl_mbrtowc(wchar_t *restrict pwc, const char *restrict s, size_t n, void *restrict ps)
+size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t n, void *restrict ps)
 {
   STRLEN len;
   STRLEN ch_len;
@@ -998,6 +1005,17 @@ size_t Perl_mbrtowc(wchar_t *restrict pwc, const char *restrict s, size_t n, voi
   size_t rc;
   U8    *native;
   bool   is_utf8 = 1;
+  U32    static flags = 0
+#ifdef UTF8_DISALLOW_SURROGATE
+    | UTF8_DISALLOW_SURROGATE
+#endif
+#ifdef UTF8_DISALLOW_NONCHAR
+    | UTF8_DISALLOW_NONCHAR |
+#endif
+#ifdef UTF8_DISALLOW_SUPER
+    | UTF8_DISALLOW_SUPER |
+#endif
+    ;
 
   if (s == NULL) {
     pwc = NULL;
@@ -1015,17 +1033,7 @@ size_t Perl_mbrtowc(wchar_t *restrict pwc, const char *restrict s, size_t n, voi
   fprintf(stderr, "Perl_mbrtowc ==> converted to \"%s\", len=%d\n", utf8, (int) len);
 
   /* Get information on the first character */
-  ord = utf8n_to_uvchr(utf8, len, &ch_len, 0
-#ifdef UTF8_DISALLOW_SURROGATE
-                       | UTF8_DISALLOW_SURROGATE
-#endif
-#ifdef UTF8_DISALLOW_NONCHAR
-                       | UTF8_DISALLOW_NONCHAR
-#endif
-#ifdef UTF8_DISALLOW_SUPER
-                       | UTF8_DISALLOW_SUPER
-#endif
-                       );
+  ord = utf8n_to_uvchr(utf8, len, &ch_len, flags);
 
   if (ord == 0) {
     if (s[0] == 0) {

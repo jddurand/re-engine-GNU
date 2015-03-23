@@ -722,7 +722,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 			  const unsigned char *pp = p;
 			  if (BE (pstr->trans != NULL, 0))
 			    {
-			      int i = mlen < 6 ? mlen : 6;
+			      int i = (int)mlen < 6 ? (int)mlen : 6;
 			      while (--i >= 0)
 				buf[i] = pstr->trans[p[i]];
 			      pp = buf;

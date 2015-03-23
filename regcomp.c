@@ -1322,7 +1322,7 @@ optimize_subexps (pTHX_ void *extra, bin_tree_t *node)
 
   if (node->token.type == OP_BACK_REF && dfa->subexp_map)
     {
-      int idx = node->token.opr.idx;
+      Idx idx = node->token.opr.idx;
       node->token.opr.idx = dfa->subexp_map[idx];
       dfa->used_bkref_map |= 1 << node->token.opr.idx;
     }
