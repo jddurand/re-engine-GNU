@@ -207,7 +207,7 @@ typedef unsigned char bool;
 #   define __towlower Perl_towlower
 #   define __mbstate_t Perl_mbstate_t 
 #   define __MB_CUR_MAX MB_LEN_MAX /* Only perl knows the encoding */
-typedef char[MB_LEN_MAX] Perl_mbstate_t;
+typedef struct { int not_used; }  Perl_mbstate_t;
 # endif
 # define __regfree regfree
 # define attribute_hidden
