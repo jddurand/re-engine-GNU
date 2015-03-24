@@ -1,8 +1,12 @@
 use strict;
 use warnings;
+use IO::Handle;
 
 use Test::More tests => 60;
 BEGIN { require_ok('re::engine::GNU') };
+
+binmode STDOUT, ':utf8';
+binmode STDERR, ':utf8';
 
 #########################
 

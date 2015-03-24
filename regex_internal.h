@@ -193,6 +193,7 @@ typedef unsigned char bool;
 #   define __mbsinit mbsinit
 #   define __wctype_t wctype_t
 #   define __wctype wctype
+#   define __islower iswlower
 #   define __iswctype iswctype
 #   define __btowc btowc
 #   define __mbrtowc mbrtowc
@@ -204,6 +205,7 @@ typedef unsigned char bool;
 #   define __mbsinit Perl_mbsinit
 #   define __wctype_t Perl_wctype_t
 #   define __wctype(property) Perl_wctype(aTHX_ property)
+#   define __iswlower(c) Perl_iswlower(aTHX_ c)
 #   define __iswctype(c, t) Perl_iswctype(aTHX_ c, t)
 #   define __btowc(c) Perl_btowc(aTHX_ c)
 #   define __mbrtowc(pwc, s, n, ps) Perl_mbrtowc(aTHX_ pwc, s, n, ps)
@@ -974,6 +976,16 @@ re_string_wchar_at (pTHX_ const re_string_t *pstr, Idx idx)
 /* Initalize only the first element */
 static Perl_mbstate_t Perl_internal_state = { 0 };
 
+int Perl_iswlower(pTHX_ wint_t wc) {
+  int rc;
+
+  rc = isLOWER_uni((UV) wc);
+
+  /* fprintf(stderr, "Perl_iswlower(%ld) ==> %d\n", (unsigned long) wc, rc); */
+
+  return rc;
+}
+
 size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t n, void *restrict ps) {
   char   *pstate = (char *)ps;
   STRLEN len;
@@ -1031,7 +1043,7 @@ size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t 
     }
 
     len = m;
-    fprintf(stderr, "Perl_mbrtowc ==> converting from native \"%s\" , len=%d\n", p, (int) len);
+    /* fprintf(stderr, "Perl_mbrtowc ==> converting from native \"%s\" , len=%d\n", p, (int) len);
     {
       unsigned char *u = (unsigned char *) p;
       size_t i;
@@ -1039,16 +1051,17 @@ size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t 
         fprintf(stderr, "... i=%02d: 0x%lx\n", i, (unsigned long) p[i]);
       }
     }
+    */
     utf8 = bytes_to_utf8((U8 *)p, &len);
+    /*
     fprintf(stderr, "Perl_mbrtowc ==> converted to Perl's UTF-8 \"%s\", len=%d\n", utf8, (int) len);
     {
-      unsigned char *u = (unsigned char *) utf8;
       size_t i;
       for (i = 0; i < len; i++) {
-        fprintf(stderr, "... i=%02d: 0x%lx\n", i, (unsigned long) p[i]);
+        fprintf(stderr, "... i=%02d: 0x%lx\n", i, (unsigned long) utf8[i]);
       }
     }
-
+    */
     /* Get information on the first character */
     ord = utf8n_to_uvchr(utf8, len, &ch_len, 0);
 
@@ -1057,22 +1070,22 @@ size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t 
       bool  is_utf8 = 1;
 
       /* We want to return the length in native encoding */
-      fprintf(stderr, "Perl_mbrtowc ==> first character has perl UTF-8 length %d\n", ch_len);
+      /* fprintf(stderr, "Perl_mbrtowc ==> first character has perl UTF-8 length %d\n", ch_len); */
       native = bytes_from_utf8(utf8, &ch_len, &is_utf8);
-      fprintf(stderr, "Perl_mbrtowc ==> first character has native utf-8 length %d\n", ch_len);
+      /* fprintf(stderr, "Perl_mbrtowc ==> first character has native utf-8 length %d\n", ch_len); */
       res = ch_len;
       if (native != utf8) {
         Safefree(native);
       }
 
-      if (pwc != NULL && ((*pwc == 0) != (res == 0))) {
-        croak("Internal error (pwc != NULL && ((*pwc == 0) != (res == 0)))\n");
-      }
       if (nstate >= (res > 0 ? res : 1)) {
         croak("Internal error nstate >= (res > 0 ? res : 1)\n");
       }
       res -= nstate;
       pstate[0] = 0;
+      if (pwc != NULL) {
+        *pwc = (wchar_t) ord;
+      }
     } else if (ch_len >= n) {
       /* Incomplete */
       size_t k = nstate;
@@ -1097,7 +1110,7 @@ size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t 
 
     Safefree(utf8);
 
-    fprintf(stderr, "Perl_mbrtowc ==> %d\n", (int) res);
+    /* fprintf(stderr, "Perl_mbrtowc ==> %d\n", (int) res); */
 
     return res;
   }
@@ -1126,7 +1139,7 @@ int Perl_mbtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t n) {
     }
   }
 
-  fprintf(stderr, "Perl_mbtowc(pwc, s=\"%s\", n=%d) ==> %d\n", s, (int) n, (int) rc);
+  /* fprintf(stderr, "Perl_mbtowc(pwc, s=\"%s\", n=%d) ==> %d\n", s, (int) n, (int) rc); */
 
   return rc;
 }
@@ -1144,7 +1157,7 @@ wint_t Perl_btowc (pTHX_ int c) {
     }
   }
 
-  fprintf(stderr, "Perl_btowc(c=%d) ==> %d\n", (int) c, (int) rc);
+  /* fprintf(stderr, "Perl_btowc(c=%d) ==> %d\n", (int) c, (int) rc); */
 
   return rc;
 }
@@ -1194,7 +1207,7 @@ int Perl_iswctype(pTHX_ wint_t wi, wctype_t wt) {
     }
   }
 
-  fprintf(stderr, "Perl_iswctype(wi=%ld, wt=%d) ==> %d\n", (unsigned long) wi, (int) wt, (int) rc);
+  /* fprintf(stderr, "Perl_iswctype(wi=%ld, wt=%d) ==> %d\n", (unsigned long) wi, (int) wt, (int) rc); */
 
   return rc;
 }
@@ -1239,7 +1252,7 @@ Perl_wctype_t Perl_wctype(pTHX_ const char * property) {
     rc = 0;
   }
 
-  fprintf(stderr, "Perl_wctype(property=%s) ==> %d\n", property, (int) rc);
+  /* fprintf(stderr, "Perl_wctype(property=%s) ==> %d\n", property, (int) rc); */
 
   return rc;
 }
@@ -1255,6 +1268,7 @@ int Perl_wctomb(pTHX_ char *restrict s, wchar_t wc) {
   bool   is_utf8 = 1;
   U8    *bytes;
   STRLEN len;
+  char *p;
 
   if (s == NULL) {
     return 0;
@@ -1265,13 +1279,15 @@ int Perl_wctomb(pTHX_ char *restrict s, wchar_t wc) {
     return 1;
   }
 
-  uvchr_to_utf8(d, (UV) wc);
+  len = uvchr_to_utf8(d, (UV) wc) - d;
   bytes = bytes_from_utf8(d, &len, &is_utf8);
   memcpy(s, bytes, len);
 
-  Safefree(bytes);
+  if (bytes != d) {
+    Safefree(bytes);
+  }
   
-  fprintf(stderr, "Perl_wctomb(%ld) ==> %d\n", (unsigned long) wc, (int) len);
+  /* fprintf(stderr, "Perl_wctomb(%ld) ==> %d\n", (unsigned long) wc, (int) len); */
 
   return len;
 }
@@ -1309,7 +1325,7 @@ wint_t Perl_towlower(pTHX_ wint_t wc) {
 
   rc = (wint_t) toLOWER_uni((UV) wc, s, &len);
 
-  fprintf(stderr, "Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc);
+  /* fprintf(stderr, "Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc); */
 
   return rc;
 
@@ -1322,7 +1338,7 @@ wint_t Perl_towupper(pTHX_ wint_t wc) {
 
   rc = (wint_t) toUPPER_uni((UV) wc, s, &len);
 
-  fprintf(stderr, "Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc);
+  /* fprintf(stderr, "Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc); */
 
   return rc;
 

@@ -300,7 +300,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 	  if (BE (mbclen < (size_t) -2, 1))
 	    {
 	      wchar_t wcu = wc;
-	      if (iswlower (wc))
+	      if (__iswlower (wc))
 		{
 		  size_t mbcdlen;
 
@@ -369,7 +369,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 	if (BE (mbclen < (size_t) -2, 1))
 	  {
 	    wchar_t wcu = wc;
-	    if (iswlower (wc))
+	    if (__iswlower (wc))
 	      {
 		size_t mbcdlen;
 

@@ -150,10 +150,12 @@ char *sv2nativeutf8(pTHX_ SV *sv, short isDebug, STRLEN *len_native_utf8, SV **s
     /* Perl's internal utf8 representation is not utf8 */
     perl_utf8 = SvPVutf8(sv_tmp, len_perl_utf8);
 
+    /*
     fprintf(stderr, "sv2nativeutf8: Original SV:\n");
     sv_dump(sv);
     fprintf(stderr, "sv2nativeutf8: sv_tmp (optionnaly upgraded to UTF-8):\n");
     sv_dump(sv_tmp);
+    */
 
     *len_native_utf8 = len_perl_utf8;
     is_utf8 = 1;
@@ -161,7 +163,7 @@ char *sv2nativeutf8(pTHX_ SV *sv, short isDebug, STRLEN *len_native_utf8, SV **s
 
     if (native_utf8 == perl_utf8) {
       /* Oups, not allocated */
-      fprintf(stderr, "sv2nativeutf8: ... Oups, not allocated i.e. bytes_from_utf8 == utf8\n");
+      /* fprintf(stderr, "sv2nativeutf8: ... Oups, not allocated i.e. bytes_from_utf8 == utf8\n"); */
       Newx(native_utf8, *len_native_utf8, char);
       Copy(perl_utf8, native_utf8, *len_native_utf8, char);
     }
@@ -467,9 +469,6 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     if (isDebug) {
       fprintf(stderr, "%s: ... re_compile_internal(preg=%p, pattern=%p, length=%d, syntax=0x%lx)\n", logHeader, &(ri->regex), native_utf8, (int) len_native_utf8, (unsigned long) ri->regex.syntax, sv_lock);
     }
-
-    fprintf(stderr, "ATTACH ME: %d\n", getpid());
-    sleep(10);
 
     ret = re_compile_internal (aTHX_ &(ri->regex), native_utf8, len_native_utf8, ri->regex.syntax, sv_lock);
     Safefree(native_utf8);
@@ -872,8 +871,8 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
           startCharNumber = startUtf8Offset;
           endCharNumber = endUtf8Offset;
 #ifdef sv_pos_b2u_flags
-          sv_pos_b2u_flags(sv_utf8, &startCharNumber, SV_GMAGIC|SV_CONST_RETURN);
-          sv_pos_b2u_flags(sv_utf8, &endCharNumber, SV_GMAGIC|SV_CONST_RETURN);
+          startCharNumber = sv_pos_b2u_flags(sv_utf8, startCharNumber, SV_GMAGIC|SV_CONST_RETURN);
+          endCharNumber = sv_pos_b2u_flags(sv_utf8, endCharNumber, SV_GMAGIC|SV_CONST_RETURN);
 #else
           sv_pos_b2u(sv_utf8, &startCharNumber);
           sv_pos_b2u(sv_utf8, &endCharNumber);
