@@ -857,7 +857,7 @@ init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock)
 #endif
 #endif
 #ifdef RE_ENABLE_I18N
-  size_t max_i18n_object_size = MAX (sizeof (wchar_t), sizeof (wctype_t));
+  size_t max_i18n_object_size = MAX (sizeof (wchar_t), sizeof (__wctype_t));
 #else
   size_t max_i18n_object_size = 0;
 #endif
@@ -3552,7 +3552,7 @@ build_charclass (pTHX_ RE_TRANSLATE_TYPE trans, bitset_t sbcset,
       /* +1 in case of mbcset->nchar_classes is 0.  */
       Idx new_char_class_alloc = 2 * mbcset->nchar_classes + 1;
       /* Use realloc since array is NULL if *alloc == 0.  */
-      re_realloc (mbcset->char_classes, wctype_t, new_char_class_alloc);
+      re_realloc (mbcset->char_classes, __wctype_t, new_char_class_alloc);
       *char_class_alloc = new_char_class_alloc;
     }
   mbcset->char_classes[mbcset->nchar_classes++] = __wctype (name);

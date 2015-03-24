@@ -191,6 +191,7 @@ typedef unsigned char bool;
 # undef __iswctype
 # ifndef _PERL_I18N
 #   define __mbsinit mbsinit
+#   define __wctype_t wctype_t
 #   define __wctype wctype
 #   define __iswctype iswctype
 #   define __btowc btowc
@@ -201,21 +202,35 @@ typedef unsigned char bool;
 #   define __MB_CUR_MAX MB_CUR_MAX
 # else
 #   define __mbsinit Perl_mbsinit
-#   define __wctype wctype
-#   define __iswctype iswctype
-#   define __btowc btowc
+#   define __wctype_t Perl_wctype_t
+#   define __wctype(property) Perl_wctype(aTHX_ property)
+#   define __iswctype(c, t) Perl_iswctype(aTHX_ c, t)
+#   define __btowc(c) Perl_btowc(aTHX_ c)
 #   define __mbrtowc(pwc, s, n, ps) Perl_mbrtowc(aTHX_ pwc, s, n, ps)
 #   define __wcrtomb(s, wc, ps) Perl_wcrtomb(aTHX_ s, wc, ps)
 #   define __towlower(wc) Perl_towlower(aTHX_ wc)
 #   define __towupper(wc) Perl_towupper(aTHX_ wc)
 #   define __mbstate_t Perl_mbstate_t 
 #   define __MB_CUR_MAX 4
+typedef enum {
+  PERL_WCTYPE_ALNUM = 1,
+  PERL_WCTYPE_ALPHA,
+  PERL_WCTYPE_CNTRL,
+  PERL_WCTYPE_DIGIT,
+  PERL_WCTYPE_GRAPH,
+  PERL_WCTYPE_LOWER,
+  PERL_WCTYPE_PRINT,
+  PERL_WCTYPE_PUNCT,
+  PERL_WCTYPE_SPACE,
+  PERL_WCTYPE_UPPER,
+  PERL_WCTYPE_XDIGIT
+} Perl_wctype_t;
 typedef struct {
   union
   {
     unsigned int __wch;
     char __wchb[4];
-  } __value;
+  } u;
 } Perl_mbstate_t;
 # endif
 # define __regfree regfree
@@ -412,7 +427,7 @@ typedef struct
 # endif /* not _LIBC */
 
   /* Character classes. */
-  wctype_t *char_classes;
+  __wctype_t *char_classes;
 
   /* If this character set is the non-matching list.  */
   unsigned int non_match : 1;
@@ -956,97 +971,10 @@ re_string_wchar_at (pTHX_ const re_string_t *pstr, Idx idx)
 
 #ifndef _LIBC
 #ifdef _PERL_I18N
-int Perl_mbsinit(__mbstate_t *ps) {
-  const char *pstate = (const char *)ps;
-  return (pstate == NULL) || (pstate[0] == 0);
-}
-
 /* Initalize only the first element */
 static Perl_mbstate_t Perl_internal_state = { 0 };
 
-size_t
-Perl_wcrtomb (pTHX_ char *s, wchar_t wc, __mbstate_t *ps)
-{
-  /* This implementation of wcrtomb on top of wctomb() supports only
-     stateless encodings.  ps must be in the initial state.  */
-  if (ps != NULL && !Perl_mbsinit ( ps))
-    {
-      errno = EINVAL;
-      return (size_t)(-1);
-    }
-
-  if (s == NULL)
-    /* We know the NUL wide character corresponds to the NUL character.  */
-    return 1;
-  else
-    {
-      int ret = Perl_wctomb (aTHX_ s, wc);
-
-      if (ret >= 0)
-        return ret;
-      else
-        {
-          errno = EILSEQ;
-          return (size_t)(-1);
-        }
-    }
-}
-
-int Perl_wctomb(pTHX_ char *restrict s, wchar_t wc) {
-  U8     d[UTF8_MAXBYTES+1];
-  char   buf[__MB_CUR_MAX];
-  bool   is_utf8 = 1;
-  U8    *bytes;
-  STRLEN len;
-
-  if (s == NULL) {
-    return 0;
-  }
-
-  if (wc == 0) {
-    *s = '\0';
-    return 1;
-  }
-
-  uvchr_to_utf8(d, (UV) wc);
-  bytes = bytes_from_utf8(d, &len, &is_utf8);
-  memcpy(s, bytes, len);
-
-  Safefree(bytes);
-  
-  fprintf(stderr, "Perl_wctomb(%ld) ==> %d\n", (unsigned long) wc, (int) len);
-
-  return len;
-}
-
-wint_t Perl_towlower(pTHX_ wint_t wc) {
-  U8     s[UTF8_MAXBYTES_CASE+1];
-  wint_t rc;
-  STRLEN len;
-
-  rc = (wint_t) toLOWER_uni((UV) wc, s, &len);
-
-  fprintf(stderr, "Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc);
-
-  return rc;
-
-}
-
-wint_t Perl_towupper(pTHX_ wint_t wc) {
-  U8     s[UTF8_MAXBYTES_CASE+1];
-  wint_t rc;
-  STRLEN len;
-
-  rc = (wint_t) toUPPER_uni((UV) wc, s, &len);
-
-  fprintf(stderr, "Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc);
-
-  return rc;
-
-}
-
-size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t n, void *restrict ps)
-{
+size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t n, void *restrict ps) {
   char   *pstate = (char *)ps;
   STRLEN len;
   STRLEN ch_len;
@@ -1065,7 +993,7 @@ size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t 
   }
 
   if (pstate == NULL) {
-    pstate = &Perl_internal_state;
+    pstate = (char *)&Perl_internal_state;
   }
 
   {
@@ -1103,9 +1031,23 @@ size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t 
     }
 
     len = m;
-    fprintf(stderr, "Perl_mbrtowc ==> converting \"%s\", len=%d\n", p, (int) len);
+    fprintf(stderr, "Perl_mbrtowc ==> converting from native \"%s\" , len=%d\n", p, (int) len);
+    {
+      unsigned char *u = (unsigned char *) p;
+      size_t i;
+      for (i = 0; i < len; i++) {
+        fprintf(stderr, "... i=%02d: 0x%lx\n", i, (unsigned long) p[i]);
+      }
+    }
     utf8 = bytes_to_utf8((U8 *)p, &len);
-    fprintf(stderr, "Perl_mbrtowc ==> converted to \"%s\", len=%d\n", utf8, (int) len);
+    fprintf(stderr, "Perl_mbrtowc ==> converted to Perl's UTF-8 \"%s\", len=%d\n", utf8, (int) len);
+    {
+      unsigned char *u = (unsigned char *) utf8;
+      size_t i;
+      for (i = 0; i < len; i++) {
+        fprintf(stderr, "... i=%02d: 0x%lx\n", i, (unsigned long) p[i]);
+      }
+    }
 
     /* Get information on the first character */
     ord = utf8n_to_uvchr(utf8, len, &ch_len, 0);
@@ -1113,16 +1055,6 @@ size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t 
     if (ord > 0 || *s == 0) {
       U8   *native;
       bool  is_utf8 = 1;
-
-      res = (int) ord;
-      if (pwc != NULL && ((*pwc == 0) != (res == 0))) {
-        croak("Internal error (pwc != NULL && ((*pwc == 0) != (res == 0)))\n");
-      }
-      if (nstate >= (res > 0 ? res : 1)) {
-        croak("Internal error nstate >= (res > 0 ? res : 1)\n");
-      }
-      res -= nstate;
-      pstate[0] = 0;
 
       /* We want to return the length in native encoding */
       fprintf(stderr, "Perl_mbrtowc ==> first character has perl UTF-8 length %d\n", ch_len);
@@ -1132,6 +1064,15 @@ size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t 
       if (native != utf8) {
         Safefree(native);
       }
+
+      if (pwc != NULL && ((*pwc == 0) != (res == 0))) {
+        croak("Internal error (pwc != NULL && ((*pwc == 0) != (res == 0)))\n");
+      }
+      if (nstate >= (res > 0 ? res : 1)) {
+        croak("Internal error nstate >= (res > 0 ? res : 1)\n");
+      }
+      res -= nstate;
+      pstate[0] = 0;
     } else if (ch_len >= n) {
       /* Incomplete */
       size_t k = nstate;
@@ -1161,6 +1102,232 @@ size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t 
     return res;
   }
 }
+
+int Perl_mbtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t n) {
+  int rc;
+
+  static Perl_mbstate_t state;
+  /* If s is NULL the function has to return null or not null
+     depending on the encoding having a state depending encoding or
+     not. */
+  if (s == NULL) {
+    /* No support for state dependent encodings. */
+    rc = 0;
+  }
+  else if (*s == '\0') {
+    if (pwc != NULL) {
+      *pwc = L'\0';
+    }
+    rc = 0;
+  } else {
+    rc = Perl_mbrtowc(aTHX_ pwc, s, n, &state);
+    if (rc < 0) {
+      rc = -1;
+    }
+  }
+
+  fprintf(stderr, "Perl_mbtowc(pwc, s=\"%s\", n=%d) ==> %d\n", s, (int) n, (int) rc);
+
+  return rc;
+}
+
+wint_t Perl_btowc (pTHX_ int c) {
+  wint_t rc = WEOF;
+
+  if (c != EOF) {
+    char buf[1];
+    wchar_t wc;
+
+    buf[0] = c;
+    if (Perl_mbtowc(aTHX_ &wc, buf, 1) >= 0) {
+      rc = wc;
+    }
+  }
+
+  fprintf(stderr, "Perl_btowc(c=%d) ==> %d\n", (int) c, (int) rc);
+
+  return rc;
+}
+
+int Perl_iswctype(pTHX_ wint_t wi, wctype_t wt) {
+  int rc;
+
+  if (wi == WEOF) {
+    rc = 0;
+  } else {
+    switch (wt) {
+    case PERL_WCTYPE_ALNUM:
+      rc = isALNUM_uni((UV) wi);
+      break;
+    case PERL_WCTYPE_ALPHA:
+      rc = isALPHA_uni((UV) wi);
+      break;
+    case PERL_WCTYPE_CNTRL:
+      rc = isCNTRL_uni((UV) wi);
+      break;
+    case PERL_WCTYPE_DIGIT:
+      rc = isDIGIT_uni((UV) wi);
+      break;
+    case PERL_WCTYPE_GRAPH:
+      rc = isGRAPH_uni((UV) wi);
+      break;
+    case PERL_WCTYPE_LOWER:
+      rc = isLOWER_uni((UV) wi);
+      break;
+    case PERL_WCTYPE_PRINT:
+      rc = isPRINT_uni((UV) wi);
+      break;
+    case PERL_WCTYPE_PUNCT:
+      rc = isPUNCT_uni((UV) wi);
+      break;
+    case PERL_WCTYPE_SPACE:
+      rc = isSPACE_uni((UV) wi);
+      break;
+    case PERL_WCTYPE_UPPER:
+      rc = isUPPER_uni((UV) wi);
+      break;
+    case PERL_WCTYPE_XDIGIT:
+      rc = isXDIGIT_uni((UV) wi);
+      break;
+    default:
+      rc = 0;
+    }
+  }
+
+  fprintf(stderr, "Perl_iswctype(wi=%ld, wt=%d) ==> %d\n", (unsigned long) wi, (int) wt, (int) rc);
+
+  return rc;
+}
+
+Perl_wctype_t Perl_wctype(pTHX_ const char * property) {
+  Perl_wctype_t rc;
+
+  if (strncmp(property, "alnum", sizeof("alnum") - 1) == 0) {
+    rc = PERL_WCTYPE_ALNUM;
+  }
+  else if  (strncmp(property, "alpha", sizeof("alpha") - 1) == 0) {
+    rc = PERL_WCTYPE_ALPHA;
+  }
+  else if  (strncmp(property, "cntrl", sizeof("cntrl") - 1) == 0) {
+    rc = PERL_WCTYPE_CNTRL;
+  }
+  else if  (strncmp(property, "digit", sizeof("digit") - 1) == 0) {
+    rc = PERL_WCTYPE_DIGIT;
+  }
+  else if  (strncmp(property, "graph", sizeof("graph") - 1) == 0) {
+    rc = PERL_WCTYPE_GRAPH;
+  }
+  else if  (strncmp(property, "lower", sizeof("lower") - 1) == 0) {
+    rc = PERL_WCTYPE_LOWER;
+  }
+  else if  (strncmp(property, "print", sizeof("print") - 1) == 0) {
+    rc = PERL_WCTYPE_PRINT;
+  }
+  else if  (strncmp(property, "punct", sizeof("punct") - 1) == 0) {
+    rc = PERL_WCTYPE_PUNCT;
+  }
+  else if  (strncmp(property, "space", sizeof("space") - 1) == 0) {
+    rc = PERL_WCTYPE_SPACE;
+  }
+  else if  (strncmp(property, "upper", sizeof("upper") - 1) == 0) {
+    rc = PERL_WCTYPE_UPPER;
+  }
+  else if  (strncmp(property, "xdigit", sizeof("xdigit") - 1) == 0) {
+    rc = PERL_WCTYPE_XDIGIT;
+  }
+  else {
+    rc = 0;
+  }
+
+  fprintf(stderr, "Perl_wctype(property=%s) ==> %d\n", property, (int) rc);
+
+  return rc;
+}
+
+int Perl_mbsinit(__mbstate_t *ps) {
+  const char *pstate = (const char *)ps;
+  return (pstate == NULL) || (pstate[0] == 0);
+}
+
+int Perl_wctomb(pTHX_ char *restrict s, wchar_t wc) {
+  U8     d[UTF8_MAXBYTES+1];
+  char   buf[__MB_CUR_MAX];
+  bool   is_utf8 = 1;
+  U8    *bytes;
+  STRLEN len;
+
+  if (s == NULL) {
+    return 0;
+  }
+
+  if (wc == 0) {
+    *s = '\0';
+    return 1;
+  }
+
+  uvchr_to_utf8(d, (UV) wc);
+  bytes = bytes_from_utf8(d, &len, &is_utf8);
+  memcpy(s, bytes, len);
+
+  Safefree(bytes);
+  
+  fprintf(stderr, "Perl_wctomb(%ld) ==> %d\n", (unsigned long) wc, (int) len);
+
+  return len;
+}
+
+size_t Perl_wcrtomb (pTHX_ char *s, wchar_t wc, __mbstate_t *ps) {
+  /* This implementation of wcrtomb on top of wctomb() supports only
+     stateless encodings.  ps must be in the initial state.  */
+  if (ps != NULL && !Perl_mbsinit ( ps))
+    {
+      errno = EINVAL;
+      return (size_t)(-1);
+    }
+
+  if (s == NULL)
+    /* We know the NUL wide character corresponds to the NUL character.  */
+    return 1;
+  else
+    {
+      int ret = Perl_wctomb (aTHX_ s, wc);
+
+      if (ret >= 0)
+        return ret;
+      else
+        {
+          errno = EILSEQ;
+          return (size_t)(-1);
+        }
+    }
+}
+
+wint_t Perl_towlower(pTHX_ wint_t wc) {
+  U8     s[UTF8_MAXBYTES_CASE+1];
+  wint_t rc;
+  STRLEN len;
+
+  rc = (wint_t) toLOWER_uni((UV) wc, s, &len);
+
+  fprintf(stderr, "Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc);
+
+  return rc;
+
+}
+
+wint_t Perl_towupper(pTHX_ wint_t wc) {
+  U8     s[UTF8_MAXBYTES_CASE+1];
+  wint_t rc;
+  STRLEN len;
+
+  rc = (wint_t) toUPPER_uni((UV) wc, s, &len);
+
+  fprintf(stderr, "Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc);
+
+  return rc;
+
+}
+
 #endif /* _PERL_I18N */
 #endif /* _LIBC */
 
