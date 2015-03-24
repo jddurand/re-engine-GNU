@@ -210,7 +210,13 @@ typedef unsigned char bool;
 #   define __towupper(wc) Perl_towupper(aTHX_ wc)
 #   define __mbstate_t Perl_mbstate_t 
 #   define __MB_CUR_MAX 4
-typedef char *Perl_mbstate_t;
+typedef struct {
+  union
+  {
+    unsigned int __wch;
+    char __wchb[4];
+  } __value;
+} Perl_mbstate_t;
 # endif
 # define __regfree regfree
 # define attribute_hidden
@@ -956,7 +962,7 @@ int Perl_mbsinit(__mbstate_t *ps) {
 }
 
 /* Initalize only the first element */
-static Perl_mbstate_t Perl_internal_state = "\0\0\0\0";
+static Perl_mbstate_t Perl_internal_state = { 0 };
 
 size_t
 Perl_wcrtomb (pTHX_ char *s, wchar_t wc, __mbstate_t *ps)
@@ -1059,7 +1065,7 @@ size_t Perl_mbrtowc(pTHX_ wchar_t *restrict pwc, const char *restrict s, size_t 
   }
 
   if (pstate == NULL) {
-    pstate = Perl_internal_state;
+    pstate = &Perl_internal_state;
   }
 
   {
