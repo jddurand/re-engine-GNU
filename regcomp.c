@@ -938,7 +938,7 @@ init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock)
 		if (wch != WEOF)
 		  dfa->sb_char[i] |= (bitset_word_t) 1 << j;
 # ifndef _LIBC
-		if (isascii (ch) && wch != ch)
+		if (__isascii (ch) && wch != ch)
 		  dfa->map_notascii = 1;
 # endif
 	      }

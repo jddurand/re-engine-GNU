@@ -189,10 +189,12 @@ typedef unsigned char bool;
 #ifndef _LIBC
 # undef __wctype
 # undef __iswctype
+# undef __isascii
 # ifndef _PERL_I18N
 #   define __mbsinit mbsinit
 #   define __wctype_t wctype_t
 #   define __wctype wctype
+#   define __isascii isascii
 #   define __islower iswlower
 #   define __iswctype iswctype
 #   define __btowc btowc
@@ -205,6 +207,7 @@ typedef unsigned char bool;
 #   define __mbsinit Perl_mbsinit
 #   define __wctype_t Perl_wctype_t
 #   define __wctype(property) Perl_wctype(aTHX_ property)
+#   define __isascii(c) Perl_isascii(aTHX_ c)
 #   define __iswlower(c) Perl_iswlower(aTHX_ c)
 #   define __iswctype(c, t) Perl_iswctype(aTHX_ c, t)
 #   define __btowc(c) Perl_btowc(aTHX_ c)
@@ -982,6 +985,16 @@ int Perl_iswlower(pTHX_ wint_t wc) {
   rc = isLOWER_uni((UV) wc);
 
   /* fprintf(stderr, "Perl_iswlower(%ld) ==> %d\n", (unsigned long) wc, rc); */
+
+  return rc;
+}
+
+int Perl_isascii(pTHX_ wint_t wc) {
+  int rc;
+
+  rc = isASCII_uni((UV) wc);
+
+  /* fprintf(stderr, "Perl_isascii(%ld) ==> %d\n", (unsigned long) wc, rc); */
 
   return rc;
 }

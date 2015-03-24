@@ -279,7 +279,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 	{
 	  wchar_t wc;
 
-	  if (isascii (pstr->raw_mbs[pstr->raw_mbs_idx + byte_idx])
+	  if (__isascii (pstr->raw_mbs[pstr->raw_mbs_idx + byte_idx])
 	      && __mbsinit (&pstr->cur_state))
 	    {
 	      /* In case of a singlebyte character.  */
@@ -702,7 +702,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 #ifdef _LIBC
 		  /* We know the wchar_t encoding is UCS4, so for the simple
 		     case, ASCII characters, skip the conversion step.  */
-		  if (isascii (*p) && BE (pstr->trans == NULL, 1))
+		  if (__isascii (*p) && BE (pstr->trans == NULL, 1))
 		    {
 		      memset (&pstr->cur_state, '\0', sizeof (__mbstate_t));
 		      /* pstr->valid_len = 0; */
@@ -844,7 +844,7 @@ re_string_peek_byte_case (pTHX_ const re_string_t *pstr, Idx idx)
      this function returns CAPITAL LETTER I instead of first byte of
      DOTLESS SMALL LETTER I.  The latter would confuse the parser,
      since peek_byte_case doesn't advance cur_idx in any way.  */
-  if (pstr->offsets_needed && !isascii (ch))
+  if (pstr->offsets_needed && !__isascii (ch))
     return re_string_peek_byte (aTHX_ pstr, idx);
 #endif
 
@@ -877,7 +877,7 @@ re_string_fetch_byte_case (pTHX_ re_string_t *pstr)
       off = pstr->offsets[pstr->cur_idx];
       ch = pstr->raw_mbs[pstr->raw_mbs_idx + off];
 
-      if (! isascii (ch))
+      if (! __isascii (ch))
 	return re_string_fetch_byte (aTHX_ pstr);
 
       re_string_skip_bytes (aTHX_ pstr,
