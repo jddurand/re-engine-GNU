@@ -20,11 +20,11 @@
 /* memset calls are left as they are: they are ok from Perl memory pool point of view IMHO */
 
 /* static */ reg_errcode_t re_compile_internal (pTHX_ regex_t *preg, const char * pattern,
-                                                size_t length, reg_syntax_t syntax, SV *sv_lock);
+                                                size_t length, reg_syntax_t syntax, SV *sv_lock, bool is_utf8);
 static void re_compile_fastmap_iter (pTHX_ regex_t *bufp,
 				     const re_dfastate_t *init_state,
 				     char *fastmap);
-static reg_errcode_t init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock);
+static reg_errcode_t init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock, bool is_utf8);
 #ifdef RE_ENABLE_I18N
 static void free_charset (pTHX_ re_charset_t *cset);
 #endif /* RE_ENABLE_I18N */
@@ -213,15 +213,16 @@ static const size_t __re_error_msgid_idx[] =
 
 #ifdef _LIBC
 const char *
-re_compile_pattern (pTHX_ pattern, length, bufp, sv)
+re_compile_pattern (pTHX_ pattern, length, bufp, sv, is_utf8)
     const char *pattern;
     size_t length;
     struct re_pattern_buffer *bufp;
-    SV *sv_lock
+    SV *sv_lock;
+    bool is_utf8;
 #else /* size_t might promote */
 const char *
 re_compile_pattern (pTHX_ const char *pattern, size_t length,
-		    struct re_pattern_buffer *bufp, SV *sv_lock)
+		    struct re_pattern_buffer *bufp, SV *sv_lock, bool is_utf8)
 #endif
 {
   reg_errcode_t ret;
@@ -234,7 +235,7 @@ re_compile_pattern (pTHX_ const char *pattern, size_t length,
   /* Match anchors at newline.  */
   bufp->newline_anchor = 1;
 
-  ret = re_compile_internal (aTHX_ bufp, pattern, length, re_syntax_options, sv_lock);
+  ret = re_compile_internal (aTHX_ bufp, pattern, length, re_syntax_options, sv_lock, is_utf8);
 
   if (!ret)
     return NULL;
@@ -324,7 +325,7 @@ re_compile_fastmap_iter (pTHX_ regex_t *bufp, const re_dfastate_t *init_state,
 	    {
 	      unsigned char buf[MB_LEN_MAX];
 	      unsigned char *p;
-	      wchar_t wc;
+	      __wchar_t wc;
 	      __mbstate_t state;
 
 	      p = buf;
@@ -473,7 +474,7 @@ re_compile_fastmap_iter (pTHX_ regex_t *bufp, const re_dfastate_t *init_state,
    the return codes and their meanings.)  */
 
 int
-regcomp (pTHX_ regex_t *_Restrict_ preg, const char *_Restrict_ pattern, int cflags, SV *sv_lock)
+regcomp (pTHX_ regex_t *_Restrict_ preg, const char *_Restrict_ pattern, int cflags, SV *sv_lock, bool is_utf8)
 {
   reg_errcode_t ret;
   reg_syntax_t syntax = ((cflags & REG_EXTENDED) ? RE_SYNTAX_POSIX_EXTENDED
@@ -503,7 +504,7 @@ regcomp (pTHX_ regex_t *_Restrict_ preg, const char *_Restrict_ pattern, int cfl
   preg->no_sub = !!(cflags & REG_NOSUB);
   preg->translate = NULL;
 
-  ret = re_compile_internal (aTHX_ preg, pattern, strlen (pattern), syntax, sv_lock);
+  ret = re_compile_internal (aTHX_ preg, pattern, strlen (pattern), syntax, sv_lock, is_utf8);
 
   /* POSIX doesn't distinguish between an unmatched open-group and an
      unmatched close-group: both are REG_EPAREN.  */
@@ -722,7 +723,7 @@ re_comp (s, sv_lock)
   /* Match anchors at newlines.  */
   re_comp_buf.newline_anchor = 1;
 
-  ret = re_compile_internal (aTHX_ &re_comp_buf, s, strlen (s), re_syntax_options, sv_lock);
+  ret = re_compile_internal (aTHX_ &re_comp_buf, s, strlen (s), re_syntax_options, sv_lock, is_utf8);
 
   if (!ret)
     return NULL;
@@ -746,7 +747,7 @@ libc_freeres_fn (free_mem)
 
 /* static */ reg_errcode_t
 re_compile_internal (pTHX_ regex_t *preg, const char * pattern, size_t length,
-		     reg_syntax_t syntax, SV *sv_lock)
+		     reg_syntax_t syntax, SV *sv_lock, bool is_utf8)
 {
   reg_errcode_t err = REG_NOERROR;
   re_dfa_t *dfa;
@@ -779,7 +780,7 @@ re_compile_internal (pTHX_ regex_t *preg, const char * pattern, size_t length,
     }
   preg->used = sizeof (re_dfa_t);
 
-  err = init_dfa (aTHX_ dfa, length, sv_lock);
+  err = init_dfa (aTHX_ dfa, length, sv_lock, is_utf8);
   if (BE (err == REG_NOERROR && lock_init (dfa->lock) != 0, 0))
     err = REG_ESPACE;
   if (BE (err != REG_NOERROR, 0))
@@ -848,7 +849,7 @@ re_compile_internal (pTHX_ regex_t *preg, const char * pattern, size_t length,
    as the initial length of some arrays.  */
 
 static reg_errcode_t
-init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock)
+init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock, bool is_utf8)
 {
   __re_size_t table_size;
 #ifndef _LIBC
@@ -857,7 +858,7 @@ init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock)
 #endif
 #endif
 #ifdef RE_ENABLE_I18N
-  size_t max_i18n_object_size = MAX (sizeof (wchar_t), sizeof (__wctype_t));
+  size_t max_i18n_object_size = MAX (sizeof (__wchar_t), sizeof (__wctype_t));
 #else
   size_t max_i18n_object_size = 0;
 #endif
@@ -909,7 +910,7 @@ init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock)
       && (codeset_name[2] == 'F' || codeset_name[2] == 'f')
       && strcmp (codeset_name + 3 + (codeset_name[3] == '-'), "8") == 0)
 #endif
-    dfa->is_utf8 = 1;
+    dfa->is_utf8 = is_utf8;
 
   /* We check exhaustively in the loop below if this charset is a
      superset of ASCII.  */
@@ -934,8 +935,8 @@ init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock)
 	  for (i = 0, ch = 0; i < BITSET_WORDS; ++i)
 	    for (j = 0; j < BITSET_WORD_BITS; ++j, ++ch)
 	      {
-		wint_t wch = __btowc (ch);
-		if (wch != WEOF)
+		__wint_t wch = __btowc (ch);
+		if (wch != __WEOF)
 		  dfa->sb_char[i] |= (bitset_word_t) 1 << j;
 # ifndef _LIBC
 		if (__isascii (ch) && wch != ch)
@@ -999,7 +1000,7 @@ init_word_char (pTHX_ re_dfa_t *dfa)
  general_case:
   for (; i < BITSET_WORDS; ++i)
     for (j = 0; j < BITSET_WORD_BITS; ++j, ++ch)
-      if (isalnum (ch) || ch == '_')
+      if (__isalnum (ch) || ch == '_')
 	dfa->word_char[i] |= (bitset_word_t) 1 << j;
 }
 
@@ -1853,7 +1854,7 @@ peek_token (pTHX_ re_token_t *token, re_string_t *input, reg_syntax_t syntax)
 #ifdef RE_ENABLE_I18N
       if (input->mb_cur_max > 1)
 	{
-	  wint_t wc = re_string_wchar_at (aTHX_ input,
+	  __wint_t wc = re_string_wchar_at (aTHX_ input,
 					  re_string_cur_idx (input) + 1);
 	  token->word_char = IS_WIDE_WORD_CHAR (wc) != 0;
 	}
@@ -1967,7 +1968,7 @@ peek_token (pTHX_ re_token_t *token, re_string_t *input, reg_syntax_t syntax)
 #ifdef RE_ENABLE_I18N
   if (input->mb_cur_max > 1)
     {
-      wint_t wc = re_string_wchar_at (aTHX_ input, re_string_cur_idx (input));
+      __wint_t wc = re_string_wchar_at (aTHX_ input, re_string_cur_idx (input));
       token->word_char = IS_WIDE_WORD_CHAR (wc) != 0;
     }
   else
@@ -2715,9 +2716,9 @@ build_range_exp (pTHX_ const reg_syntax_t syntax,
 
 # ifdef RE_ENABLE_I18N
   {
-    wchar_t wc;
-    wint_t start_wc;
-    wint_t end_wc;
+    __wchar_t wc;
+    __wint_t start_wc;
+    __wint_t end_wc;
 
     start_ch = ((start_elem->type == SB_CHAR) ? start_elem->opr.ch
 		: ((start_elem->type == COLL_SYM) ? start_elem->opr.name[0]
@@ -2729,7 +2730,7 @@ build_range_exp (pTHX_ const reg_syntax_t syntax,
 		? __btowc (start_ch) : start_elem->opr.wch);
     end_wc = ((end_elem->type == SB_CHAR || end_elem->type == COLL_SYM)
 	      ? __btowc (end_ch) : end_elem->opr.wch);
-    if (start_wc == WEOF || end_wc == WEOF)
+    if (start_wc == __WEOF || end_wc == __WEOF)
       return REG_ECOLLATE;
     else if (BE ((syntax & RE_NO_EMPTY_RANGES) && start_wc > end_wc, 0))
       return REG_ERANGE;
@@ -2751,8 +2752,8 @@ build_range_exp (pTHX_ const reg_syntax_t syntax,
 	    new_nranges = 2 * mbcset->nranges + 1;
 	    /* Use realloc since mbcset->range_starts and mbcset->range_ends
 	       are NULL if *range_alloc == 0.  */
-	    re_realloc (mbcset->range_starts, wchar_t, new_nranges);
-	    re_realloc (mbcset->range_ends, wchar_t, new_nranges);
+	    re_realloc (mbcset->range_starts, __wchar_t, new_nranges);
+	    re_realloc (mbcset->range_ends, __wchar_t, new_nranges);
 	    *range_alloc = new_nranges;
 	  }
 
@@ -2874,7 +2875,7 @@ parse_bracket_exp (pTHX_ re_string_t *regexp, re_dfa_t *dfa, re_token_t *token,
 	    return collseqmb[br_elem->opr.ch];
 	  else
 	    {
-	      wint_t wc = __btowc (br_elem->opr.ch);
+	      __wint_t wc = __btowc (br_elem->opr.ch);
 	      return __collseq_table_lookup (collseqwc, wc);
 	    }
 	}
@@ -3225,7 +3226,7 @@ parse_bracket_exp (pTHX_ re_string_t *regexp, re_dfa_t *dfa, re_token_t *token,
 		  /* +1 in case of mbcset->nmbchars is 0.  */
 		  mbchar_alloc = 2 * mbcset->nmbchars + 1;
 		  /* Use realloc since array is NULL if *alloc == 0.  */
-		  re_realloc (mbcset->mbchars, wchar_t, mbchar_alloc);
+		  re_realloc (mbcset->mbchars, __wchar_t, mbchar_alloc);
 		}
 	      mbcset->mbchars[mbcset->nmbchars++] = start_elem.opr.wch;
 	      break;
@@ -3563,41 +3564,41 @@ build_charclass (pTHX_ RE_TRANSLATE_TYPE trans, bitset_t sbcset,
     if (BE (trans != NULL, 0))			\
       {						\
 	for (i = 0; i < SBC_MAX; ++i)		\
-	  if (ctype_func (i))			\
+	  if (ctype_func ((char)i))              \
 	    bitset_set (aTHX_ sbcset, trans[i]); \
       }						\
     else					\
       {						\
 	for (i = 0; i < SBC_MAX; ++i)		\
-	  if (ctype_func (i))			\
+	  if (ctype_func ((char)i))             \
 	    bitset_set (aTHX_ sbcset, i);       \
       }						\
   } while (0)
 
   if (strcmp (name, "alnum") == 0)
-    BUILD_CHARCLASS_LOOP (isalnum);
+    BUILD_CHARCLASS_LOOP (__isalnum);
   else if (strcmp (name, "cntrl") == 0)
-    BUILD_CHARCLASS_LOOP (iscntrl);
+    BUILD_CHARCLASS_LOOP (__iscntrl);
   else if (strcmp (name, "lower") == 0)
-    BUILD_CHARCLASS_LOOP (islower);
+    BUILD_CHARCLASS_LOOP (__islower);
   else if (strcmp (name, "space") == 0)
-    BUILD_CHARCLASS_LOOP (isspace);
+    BUILD_CHARCLASS_LOOP (__isspace);
   else if (strcmp (name, "alpha") == 0)
-    BUILD_CHARCLASS_LOOP (isalpha);
+    BUILD_CHARCLASS_LOOP (__isalpha);
   else if (strcmp (name, "digit") == 0)
-    BUILD_CHARCLASS_LOOP (isdigit);
+    BUILD_CHARCLASS_LOOP (__isdigit);
   else if (strcmp (name, "print") == 0)
-    BUILD_CHARCLASS_LOOP (isprint);
+    BUILD_CHARCLASS_LOOP (__isprint);
   else if (strcmp (name, "upper") == 0)
-    BUILD_CHARCLASS_LOOP (isupper);
+    BUILD_CHARCLASS_LOOP (__isupper);
   else if (strcmp (name, "blank") == 0)
-    BUILD_CHARCLASS_LOOP (isblank);
+    BUILD_CHARCLASS_LOOP (__isblank);
   else if (strcmp (name, "graph") == 0)
-    BUILD_CHARCLASS_LOOP (isgraph);
+    BUILD_CHARCLASS_LOOP (__isgraph);
   else if (strcmp (name, "punct") == 0)
-    BUILD_CHARCLASS_LOOP (ispunct);
+    BUILD_CHARCLASS_LOOP (__ispunct);
   else if (strcmp (name, "xdigit") == 0)
-    BUILD_CHARCLASS_LOOP (isxdigit);
+    BUILD_CHARCLASS_LOOP (__isxdigit);
   else
     return REG_ECTYPE;
 

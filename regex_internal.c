@@ -133,11 +133,11 @@ re_string_realloc_buffers (pTHX_ re_string_t *pstr, Idx new_buf_len)
   if (pstr->mb_cur_max > 1)
     {
       /* Avoid overflow in realloc.  */
-      const size_t max_object_size = MAX (sizeof (wint_t), sizeof (Idx));
+      const size_t max_object_size = MAX (sizeof (__wint_t), sizeof (Idx));
       if (BE (MIN (IDX_MAX, SIZE_MAX / max_object_size) < new_buf_len, 0))
 	return REG_ESPACE;
 
-      re_realloc (pstr->wcs, wint_t, new_buf_len);
+      re_realloc (pstr->wcs, __wint_t, new_buf_len);
       if (pstr->offsets != NULL)
 	{
 	  re_realloc (pstr->offsets, Idx, new_buf_len);
@@ -178,8 +178,8 @@ re_string_construct_common (pTHX_ const char *str, Idx len, re_string_t *pstr,
    If the byte sequence of the string are:
      <mb1>(0), <mb1>(1), <mb2>(0), <mb2>(1), <sb3>
    Then wide character buffer will be:
-     <wc1>   , WEOF    , <wc2>   , WEOF    , <wc3>
-   We use WEOF for padding, they indicate that the position isn't
+     <wc1>   , __WEOF    , <wc2>   , __WEOF    , <wc3>
+   We use __WEOF for padding, they indicate that the position isn't
    a first byte of a multibyte character.
 
    Note that this function assumes PSTR->VALID_LEN elements are already
@@ -204,7 +204,7 @@ build_wcs_buffer (pTHX_ re_string_t *pstr)
   end_idx = (pstr->bufs_len > pstr->len) ? pstr->len : pstr->bufs_len;
   for (byte_idx = pstr->valid_len; byte_idx < end_idx;)
     {
-      wchar_t wc;
+      __wchar_t wc;
       const char *p;
 
       remain_len = end_idx - byte_idx;
@@ -229,7 +229,7 @@ build_wcs_buffer (pTHX_ re_string_t *pstr)
 	{
 	  /* We treat these cases as a singlebyte character.  */
 	  mbclen = 1;
-	  wc = (wchar_t) pstr->raw_mbs[pstr->raw_mbs_idx + byte_idx];
+	  wc = (__wchar_t) pstr->raw_mbs[pstr->raw_mbs_idx + byte_idx];
 	  if (BE (pstr->trans != NULL, 0))
 	    wc = pstr->trans[wc];
 	  pstr->cur_state = prev_st;
@@ -245,7 +245,7 @@ build_wcs_buffer (pTHX_ re_string_t *pstr)
       pstr->wcs[byte_idx++] = wc;
       /* Write paddings.  */
       for (remain_len = byte_idx + mbclen - 1; byte_idx < remain_len ;)
-	pstr->wcs[byte_idx++] = WEOF;
+	pstr->wcs[byte_idx++] = __WEOF;
     }
   pstr->valid_len = byte_idx;
   pstr->valid_raw_len = byte_idx;
@@ -277,7 +277,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
     {
       while (byte_idx < end_idx)
 	{
-	  wchar_t wc;
+	  __wchar_t wc;
 
 	  if (__isascii (pstr->raw_mbs[pstr->raw_mbs_idx + byte_idx])
 	      && __mbsinit (&pstr->cur_state))
@@ -285,9 +285,9 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 	      /* In case of a singlebyte character.  */
 	      pstr->mbs[byte_idx]
 		= toupper (pstr->raw_mbs[pstr->raw_mbs_idx + byte_idx]);
-	      /* The next step uses the assumption that wchar_t is encoded
+	      /* The next step uses the assumption that __wchar_t is encoded
 		 ASCII-safe: all ASCII values can be converted like this.  */
-	      pstr->wcs[byte_idx] = (wchar_t) pstr->mbs[byte_idx];
+	      pstr->wcs[byte_idx] = (__wchar_t) pstr->mbs[byte_idx];
 	      ++byte_idx;
 	      continue;
 	    }
@@ -299,7 +299,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 			       + byte_idx), remain_len, &pstr->cur_state);
 	  if (BE (mbclen < (size_t) -2, 1))
 	    {
-	      wchar_t wcu = wc;
+	      __wchar_t wcu = wc;
 	      if (__iswlower (wc))
 		{
 		  size_t mbcdlen;
@@ -319,7 +319,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 	      pstr->wcs[byte_idx++] = wcu;
 	      /* Write paddings.  */
 	      for (remain_len = byte_idx + mbclen - 1; byte_idx < remain_len ;)
-		pstr->wcs[byte_idx++] = WEOF;
+		pstr->wcs[byte_idx++] = __WEOF;
 	    }
 	  else if (mbclen == (size_t) -1 || mbclen == 0
 		   || (mbclen == (size_t) -2 && pstr->bufs_len >= pstr->len))
@@ -329,7 +329,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 	      int ch = pstr->raw_mbs[pstr->raw_mbs_idx + byte_idx];
 	      pstr->mbs[byte_idx] = ch;
 	      /* And also cast it to wide char.  */
-	      pstr->wcs[byte_idx++] = (wchar_t) ch;
+	      pstr->wcs[byte_idx++] = (__wchar_t) ch;
 	      if (BE (mbclen == (size_t) -1, 0))
 		pstr->cur_state = prev_st;
 	    }
@@ -347,7 +347,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
   else
     for (src_idx = pstr->valid_raw_len; byte_idx < end_idx;)
       {
-	wchar_t wc;
+	__wchar_t wc;
 	const char *p;
       offsets_needed:
 	remain_len = end_idx - byte_idx;
@@ -368,7 +368,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 	mbclen = __mbrtowc (&wc, p, remain_len, &pstr->cur_state);
 	if (BE (mbclen < (size_t) -2, 1))
 	  {
-	    wchar_t wcu = wc;
+	    __wchar_t wcu = wc;
 	    if (__iswlower (wc))
 	      {
 		size_t mbcdlen;
@@ -405,7 +405,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 		      {
 			pstr->offsets[byte_idx + i]
 			  = src_idx + (i < mbclen ? i : mbclen - 1);
-			pstr->wcs[byte_idx + i] = WEOF;
+			pstr->wcs[byte_idx + i] = __WEOF;
 		      }
 		    pstr->len += mbcdlen - mbclen;
 		    if (pstr->raw_stop > src_idx)
@@ -433,7 +433,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 	    pstr->wcs[byte_idx++] = wcu;
 	    /* Write paddings.  */
 	    for (remain_len = byte_idx + mbclen - 1; byte_idx < remain_len ;)
-	      pstr->wcs[byte_idx++] = WEOF;
+	      pstr->wcs[byte_idx++] = __WEOF;
 	  }
 	else if (mbclen == (size_t) -1 || mbclen == 0
 		 || (mbclen == (size_t) -2 && pstr->bufs_len >= pstr->len))
@@ -450,7 +450,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 	    ++src_idx;
 
 	    /* And also cast it to wide char.  */
-	    pstr->wcs[byte_idx++] = (wchar_t) ch;
+	    pstr->wcs[byte_idx++] = (__wchar_t) ch;
 	    if (BE (mbclen == (size_t) -1, 0))
 	      pstr->cur_state = prev_st;
 	  }
@@ -471,18 +471,18 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 
 static Idx
 internal_function
-re_string_skip_chars (pTHX_ re_string_t *pstr, Idx new_raw_idx, wint_t *last_wc)
+re_string_skip_chars (pTHX_ re_string_t *pstr, Idx new_raw_idx, __wint_t *last_wc)
 {
   __mbstate_t prev_st;
   Idx rawbuf_idx;
   size_t mbclen;
-  wint_t wc = WEOF;
+  __wint_t wc = __WEOF;
 
   /* Skip the characters which are not necessary to check.  */
   for (rawbuf_idx = pstr->raw_mbs_idx + pstr->valid_raw_len;
        rawbuf_idx < new_raw_idx;)
     {
-      wchar_t wc2;
+      __wchar_t wc2;
       Idx remain_len = pstr->raw_len - rawbuf_idx;
       prev_st = pstr->cur_state;
       mbclen = __mbrtowc (&wc2, (const char *) pstr->raw_mbs + rawbuf_idx,
@@ -522,7 +522,7 @@ build_upper_buffer (pTHX_ re_string_t *pstr)
       int ch = pstr->raw_mbs[pstr->raw_mbs_idx + char_idx];
       if (BE (pstr->trans != NULL, 0))
 	ch = pstr->trans[ch];
-      if (islower (ch))
+      if (__islower (ch))
 	pstr->mbs[char_idx] = toupper (ch);
       else
 	pstr->mbs[char_idx] = ch;
@@ -614,7 +614,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 	      if (pstr->valid_len > offset
 		  && mid == offset && pstr->offsets[mid] == offset)
 		{
-		  Move (pstr->wcs + offset, pstr->wcs, pstr->valid_len - offset, wint_t);
+		  Move (pstr->wcs + offset, pstr->wcs, pstr->valid_len - offset, __wint_t);
 		  Move (pstr->mbs + offset, pstr->mbs, pstr->valid_len - offset, char);
 		  pstr->valid_len -= offset;
 		  pstr->valid_raw_len -= offset;
@@ -624,14 +624,14 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 	      else
 		{
 		  /* Otherwise, just find out how long the partial multibyte
-		     character at offset is and fill it with WEOF/255.  */
+		     character at offset is and fill it with __WEOF/255.  */
 		  pstr->len = pstr->raw_len - idx + offset;
 		  pstr->stop = pstr->raw_stop - idx + offset;
 		  pstr->offsets_needed = 0;
 		  while (mid > 0 && pstr->offsets[mid - 1] == offset)
 		    --mid;
 		  while (mid < pstr->valid_len)
-		    if (pstr->wcs[mid] != WEOF)
+		    if (pstr->wcs[mid] != __WEOF)
 		      break;
 		    else
 		      ++mid;
@@ -643,7 +643,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 		      if (pstr->valid_len)
 			{
 			  for (low = 0; low < pstr->valid_len; ++low)
-			    pstr->wcs[low] = WEOF;
+			    pstr->wcs[low] = __WEOF;
 			  memset (pstr->mbs, 255, pstr->valid_len);
 			}
 		    }
@@ -657,7 +657,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 							eflags);
 #ifdef RE_ENABLE_I18N
 	      if (pstr->mb_cur_max > 1)
-		Move (pstr->wcs + offset, pstr->wcs, pstr->valid_len - offset, wint_t);
+		Move (pstr->wcs + offset, pstr->wcs, pstr->valid_len - offset, __wint_t);
 #endif /* RE_ENABLE_I18N */
 	      if (BE (pstr->mbs_allocated, 0))
 		Move (pstr->mbs + offset, pstr->mbs, pstr->valid_len - offset, char);
@@ -686,7 +686,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 	  if (pstr->mb_cur_max > 1)
 	    {
 	      Idx wcs_idx;
-	      wint_t wc = WEOF;
+	      __wint_t wc = __WEOF;
 
 	      if (pstr->is_utf8)
 		{
@@ -700,13 +700,13 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 		    end = pstr->raw_mbs;
 		  p = raw + offset - 1;
 #ifdef _LIBC
-		  /* We know the wchar_t encoding is UCS4, so for the simple
+		  /* We know the __wchar_t encoding is UCS4, so for the simple
 		     case, ASCII characters, skip the conversion step.  */
 		  if (__isascii (*p) && BE (pstr->trans == NULL, 1))
 		    {
 		      memset (&pstr->cur_state, '\0', sizeof (__mbstate_t));
 		      /* pstr->valid_len = 0; */
-		      wc = (wchar_t) *p;
+		      wc = (__wchar_t) *p;
 		    }
 		  else
 #endif
@@ -714,7 +714,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 		      if ((*p & 0xc0) != 0x80)
 			{
 			  __mbstate_t cur_state;
-			  wchar_t wc2;
+			  __wchar_t wc2;
 			  Idx mlen = raw + pstr->len - p;
 			  unsigned char buf[6];
 			  size_t mbclen;
@@ -744,9 +744,9 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 			}
 		}
 
-	      if (wc == WEOF)
+	      if (wc == __WEOF)
 		pstr->valid_len = re_string_skip_chars (aTHX_ pstr, idx, &wc) - idx;
-	      if (wc == WEOF)
+	      if (wc == __WEOF)
 		pstr->tip_context
 		  = re_string_context_at (aTHX_ pstr, prev_valid_len - 1, eflags);
 	      else
@@ -759,7 +759,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 	      if (BE (pstr->valid_len, 0))
 		{
 		  for (wcs_idx = 0; wcs_idx < pstr->valid_len; ++wcs_idx)
-		    pstr->wcs[wcs_idx] = WEOF;
+		    pstr->wcs[wcs_idx] = __WEOF;
 		  if (pstr->mbs_allocated)
 		    memset (pstr->mbs, 255, pstr->valid_len);
 		}
@@ -918,9 +918,9 @@ re_string_context_at (pTHX_ const re_string_t *input, Idx idx, int eflags)
 #ifdef RE_ENABLE_I18N
   if (input->mb_cur_max > 1)
     {
-      wint_t wc;
+      __wint_t wc;
       Idx wc_idx = idx;
-      while(input->wcs[wc_idx] == WEOF)
+      while(input->wcs[wc_idx] == __WEOF)
 	{
 #ifdef DEBUG
 	  /* It must not happen.  */

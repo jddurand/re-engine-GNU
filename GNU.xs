@@ -138,45 +138,6 @@ int GNU_key2int(pTHX_ const char *key, SV * const key_sv) {
   return 0;
 }
 
-GNU_STATIC
-char *sv2nativeutf8(pTHX_ SV *sv, short isDebug, STRLEN *len_native_utf8, SV **sv_tmpp) {
-    char                     *perl_utf8;
-    STRLEN                    len_perl_utf8;
-    char                     *native_utf8;
-    bool                      is_utf8;
-    SV                        *sv_tmp = newSVsv(sv);
-
-    /* Upgrade sv_tmp to UTF-8 and get pointer to Perl's string */
-    /* Perl's internal utf8 representation is not utf8 */
-    perl_utf8 = SvPVutf8(sv_tmp, len_perl_utf8);
-
-    /*
-    fprintf(stderr, "sv2nativeutf8: Original SV:\n");
-    sv_dump(sv);
-    fprintf(stderr, "sv2nativeutf8: sv_tmp (optionnaly upgraded to UTF-8):\n");
-    sv_dump(sv_tmp);
-    */
-
-    *len_native_utf8 = len_perl_utf8;
-    is_utf8 = 1;
-    native_utf8 = (char*)bytes_from_utf8((U8 *)perl_utf8, len_native_utf8, &is_utf8);
-
-    if (native_utf8 == perl_utf8) {
-      /* Oups, not allocated */
-      /* fprintf(stderr, "sv2nativeutf8: ... Oups, not allocated i.e. bytes_from_utf8 == utf8\n"); */
-      Newx(native_utf8, *len_native_utf8, char);
-      Copy(perl_utf8, native_utf8, *len_native_utf8, char);
-    }
-
-    if (sv_tmpp != NULL) {
-      *sv_tmpp = sv_tmp;
-    } else {
-      SvREFCNT_dec(sv_tmp);
-    }
-
-    return native_utf8;
-}
-
 #ifdef HAVE_REGEXP_ENGINE_COMP
 GNU_STATIC
 #if PERL_VERSION <= 10
@@ -191,8 +152,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     int                       isDebug = GNU_key2int(aTHX_ "re::engine::GNU/debug", debugkey_sv);
     int                       defaultSyntax = GNU_key2int(aTHX_ "re::engine::GNU/syntax", syntaxkey_sv);
     char                     *logHeader = "[re::engine::GNU] GNU_comp";
-    char                     *native_utf8;
-    STRLEN                    len_native_utf8;
+    bool                      is_utf8 = DO_UTF8(pattern);
 
     /* Input as char * */
     STRLEN plen;
@@ -465,13 +425,16 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     }
     ri->sv_lock = sv_lock;
 
-    native_utf8 = sv2nativeutf8(aTHX_ sv_pattern, isDebug, &len_native_utf8, NULL);
     if (isDebug) {
-      fprintf(stderr, "%s: ... re_compile_internal(preg=%p, pattern=%p, length=%d, syntax=0x%lx)\n", logHeader, &(ri->regex), native_utf8, (int) len_native_utf8, (unsigned long) ri->regex.syntax, sv_lock);
+      fprintf(stderr, "%s: ... re_compile_internal(preg=%p, pattern=\"%s\", length=%ld, syntax=0x%lx, sv_lock=%p, is_utf8=%d)\n", logHeader, &(ri->regex), exp, (unsigned long) plen, (unsigned long) ri->regex.syntax, sv_lock, (int) is_utf8);
     }
 
-    ret = re_compile_internal (aTHX_ &(ri->regex), native_utf8, len_native_utf8, ri->regex.syntax, sv_lock);
-    Safefree(native_utf8);
+    ret = re_compile_internal (aTHX_ &(ri->regex), exp, plen, ri->regex.syntax, sv_lock, is_utf8);
+
+    SvREFCNT_dec(sv_pattern);
+    if (sv_syntax != NULL) {
+      SvREFCNT_dec(sv_syntax);
+    }
 
     if (ret != _REG_NOERROR) {
       extern const char __re_error_msgid[];
@@ -496,11 +459,6 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 
     if (isDebug) {
       fprintf(stderr, "%s: return %p\n", logHeader, rx);
-    }
-
-    SvREFCNT_dec(sv_pattern);
-    if (sv_syntax != NULL) {
-      SvREFCNT_dec(sv_syntax);
     }
 
     /* return the regexp structure to perl */
@@ -770,15 +728,6 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     char               *logHeader = "[re::engine::GNU] GNU_exec";
     short               utf8_target = DO_UTF8(sv) ? 1 : 0;
 
-    char               *native_utf8;
-    STRLEN              len_native_utf8;
-
-    char               *nativestringarg_utf8;
-    STRLEN              len_nativestringarg_utf8;
-    bool                nativestringarg_utf8_tofree;
-
-    SV                 *sv_utf8;
-
     regs.num_regs = 0;
     regs.start = NULL;
     regs.end = NULL;
@@ -788,34 +737,16 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
       fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
     }
 
-    native_utf8 = sv2nativeutf8(aTHX_ sv, isDebug, &len_native_utf8, &sv_utf8);
-    if (stringarg != strbeg) {
-      SV *sv_stringarg = newSVpvn_utf8(stringarg, strend - stringarg, utf8_target);
-      nativestringarg_utf8 = sv2nativeutf8(aTHX_ sv_stringarg, isDebug, &len_nativestringarg_utf8, NULL);
-      nativestringarg_utf8_tofree = 1;
-      SvREFCNT_dec(sv_stringarg);
-    } else {
-      len_nativestringarg_utf8 = len_native_utf8;
-      nativestringarg_utf8 = native_utf8;
-      nativestringarg_utf8_tofree = 0;
-    }
-
-    /* rc = re_search(&(ri->regex), strbeg, strend - strbeg, stringarg - strbeg, strend - stringarg, &regs); */
     if (isDebug) {
-      fprintf(stderr, "%s: ... re_search(bufp=%p, string=%p, length=%d, start=%d, range=%d, regs=%p)\n", logHeader, &(ri->regex), nativestringarg_utf8, (int) len_native_utf8, (int) (len_native_utf8 - len_nativestringarg_utf8), (int) len_nativestringarg_utf8, &regs);
+      fprintf(stderr, "%s: ... re_search(bufp=%p, string=%p, length=%d, start=%d, range=%d, regs=%p)\n", logHeader, &(ri->regex), strbeg, (int) (strend - strbeg), (int) (stringarg - strbeg), (int) (strend - stringarg), &regs);
     }
-    rc = re_search(aTHX_ &(ri->regex), native_utf8, len_native_utf8, len_native_utf8 - len_nativestringarg_utf8, len_nativestringarg_utf8, &regs);
+    rc = re_search(aTHX_ &(ri->regex), strbeg, strend - strbeg, stringarg - strbeg, strend - stringarg, &regs);
 
     if (rc <= -2) {
       croak("%s: Internal error in re_search()", logHeader);
     } else if (rc == -1) {
       if (isDebug) {
         fprintf(stderr, "%s: return 0 (no match)\n", logHeader);
-      }
-      SvREFCNT_dec(sv_utf8);
-      Safefree(native_utf8);
-      if (nativestringarg_utf8_tofree) {
-        Safefree(nativestringarg_utf8);
       }
       return 0;
     }
@@ -831,69 +762,11 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
     for (i = 0; i < REGEXP_NPARENS_GET(r) + 1; i++) {
         /* The indexes are in the string using native encoding */
         if (isDebug) {
-          fprintf(stderr, "%s: ... Match No %d range in bytes (native utf8): [%d,%d]\n", logHeader, i, (int) regs.start[i], (int) regs.end[i]);
+          fprintf(stderr, "%s: ... Match No %d: [%d,%d]\n", logHeader, i, (int) regs.start[i], (int) regs.end[i]);
         }
 #if REGEXP_OFFS_CAN
-        /* We want to get back to perl's UTF-8. The only naive optimization is when start == end == 0. */
-        if (regs.start[i] == 0 && regs.end[i] == 0) {
-          REGEXP_OFFS_GET(r)[i].start = 0;
-          REGEXP_OFFS_GET(r)[i].end = 0;
-        } else {
-          /* We want to know the number of characters, using only perl api */
-          STRLEN len[1];
-          U8 *perlutf8[2];
-          I32 startUtf8Offset;
-          I32 endUtf8Offset;
-          I32 startCharNumber;
-          I32 endCharNumber;
-          I32 startOffset;
-          I32 endOffset;
-          I32 length;
-
-          /* regs[] is thinking in terms of inclusive offsets */
-          /* bytes_to_utf8 is thinking in terms of length */
-          len[0] = regs.start[i];
-          len[1] = regs.end[i];
-
-          perlutf8[0] = bytes_to_utf8(native_utf8, &(len[0]));
-          startUtf8Offset = (I32)utf8_distance(perlutf8[0] + len[0], perlutf8[0]);
-
-          perlutf8[1] = bytes_to_utf8(native_utf8, &(len[1]));
-          endUtf8Offset = (I32)utf8_distance(perlutf8[1] + len[1], perlutf8[1]);
-
-          if (isDebug) {
-            fprintf(stderr, "%s: ... Match No %d range in bytes (perl utf8): [%d,%d]\n", logHeader, i, (int) startUtf8Offset, (int) endUtf8Offset);
-          }
-          Safefree(perlutf8[0]);
-          Safefree(perlutf8[1]);
-
-          /* Now get the character numbers -; */
-          startCharNumber = startUtf8Offset;
-          endCharNumber = endUtf8Offset;
-#ifdef sv_pos_b2u_flags
-          startCharNumber = sv_pos_b2u_flags(sv_utf8, startCharNumber, SV_GMAGIC|SV_CONST_RETURN);
-          endCharNumber = sv_pos_b2u_flags(sv_utf8, endCharNumber, SV_GMAGIC|SV_CONST_RETURN);
-#else
-          sv_pos_b2u(sv_utf8, &startCharNumber);
-          sv_pos_b2u(sv_utf8, &endCharNumber);
-#endif
-
-          if (isDebug) {
-            fprintf(stderr, "%s: ... Match No %d range in characters (perl utf8): [%d,%d]\n", logHeader, i, (int) startCharNumber, (int) endCharNumber);
-          }
-
-          /* And finally the real offset in the original SV */
-          startOffset = startCharNumber;
-          length = endCharNumber - startCharNumber;
-          sv_pos_u2b(sv, &startOffset, &length);
-          endOffset = startOffset + length;
-
-        if (isDebug) {
-          fprintf(stderr, "%s: ... Match No %d range in bytes (original sv): [%d,%d]\n", logHeader, i, (int) startOffset, (int) endOffset);
-        }
-          REGEXP_OFFS_GET(r)[i].start = startOffset;
-          REGEXP_OFFS_GET(r)[i].end = endOffset;
-        }
+        REGEXP_OFFS_GET(r)[i].start = 0;
+        REGEXP_OFFS_GET(r)[i].end = 0;
 #endif
     }
 
@@ -948,12 +821,6 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
       REGEXP_SUBCOFFSET_SET(r, 0);
     }
 #endif /* PERL_5_10_METHOD */
-
-    Safefree(native_utf8);
-    if (nativestringarg_utf8_tofree) {
-      Safefree(nativestringarg_utf8);
-    }
-    SvREFCNT_dec(sv_utf8);
 
     if (regs.start != NULL) {
       Safefree(regs.start);
