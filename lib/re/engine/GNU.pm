@@ -327,7 +327,17 @@ None by default.
 
 =head1 NOTES
 
-Except for the //msip perl semantics, applied at compile-time, the GNU regex semantic applies. For instance, under the scene this the libc with which perl was compiled that applies, and the "last successful match" perl semantic is ignored.
+=over
+
+=item I18N
+
+This is using the perl semantics with which this library is compiled.
+
+=item Execution and compilation semantics
+
+The //msip perl semantics are applied at compile-time. Perl's localization if any always apply. The GNU regex semantic is in effect for the rest; for instance, there is no "last successful match" perl semantic in here.
+
+=back
 
 =head1 SEE ALSO
 
