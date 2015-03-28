@@ -79,7 +79,7 @@
    "provides" : {
       "re::engine::GNU" : {
          "file" : "lib/re/engine/GNU.pm",
-         "version" : "0.013"
+         "version" : "0.014"
       }
    },
    "release_status" : "stable",
@@ -95,7 +95,7 @@
          "web" : "https://github.com/jddurand/re-engine-gnu"
       }
    },
-   "version" : "0.013",
+   "version" : "0.014",
    "x_authority" : "cpan:JDDPAUSE"
 }
 

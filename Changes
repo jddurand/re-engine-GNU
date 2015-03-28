@@ -1,6 +1,22 @@
 Changelog for re-engine-GNU
 
-0.013 2015-03-21T21:17:16
+0.014 2015-03-28T08:00:49
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - In theory no need anymore for msvcprt.lib
+ - Perl portability issues
+ - UTF8 fixes
+ - POD: revised NOTES section
+ - Add -DNDEBUG
+ - Fix parameters to re_search
+ - dev+
+ - __isascii
+ - utf8 various fixes
+ - Perl_internal_state
+ - utf8n_to_uvchr and NUL byte
+ - mb stuff
+ - Perl mb proxy dev+
+
+0.013 2015-03-21T21:17:16Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - GNU.pm: fix POD
  - removal of libc_calls.c
