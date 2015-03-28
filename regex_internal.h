@@ -186,69 +186,98 @@ typedef unsigned char bool;
 #define WIDE_NEWLINE_CHAR L'\n'
 
 /* Rename to standard API for using out of glibc.  */
+#undef rpl__wint_t
+#undef rpl__wchar_t
+#undef rpl__mbsinit
+#undef rpl__wctype_t
+#undef rpl__wctype
+#undef rpl__isascii
+#undef rpl__isalnum
+#undef rpl__iscntrl
+#undef rpl__islower
+#undef rpl__isspace
+#undef rpl__isalpha
+#undef rpl__isdigit
+#undef rpl__isprint
+#undef rpl__isupper
+#undef rpl__isblank
+#undef rpl__isgraph
+#undef rpl__ispunct
+#undef rpl__isxdigit
+#undef rpl__iswlower
+#undef rpl__iswctype
+#undef rpl__btowc
+#undef rpl__mbrtowc
+#undef rpl__mbtowc
+#undef rpl__wcrtomb
+#undef rpl__towlower
+#undef rpl__mbstate_t
+#undef rpl__MB_CUR_MAX
+#undef rpl__MB_LEN_MAX
+#undef rpl__WEOF
 #ifndef _LIBC
-# undef __wctype
-# undef __iswctype
-# undef __isascii
 # ifndef _PERL_I18N
-#   define __wint_t wint_t
-#   define __wchar_t wchar_t
-#   define __mbsinit mbsinit
-#   define __wctype_t wctype_t
-#   define __wctype wctype
-#   define __isascii isascii
-#   define __isalnum isalnum
-#   define __iscntrl iscntrl
-#   define __islower islower
-#   define __isspace isspace
-#   define __isalpha isalpha
-#   define __isdigit isdigit
-#   define __isprint isprint
-#   define __isupper isupper
-#   define __isblank isblank
-#   define __isgraph isgraph
-#   define __ispunct ispunct
-#   define __isxdigit isxdigit
-#   define __iswlower iswlower
-#   define __iswctype iswctype
-#   define __btowc btowc
-#   define __mbrtowc mbrtowc
-#   define __wcrtomb wcrtomb
-#   define __towlower towlower
-#   define __mbstate_t mbstate_t 
-#   define __MB_CUR_MAX MB_CUR_MAX
-#   define __MB_LEN_MAX MB_LEN_MAX
-#   define __WEOF WEOF
+#   define rpl__wint_t wint_t
+#   define rpl__wchar_t wchar_t
+#   define rpl__mbsinit mbsinit
+#   define rpl__wctype_t wctype_t
+#   define rpl__wctype(c) wctype(c)
+#   define rpl__isascii(c) isascii(c)
+#   define rpl__isalnum(c) isalnum(c)
+#   define rpl__iscntrl(c) iscntrl(c)
+#   define rpl__islower(c) islower(c)
+#   define rpl__isspace(c) isspace(c)
+#   define rpl__isalpha(c) isalpha(c)
+#   define rpl__isdigit(c) isdigit(c)
+#   define rpl__isprint(c) isprint(c)
+#   define rpl__isupper(c) isupper(c)
+#   define rpl__isblank(c) isblank(c)
+#   define rpl__isgraph(c) isgraph(c)
+#   define rpl__ispunct(c) ispunct(c)
+#   define rpl__isxdigit(c) isxdigit(c)
+#   define rpl__iswlower(c) iswlower(c)
+#   define rpl__iswctype(c) iswctype(c)
+#   define rpl__btowc(c) btowc(c)
+#   define rpl__mbrtowc(pwc, s, n, ps) mbrtowc(pwc, s, n, ps)
+#   define rpl__mbtowc(pwc, s, n) mbrtowc(pwc, s, n)
+#   define rpl__wcrtomb(s, wc, ps) wcrtomb(s, wc, ps)
+#   define rpl__towlower(wc) towlower(wc)
+#   define rpl__towupper(wc) towupper(wc)
+#   define rpl__mbstate_t mbstate_t 
+#   define rpl__MB_CUR_MAX MB_CUR_MAX
+#   define rpl__MB_LEN_MAX MB_LEN_MAX
+#   define rpl__WEOF WEOF
 # else
-#   define __wint_t UV
-#   define __wchar_t U8
-#   define __mbsinit rpl_Perl_mbsinit
-#   define __wctype_t rpl_Perl_wctype_t
-#   define __wctype(property) rpl_Perl_wctype(aTHX_ property)
-#   define __isascii(c) rpl_Perl_isascii(aTHX_ c)
-#   define __isalnum(c) rpl_Perl_isalnum(aTHX_ c)
-#   define __iscntrl(c) rpl_Perl_iscntrl(aTHX_ c)
-#   define __islower(c) rpl_Perl_islower(aTHX_ c)
-#   define __isspace(c) rpl_Perl_isspace(aTHX_ c)
-#   define __isalpha(c) rpl_Perl_isalpha(aTHX_ c)
-#   define __isdigit(c) rpl_Perl_isdigit(aTHX_ c)
-#   define __isprint(c) rpl_Perl_isprint(aTHX_ c)
-#   define __isupper(c) rpl_Perl_isupper(aTHX_ c)
-#   define __isblank(c) rpl_Perl_isblank(aTHX_ c)
-#   define __isgraph(c) rpl_Perl_isgraph(aTHX_ c)
-#   define __ispunct(c) rpl_Perl_ispunct(aTHX_ c)
-#   define __isxdigit(c) rpl_Perl_isxdigit(aTHX_ c)
-#   define __iswlower(c) rpl_Perl_iswlower(aTHX_ c)
-#   define __iswctype(c, t) rpl_Perl_iswctype(aTHX_ c, t)
-#   define __btowc(c) rpl_Perl_btowc(aTHX_ c)
-#   define __mbrtowc(pwc, s, n, ps) rpl_Perl_mbrtowc(aTHX_ pwc, s, n, ps)
-#   define __wcrtomb(s, wc, ps) rpl_Perl_wcrtomb(aTHX_ s, wc, ps)
-#   define __towlower(wc) rpl_Perl_towlower(aTHX_ wc)
-#   define __towupper(wc) rpl_Perl_towupper(aTHX_ wc)
-#   define __mbstate_t rpl_Perl_mbstate_t 
-#   define __MB_CUR_MAX rpl_Perl_MB_CUR_MAX()
-#   define __MB_LEN_MAX UTF8_MAXBYTES
-#   define __WEOF ((UV)-1)
+#   define rpl__wint_t UV
+#   define rpl__wchar_t U8
+#   define rpl__mbsinit rpl_Perl_mbsinit
+#   define rpl__wctype_t rpl_Perl_wctype_t
+#   define rpl__wctype(property) rpl_Perl_wctype(aTHX_ property)
+#   define rpl__isascii(c) rpl_Perl_isascii(aTHX_ c)
+#   define rpl__isalnum(c) rpl_Perl_isalnum(aTHX_ c)
+#   define rpl__iscntrl(c) rpl_Perl_iscntrl(aTHX_ c)
+#   define rpl__islower(c) rpl_Perl_islower(aTHX_ c)
+#   define rpl__isspace(c) rpl_Perl_isspace(aTHX_ c)
+#   define rpl__isalpha(c) rpl_Perl_isalpha(aTHX_ c)
+#   define rpl__isdigit(c) rpl_Perl_isdigit(aTHX_ c)
+#   define rpl__isprint(c) rpl_Perl_isprint(aTHX_ c)
+#   define rpl__isupper(c) rpl_Perl_isupper(aTHX_ c)
+#   define rpl__isblank(c) rpl_Perl_isblank(aTHX_ c)
+#   define rpl__isgraph(c) rpl_Perl_isgraph(aTHX_ c)
+#   define rpl__ispunct(c) rpl_Perl_ispunct(aTHX_ c)
+#   define rpl__isxdigit(c) rpl_Perl_isxdigit(aTHX_ c)
+#   define rpl__iswlower(c) rpl_Perl_iswlower(aTHX_ c)
+#   define rpl__iswctype(c, t) rpl_Perl_iswctype(aTHX_ c, t)
+#   define rpl__btowc(c) rpl_Perl_btowc(aTHX_ c)
+#   define rpl__mbrtowc(pwc, s, n, ps) rpl_Perl_mbrtowc(aTHX_ pwc, s, n, ps)
+#   define rpl__mbtowc(pwc, s, n) rpl_Perl_mbrtowc(aTHX_ pwc, s, n)
+#   define rpl__wcrtomb(s, wc, ps) rpl_Perl_wcrtomb(aTHX_ s, wc, ps)
+#   define rpl__towlower(wc) rpl_Perl_towlower(aTHX_ wc)
+#   define rpl__towupper(wc) rpl_Perl_towupper(aTHX_ wc)
+#   define rpl__mbstate_t rpl_Perl_mbstate_t 
+#   define rpl__MB_CUR_MAX rpl_Perl_MB_CUR_MAX()
+#   define rpl__MB_LEN_MAX UTF8_MAXBYTES
+#   define rpl__WEOF ((UV)-1)
 typedef enum {
   PERL_WCTYPE_ALNUM = 1,
   PERL_WCTYPE_ALPHA,
@@ -442,7 +471,7 @@ typedef enum
 typedef struct
 {
   /* Multibyte characters.  */
-  __wchar_t *mbchars;
+  rpl__wchar_t *mbchars;
 
   /* Collating symbols.  */
 # ifdef _LIBC
@@ -459,12 +488,12 @@ typedef struct
   uint32_t *range_starts;
   uint32_t *range_ends;
 # else /* not _LIBC */
-  __wchar_t *range_starts;
-  __wchar_t *range_ends;
+  rpl__wchar_t *range_starts;
+  rpl__wchar_t *range_ends;
 # endif /* not _LIBC */
 
   /* Character classes. */
-  __wctype_t *char_classes;
+  rpl__wctype_t *char_classes;
 
   /* If this character set is the non-matching list.  */
   unsigned int non_match : 1;
@@ -528,9 +557,9 @@ struct re_string_t
   unsigned char *mbs;
 #ifdef RE_ENABLE_I18N
   /* Store the wide character string which is corresponding to MBS.  */
-  __wint_t *wcs;
+  rpl__wint_t *wcs;
   Idx *offsets;
-  __mbstate_t cur_state;
+  rpl__mbstate_t cur_state;
 #endif
   /* Index in RAW_MBS.  Each character mbs[i] corresponds to
      raw_mbs[raw_mbs_idx + i].  */
@@ -602,10 +631,10 @@ static unsigned int re_string_context_at (pTHX_ const re_string_t *input, Idx id
 #define re_string_fetch_byte(pstr) \
   ((pstr)->mbs[(pstr)->cur_idx++])
 #define re_string_first_byte(pstr, idx) \
-  ((idx) == (pstr)->valid_len || (pstr)->wcs[idx] != __WEOF)
+  ((idx) == (pstr)->valid_len || (pstr)->wcs[idx] != rpl__WEOF)
 #define re_string_is_single_byte_char(pstr, idx) \
-  ((pstr)->wcs[idx] != __WEOF && ((pstr)->valid_len == (idx) + 1 \
-				|| (pstr)->wcs[(idx) + 1] != __WEOF))
+  ((pstr)->wcs[idx] != rpl__WEOF && ((pstr)->valid_len == (idx) + 1 \
+				|| (pstr)->wcs[(idx) + 1] != rpl__WEOF))
 #define re_string_eoi(pstr) ((pstr)->stop <= (pstr)->cur_idx)
 #define re_string_cur_idx(pstr) ((pstr)->cur_idx)
 #define re_string_get_buffer(pstr) ((pstr)->mbs)
@@ -697,7 +726,7 @@ typedef struct bin_tree_storage_t bin_tree_storage_t;
 #define IS_ENDBUF_CONTEXT(c) ((c) & CONTEXT_ENDBUF)
 #define IS_ORDINARY_CONTEXT(c) ((c) == 0)
 
-#define IS_WORD_CHAR(ch) (__isalnum (ch) || (ch) == '_')
+#define IS_WORD_CHAR(ch) (rpl__isalnum (ch) || (ch) == '_')
 #define IS_NEWLINE(ch) ((ch) == NEWLINE_CHAR)
 #define IS_WIDE_WORD_CHAR(ch) (iswalnum (ch) || (ch) == L'_')
 #define IS_WIDE_NEWLINE(ch) ((ch) == WIDE_NEWLINE_CHAR)
@@ -908,7 +937,7 @@ typedef struct
   {
     unsigned char ch;
     unsigned char *name;
-    __wchar_t wch;
+    rpl__wchar_t wch;
   } opr;
 } bracket_elem_t;
 
@@ -992,18 +1021,18 @@ re_string_char_size_at (pTHX_ const re_string_t *pstr, Idx idx)
   if (pstr->mb_cur_max == 1)
     return 1;
   for (byte_idx = 1; idx + byte_idx < pstr->valid_len; ++byte_idx)
-    if (pstr->wcs[idx + byte_idx] != __WEOF)
+    if (pstr->wcs[idx + byte_idx] != rpl__WEOF)
       break;
   return byte_idx;
 }
 
-static __wint_t
+static rpl__wint_t
 internal_function __attribute__ ((pure, unused))
 re_string_wchar_at (pTHX_ const re_string_t *pstr, Idx idx)
 {
   if (pstr->mb_cur_max == 1)
-    return (__wint_t) pstr->mbs[idx];
-  return (__wint_t) pstr->wcs[idx];
+    return (rpl__wint_t) pstr->mbs[idx];
+  return (rpl__wint_t) pstr->wcs[idx];
 }
 
 #ifndef _LIBC
@@ -1011,159 +1040,176 @@ re_string_wchar_at (pTHX_ const re_string_t *pstr, Idx idx)
 size_t rpl_Perl_MB_CUR_MAX() {
   size_t rc;
 
-  rc = __MB_LEN_MAX;
-
-  /* fprintf(stderr, "rpl_Perl_MB_CUR_MAX() ==> %d\n", (int) rc); */
-
+  rc = rpl__MB_LEN_MAX;
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_MB_CUR_MAX() ==> %d\n", (int) rc);
+#endif
   return rc;
 }
 /* Initalize only the first element */
 static rpl_Perl_mbstate_t Perl_internal_state = { 0 };
 
-int rpl_Perl_isascii(pTHX_ char c) {
+int rpl_Perl_isascii(pTHX_ UV c) {
   int rc;
 
-#ifdef isASCII_LC
-  rc = isASCII_LC(c);
-#else
-  rc = isASCII(c);
+  rc = isASCII_LC_uvchr(c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_isascii(%d) ==> %d\n", (int) c, rc);
+#endif
+  return rc;
+}
+
+int rpl_Perl_isalnum(pTHX_ UV c) {
+  int rc;
+
+  rc = isALNUM_LC_uvchr(c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_isalnum(%d) ==> %d\n", (int) c, rc);
 #endif
 
-  /* fprintf(stderr, "rpl_Perl_isascii(%d) ==> %d\n", (int) c, rc); */
-
   return rc;
 }
 
-int rpl_Perl_isalnum(pTHX_ char c) {
+int rpl_Perl_iscntrl(pTHX_ UV c) {
   int rc;
 
-  rc = isALNUM_LC(c);
+  rc = isCNTRL_LC_uvchr(c);
 
-  /* fprintf(stderr, "rpl_Perl_isalnum(%d) ==> %d\n", (int) c, rc); */
-
-  return rc;
-}
-
-int rpl_Perl_iscntrl(pTHX_ char c) {
-  int rc;
-
-  rc = isCNTRL_LC(c);
-
-  /* fprintf(stderr, "rpl_Perl_iscntrl(%d) ==> %d\n", (int) c, rc); */
-
-  return rc;
-}
-
-int rpl_Perl_islower(pTHX_ char c) {
-  int rc;
-
-  rc = isLOWER_LC(c);
-
-  /* fprintf(stderr, "rpl_Perl_islower(%d) ==> %d\n", (int) c, rc); */
-
-  return rc;
-}
-
-int rpl_Perl_isspace(pTHX_ char c) {
-  int rc;
-
-  rc = isSPACE_LC(c);
-
-  /* fprintf(stderr, "rpl_Perl_isspace(%d) ==> %d\n", (int) c, rc); */
-
-  return rc;
-}
-
-int rpl_Perl_isalpha(pTHX_ char c) {
-  int rc;
-
-  rc = isALPHA_LC(c);
-
-  /* fprintf(stderr, "rpl_Perl_isalpha(%d) ==> %d\n", (int) c, rc); */
-
-  return rc;
-}
-
-int rpl_Perl_isdigit(pTHX_ char c) {
-  int rc;
-
-  rc = isDIGIT_LC(c);
-
-  /* fprintf(stderr, "rpl_Perl_isdigit(%d) ==> %d\n", (int) c, rc); */
-
-  return rc;
-}
-
-int rpl_Perl_isprint(pTHX_ char c) {
-  int rc;
-
-  rc = isPRINT_LC(c);
-
-  /* fprintf(stderr, "rpl_Perl_isprint(%d) ==> %d\n", (int) c, rc); */
-
-  return rc;
-}
-
-int rpl_Perl_isupper(pTHX_ char c) {
-  int rc;
-
-  rc = isUPPER_LC(c);
-
-  /* fupperf(stderr, "rpl_Perl_isupper(%d) ==> %d\n", (int) c, rc); */
-
-  return rc;
-}
-
-int rpl_Perl_isblank(pTHX_ char c) {
-  int rc;
-
-  rc = isBLANK_LC(c);
-
-  /* fblankf(stderr, "rpl_Perl_isblank(%d) ==> %d\n", (int) c, rc); */
-
-  return rc;
-}
-
-int rpl_Perl_isgraph(pTHX_ char c) {
-  int rc;
-
-  rc = isGRAPH_LC(c);
-
-  /* fgraphf(stderr, "rpl_Perl_isgraph(%d) ==> %d\n", (int) c, rc); */
-
-  return rc;
-}
-
-int rpl_Perl_ispunct(pTHX_ char c) {
-  int rc;
-
-  rc = isPUNCT_LC(c);
-
-  /* fpunctf(stderr, "rpl_Perl_ispunct(%d) ==> %d\n", (int) c, rc); */
-
-  return rc;
-}
-
-int rpl_Perl_isxdigit(pTHX_ char c) {
-  int rc;
-
-#ifdef isXDIGIT_LC
-  rc = isXDIGIT_LC(c);
-#else
-  rc = isXDIGIT(c);
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_iscntrl(%d) ==> %d\n", (int) c, rc);
 #endif
 
-  /* fxdigitf(stderr, "rpl_Perl_isxdigit(%d) ==> %d\n", (int) c, rc); */
+  return rc;
+}
+
+int rpl_Perl_islower(pTHX_ UV c) {
+  int rc;
+
+  rc = isLOWER_LC_uvchr(c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_islower(%d) ==> %d\n", (int) c, rc);
+#endif
+
+  return rc;
+}
+
+int rpl_Perl_isspace(pTHX_ UV c) {
+  int rc;
+
+  rc = isSPACE_LC_uvchr(c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_isspace(%d) ==> %d\n", (int) c, rc);
+#endif
+
+  return rc;
+}
+
+int rpl_Perl_isalpha(pTHX_ UV c) {
+  int rc;
+
+  rc = isALPHA_LC_uvchr(c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_isalpha(%d) ==> %d\n", (int) c, rc);
+#endif
+
+  return rc;
+}
+
+int rpl_Perl_isdigit(pTHX_ UV c) {
+  int rc;
+
+  rc = isDIGIT_LC_uvchr(c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_isdigit(%d) ==> %d\n", (int) c, rc);
+#endif
+
+  return rc;
+}
+
+int rpl_Perl_isprint(pTHX_ UV c) {
+  int rc;
+
+  rc = isPRINT_LC_uvchr(c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_isprint(%d) ==> %d\n", (int) c, rc);
+#endif
+
+  return rc;
+}
+
+int rpl_Perl_isupper(pTHX_ UV c) {
+  int rc;
+
+  rc = isUPPER_LC_uvchr(c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_isupper(%d) ==> %d\n", (int) c, rc);
+#endif
+
+  return rc;
+}
+
+int rpl_Perl_isblank(pTHX_ UV c) {
+  int rc;
+
+  rc = isBLANK_LC_uvchr(c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_isblank(%d) ==> %d\n", (int) c, rc);
+#endif
+
+  return rc;
+}
+
+int rpl_Perl_isgraph(pTHX_ UV c) {
+  int rc;
+
+  rc = isGRAPH_LC_uvchr(c);
+
+#ifndef DEBUG
+  fprintf(stderr, "rpl_Perl_isgraph(%d) ==> %d\n", (int) c, rc);
+#endif
+
+  return rc;
+}
+
+int rpl_Perl_ispunct(pTHX_ UV c) {
+  int rc;
+
+  rc = isPUNCT_LC_uvchr(c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_ispunct(%d) ==> %d\n", (int) c, rc);
+#endif
+
+  return rc;
+}
+
+int rpl_Perl_isxdigit(pTHX_ UV c) {
+  int rc;
+
+  rc = isXDIGIT_LC_uvchr(c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_isxdigit(%d) ==> %d\n", (int) c, rc);
+#endif
 
   return rc;
 }
 
 int rpl_Perl_iswlower(pTHX_ UV wc) {
-  int rc;
+  int rc = rpl_Perl_islower(aTHX_ wc);
 
-  rc = isLOWER_LC_uvchr(wc);
-
-  /* fprintf(stderr, "rpl_Perl_iswlower(%ld) ==> %d\n", (unsigned long) wc, rc); */
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_iswlower(%ld) ==> %d\n", (unsigned long) wc, rc);
+#endif
 
   return rc;
 }
@@ -1173,6 +1219,9 @@ size_t rpl_Perl_mbrtowc(pTHX_ U8 *restrict pwc, const char *restrict s, size_t n
   STRLEN ch_len;
   UV     ord;
   size_t rc;
+#ifndef NDEBUG
+  void octdump(void *mem, unsigned int len);
+#endif
 
   if (s == NULL) {
     pwc = NULL;
@@ -1180,11 +1229,15 @@ size_t rpl_Perl_mbrtowc(pTHX_ U8 *restrict pwc, const char *restrict s, size_t n
     n = 1;
   }
 
+#ifndef NDEBUG
+  octdump(s, n);
+#endif
+
   if (n == 0) {
     rc = (size_t)(-2);
   }
   else {
-    ord = utf8n_to_uvchr((U8 *) s, n, &ch_len, 0);
+    ord = utf8n_to_uvchr((U8 *) s, n, &ch_len, UTF8_CHECK_ONLY);
     if (ord > 0 || *s == 0) {
       if (pwc != NULL) {
         Copy (s, pwc, ch_len, U8);
@@ -1198,12 +1251,14 @@ size_t rpl_Perl_mbrtowc(pTHX_ U8 *restrict pwc, const char *restrict s, size_t n
     }
   }
 
-  /* fprintf(stderr, "rpl_Perl_mbrtowc ==> %d\n", (int) rc); */
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_mbrtowc ==> %d\n", (int) rc);
+#endif
 
   return rc;
 }
 
-int Perl_mbtowc(pTHX_ __wchar_t *restrict pwc, const char *restrict s, size_t n) {
+int rpl_Perl_mbtowc(pTHX_ rpl__wchar_t *restrict pwc, const char *restrict s, size_t n) {
   int rc;
 
   static rpl_Perl_mbstate_t state;
@@ -1226,33 +1281,37 @@ int Perl_mbtowc(pTHX_ __wchar_t *restrict pwc, const char *restrict s, size_t n)
     }
   }
 
-  /* fprintf(stderr, "Perl_mbtowc(pwc, s=\"%s\", n=%d) ==> %d\n", s, (int) n, (int) rc); */
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_mbtowc(pwc, s=\"%s\", n=%d) ==> %d\n", s, (int) n, (int) rc);
+#endif
 
   return rc;
 }
 
-__wint_t rpl_Perl_btowc (pTHX_ int c) {
-  __wint_t rc = __WEOF;
+rpl__wint_t rpl_Perl_btowc (pTHX_ int c) {
+  rpl__wint_t rc = rpl__WEOF;
 
   if (c != EOF) {
     char buf[1];
-    __wchar_t wc;
+    rpl__wchar_t wc;
 
     buf[0] = (U8)c;
-    if (Perl_mbtowc(aTHX_ &wc, buf, 1) >= 0) {
+    if (rpl_Perl_mbtowc(aTHX_ &wc, buf, 1) >= 0) {
       rc = wc;
     }
   }
 
-  /* fprintf(stderr, "rpl_Perl_btowc(c=%d) ==> %d\n", (int) c, (int) rc); */
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_btowc(c=%d) ==> %d\n", (int) c, (int) rc);
+#endif
 
   return rc;
 }
 
-int rpl_Perl_iswctype(pTHX_ __wint_t wi, wctype_t wt) {
+int rpl_Perl_iswctype(pTHX_ rpl__wint_t wi, wctype_t wt) {
   int rc;
 
-  if (wi == __WEOF) {
+  if (wi == rpl__WEOF) {
     rc = 0;
   } else {
     switch (wt) {
@@ -1294,7 +1353,9 @@ int rpl_Perl_iswctype(pTHX_ __wint_t wi, wctype_t wt) {
     }
   }
 
-  /* fprintf(stderr, "rpl_Perl_iswctype(wi=%ld, wt=%d) ==> %d\n", (unsigned long) wi, (int) wt, (int) rc); */
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_iswctype(wi=%ld, wt=%d) ==> %d\n", (unsigned long) wi, (int) wt, (int) rc);
+#endif
 
   return rc;
 }
@@ -1339,17 +1400,19 @@ rpl_Perl_wctype_t rpl_Perl_wctype(pTHX_ const char * property) {
     rc = 0;
   }
 
-  /* fprintf(stderr, "rpl_Perl_wctype(property=%s) ==> %d\n", property, (int) rc); */
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_wctype(property=%s) ==> %d\n", property, (int) rc);
+#endif
 
   return rc;
 }
 
-int rpl_Perl_mbsinit(__mbstate_t *ps) {
+int rpl_Perl_mbsinit(rpl__mbstate_t *ps) {
   const char *pstate = (const char *)ps;
   return (pstate == NULL) || (pstate[0] == 0);
 }
 
-int Perl_wctomb(pTHX_ char *restrict s, __wchar_t wc) {
+int Perl_wctomb(pTHX_ char *restrict s, rpl__wchar_t wc) {
   U8     d[UTF8_MAXBYTES+1];
   bool   is_utf8 = 1;
   U8    *bytes;
@@ -1373,12 +1436,14 @@ int Perl_wctomb(pTHX_ char *restrict s, __wchar_t wc) {
     Safefree(bytes);
   }
   
-  /* fprintf(stderr, "Perl_wctomb(%ld) ==> %d\n", (unsigned long) wc, (int) len); */
+#ifndef NDEBUG
+  fprintf(stderr, "Perl_wctomb(%ld) ==> %d\n", (unsigned long) wc, (int) len);
+#endif
 
   return len;
 }
 
-size_t rpl_Perl_wcrtomb (pTHX_ char *s, __wchar_t wc, __mbstate_t *ps) {
+size_t rpl_Perl_wcrtomb (pTHX_ char *s, rpl__wchar_t wc, rpl__mbstate_t *ps) {
   /* This implementation of wcrtomb on top of wctomb() supports only
      stateless encodings.  ps must be in the initial state.  */
   if (ps != NULL && !rpl_Perl_mbsinit ( ps))
@@ -1404,27 +1469,31 @@ size_t rpl_Perl_wcrtomb (pTHX_ char *s, __wchar_t wc, __mbstate_t *ps) {
     }
 }
 
-__wint_t rpl_Perl_towlower(pTHX_ __wint_t wc) {
+rpl__wint_t rpl_Perl_towlower(pTHX_ rpl__wint_t wc) {
   U8     s[UTF8_MAXBYTES_CASE+1];
-  __wint_t rc;
+  rpl__wint_t rc;
   STRLEN len;
 
   rc = toLOWER_uni((UV) wc, s, &len);
 
-  /* fprintf(stderr, "rpl_Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc); */
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc);
+#endif
 
   return rc;
 
 }
 
-__wint_t rpl_Perl_towupper(pTHX_ __wint_t wc) {
+rpl__wint_t rpl_Perl_towupper(pTHX_ rpl__wint_t wc) {
   U8     s[UTF8_MAXBYTES_CASE+1];
-  __wint_t rc;
+  rpl__wint_t rc;
   STRLEN len;
 
   rc = toUPPER_uni((UV) wc, s, &len);
 
-  /* fprintf(stderr, "rpl_Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc); */
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc);
+#endif
 
   return rc;
 
@@ -1496,4 +1565,57 @@ re_string_elem_size_at (pTHX_ const re_string_t *pstr, Idx idx)
 # define __attribute_warn_unused_result__ /* empty */
 #endif
 
+#ifndef NDEBUG
+#include <stdio.h>
+#include <ctype.h>
+ 
+#ifndef OCTDUMP_COLS
+#define OCTDUMP_COLS 8
+#endif
+ 
+void octdump(void *mem, unsigned int len)
+{
+  unsigned int i, j;
+        
+  for(i = 0; i < len + ((len % OCTDUMP_COLS) ? (OCTDUMP_COLS - len % OCTDUMP_COLS) : 0); i++)
+    {
+      /* print offset */
+      if(i % OCTDUMP_COLS == 0)
+        {
+          fprintf(stderr, "0x%06x: ", i);
+        }
+ 
+      /* print oct data */
+      if(i < len)
+        {
+          fprintf(stderr, "%03o ", 0xFF & ((char*)mem)[i]);
+        }
+      else /* end of block, just aligning for ASCII dump */
+        {
+          fprintf(stderr, "    ");
+        }
+                
+      /* print ASCII dump */
+      if(i % OCTDUMP_COLS == (OCTDUMP_COLS - 1))
+        {
+          for(j = i - (OCTDUMP_COLS - 1); j <= i; j++)
+            {
+              if(j >= len) /* end of block, not really printing */
+                {
+                  fprintf(stderr, "%c", ' ');
+                }
+              else if(isprint(((char*)mem)[j])) /* printable char */
+                {
+                  fprintf(stderr, "%c", 0xFF & ((char*)mem)[j]);        
+                }
+              else /* other char */
+                {
+                  fprintf(stderr, "%c", '.');
+                }
+            }
+          fprintf(stderr, "\n");
+        }
+    }
+}
+#endif /* NDEBUG */
 #endif /*  _REGEX_INTERNAL_H */

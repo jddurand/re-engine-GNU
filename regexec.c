@@ -3786,8 +3786,8 @@ check_node_accept_bytes (pTHX_ const re_dfa_t *dfa, Idx node_idx,
       /* match with character_class?  */
       for (i = 0; i < cset->nchar_classes; ++i)
 	{
-	  __wctype_t wt = cset->char_classes[i];
-	  if (__iswctype (wc, wt))
+	  rpl__wctype_t wt = cset->char_classes[i];
+	  if (rpl__iswctype (wc, wt))
 	    {
 	      match_len = char_len;
 	      goto check_node_accept_bytes_match;
