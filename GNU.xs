@@ -737,10 +737,11 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
       fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
     }
 
+    /* Take care: strend points to the character following the end of the physical string */
     if (isDebug) {
-      fprintf(stderr, "%s: ... re_search(bufp=%p, string=%p, length=%d, start=%d, range=%d, regs=%p)\n", logHeader, &(ri->regex), strbeg, (int) (strend - strbeg), (int) (stringarg - strbeg), (int) (strend - stringarg), &regs);
+      fprintf(stderr, "%s: ... re_search(bufp=%p, string=%p, length=%d, start=%d, range=%d, regs=%p)\n", logHeader, &(ri->regex), strbeg, (int) (strend - strbeg), (int) (stringarg - strbeg), (int) (strend - stringarg - 1), &regs);
     }
-    rc = re_search(aTHX_ &(ri->regex), strbeg, strend - strbeg, stringarg - strbeg, strend - stringarg, &regs);
+    rc = re_search(aTHX_ &(ri->regex), strbeg, strend - strbeg, stringarg - strbeg, strend - stringarg - 1, &regs);
 
     if (rc <= -2) {
       croak("%s: Internal error in re_search()", logHeader);
@@ -760,13 +761,12 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 
     /* There is always at least the index 0 for $& */
     for (i = 0; i < REGEXP_NPARENS_GET(r) + 1; i++) {
-        /* The indexes are in the string using native encoding */
         if (isDebug) {
           fprintf(stderr, "%s: ... Match No %d: [%d,%d]\n", logHeader, i, (int) regs.start[i], (int) regs.end[i]);
         }
 #if REGEXP_OFFS_CAN
-        REGEXP_OFFS_GET(r)[i].start = 0;
-        REGEXP_OFFS_GET(r)[i].end = 0;
+        REGEXP_OFFS_GET(r)[i].start = regs.start[i];
+        REGEXP_OFFS_GET(r)[i].end = regs.end[i];
 #endif
     }
 
