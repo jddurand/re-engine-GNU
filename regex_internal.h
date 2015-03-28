@@ -1051,7 +1051,12 @@ static rpl_Perl_mbstate_t Perl_internal_state = { 0 };
 
 int rpl_Perl_isascii(pTHX_ UV c) {
   int rc;
-
+#ifndef isASCII_LC_uvchr
+#define isASCII_LC_uvchr isASCII_LC
+#ifndef isASCII_LC
+#define isASCII_LC isASCII
+#endif
+#endif
   rc = isASCII_LC_uvchr(c);
 
 #ifndef NDEBUG
@@ -1062,7 +1067,12 @@ int rpl_Perl_isascii(pTHX_ UV c) {
 
 int rpl_Perl_isalnum(pTHX_ UV c) {
   int rc;
-
+#ifndef isALNUM_LC_uvchr
+#define isALNUM_LC_uvchr isALNUM_LC
+#ifndef isALNUM_LC
+#define isALNUM_LC isALNUM
+#endif
+#endif
   rc = isALNUM_LC_uvchr(c);
 
 #ifndef NDEBUG
@@ -1074,7 +1084,12 @@ int rpl_Perl_isalnum(pTHX_ UV c) {
 
 int rpl_Perl_iscntrl(pTHX_ UV c) {
   int rc;
-
+#ifndef isCNTRL_LC_uvchr
+#define isCNTRL_LC_uvchr isCNTRL_LC
+#ifndef isCNTRL_LC
+#define isCNTRL_LC isCNTRL
+#endif
+#endif
   rc = isCNTRL_LC_uvchr(c);
 
 #ifndef NDEBUG
@@ -1086,7 +1101,12 @@ int rpl_Perl_iscntrl(pTHX_ UV c) {
 
 int rpl_Perl_islower(pTHX_ UV c) {
   int rc;
-
+#ifndef isLOWER_LC_uvchr
+#define isLOWER_LC_uvchr isLOWER_LC
+#ifndef isLOWER_LC
+#define isLOWER_LC isLOWER
+#endif
+#endif
   rc = isLOWER_LC_uvchr(c);
 
 #ifndef NDEBUG
@@ -1098,7 +1118,12 @@ int rpl_Perl_islower(pTHX_ UV c) {
 
 int rpl_Perl_isspace(pTHX_ UV c) {
   int rc;
-
+#ifndef isSPACE_LC_uvchr
+#define isSPACE_LC_uvchr isSPACE_LC
+#ifndef isSPACE_LC
+#define isSPACE_LC isSPACE
+#endif
+#endif
   rc = isSPACE_LC_uvchr(c);
 
 #ifndef NDEBUG
@@ -1110,7 +1135,12 @@ int rpl_Perl_isspace(pTHX_ UV c) {
 
 int rpl_Perl_isalpha(pTHX_ UV c) {
   int rc;
-
+#ifndef isALPHA_LC_uvchr
+#define isALPHA_LC_uvchr isALPHA_LC
+#ifndef isALPHA_LC
+#define isALPHA_LC isALPHA
+#endif
+#endif
   rc = isALPHA_LC_uvchr(c);
 
 #ifndef NDEBUG
@@ -1122,7 +1152,12 @@ int rpl_Perl_isalpha(pTHX_ UV c) {
 
 int rpl_Perl_isdigit(pTHX_ UV c) {
   int rc;
-
+#ifndef isDIGIT_LC_uvchr
+#define isDIGIT_LC_uvchr isDIGIT_LC
+#ifndef isDIGIT_LC
+#define isDIGIT_LC isDIGIT
+#endif
+#endif
   rc = isDIGIT_LC_uvchr(c);
 
 #ifndef NDEBUG
@@ -1134,7 +1169,12 @@ int rpl_Perl_isdigit(pTHX_ UV c) {
 
 int rpl_Perl_isprint(pTHX_ UV c) {
   int rc;
-
+#ifndef isPRINT_LC_uvchr
+#define isPRINT_LC_uvchr isPRINT_LC
+#ifndef isPRINT_LC
+#define isPRINT_LC isPRINT
+#endif
+#endif
   rc = isPRINT_LC_uvchr(c);
 
 #ifndef NDEBUG
@@ -1146,7 +1186,12 @@ int rpl_Perl_isprint(pTHX_ UV c) {
 
 int rpl_Perl_isupper(pTHX_ UV c) {
   int rc;
-
+#ifndef isUPPER_LC_uvchr
+#define isUPPER_LC_uvchr isUPPER_LC
+#ifndef isUPPER_LC
+#define isUPPER_LC isUPPER
+#endif
+#endif
   rc = isUPPER_LC_uvchr(c);
 
 #ifndef NDEBUG
@@ -1158,7 +1203,12 @@ int rpl_Perl_isupper(pTHX_ UV c) {
 
 int rpl_Perl_isblank(pTHX_ UV c) {
   int rc;
-
+#ifndef isBLANK_LC_uvchr
+#define isBLANK_LC_uvchr isBLANK_LC
+#ifndef isBLANK_LC
+#define isBLANK_LC isBLANK
+#endif
+#endif
   rc = isBLANK_LC_uvchr(c);
 
 #ifndef NDEBUG
@@ -1170,7 +1220,12 @@ int rpl_Perl_isblank(pTHX_ UV c) {
 
 int rpl_Perl_isgraph(pTHX_ UV c) {
   int rc;
-
+#ifndef isGRAPH_LC_uvchr
+#define isGRAPH_LC_uvchr isGRAPH_LC
+#ifndef isGRAPH_LC
+#define isGRAPH_LC isGRAPH
+#endif
+#endif
   rc = isGRAPH_LC_uvchr(c);
 
 #ifndef DEBUG
@@ -1182,7 +1237,12 @@ int rpl_Perl_isgraph(pTHX_ UV c) {
 
 int rpl_Perl_ispunct(pTHX_ UV c) {
   int rc;
-
+#ifndef isPUNCT_LC_uvchr
+#define isPUNCT_LC_uvchr isPUNCT_LC
+#ifndef isPUNCT_LC
+#define isPUNCT_LC isPUNCT
+#endif
+#endif
   rc = isPUNCT_LC_uvchr(c);
 
 #ifndef NDEBUG
@@ -1194,7 +1254,12 @@ int rpl_Perl_ispunct(pTHX_ UV c) {
 
 int rpl_Perl_isxdigit(pTHX_ UV c) {
   int rc;
-
+#ifndef isXDIGIT_LC_uvchr
+#define isXDIGIT_LC_uvchr isXDIGIT_LC
+#ifndef isXDIGIT_LC
+#define isXDIGIT_LC isXDIGIT
+#endif
+#endif
   rc = isXDIGIT_LC_uvchr(c);
 
 #ifndef NDEBUG
