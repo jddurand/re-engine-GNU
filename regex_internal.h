@@ -1603,12 +1603,13 @@ re_string_elem_size_at (pTHX_ const re_string_t *pstr, SV *sv, Idx idx)
 #endif
         return 1;
       } else {
-        const unsigned char *p = pstr->mbs + idx;
-        I32 offset = (I32) p;
+        I32 offset = idx;
         I32 len = 1;
+
+        sv_pos_b2u(sv, &offset);
         sv_pos_u2b(sv, &offset, &len);
 #ifndef NDEBUG
-        fprintf(stderr, "re_string_elem_size_at(.., Idx=%d) => 1\n", (int) len);
+        fprintf(stderr, "re_string_elem_size_at(.., Idx=%d) => %d\n", (int) idx, (int) len);
 #endif
         return (int) len;
       }
