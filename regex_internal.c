@@ -193,8 +193,8 @@ build_wcs_buffer (pTHX_ re_string_t *pstr)
   Idx byte_idx, end_idx, remain_len;
   size_t mbclen;
 #if (defined(_LIBC) || defined(_PERL_I18N))
-  unsigned char buf[MB_LEN_MAX];
-  assert (MB_LEN_MAX >= pstr->mb_cur_max);
+  unsigned char buf[rpl__MB_LEN_MAX];
+  assert (rpl__MB_LEN_MAX >= pstr->mb_cur_max);
 #else
   unsigned char buf[64];
 #endif
@@ -264,8 +264,8 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
   Idx src_idx, byte_idx, end_idx, remain_len;
   size_t mbclen;
 #ifdef _LIBC
-  char buf[MB_LEN_MAX];
-  assert (MB_LEN_MAX >= pstr->mb_cur_max);
+  char buf[rpl__MB_LEN_MAX];
+  assert (rpl__MB_LEN_MAX >= pstr->mb_cur_max);
 #else
   char buf[64];
 #endif
