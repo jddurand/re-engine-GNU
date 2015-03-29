@@ -275,7 +275,7 @@ typedef unsigned char bool;
 #   define rpl__towlower(wc) rpl_Perl_towlower(aTHX_ wc)
 #   define rpl__towupper(wc) rpl_Perl_towupper(aTHX_ wc)
 #   define rpl__mbstate_t rpl_Perl_mbstate_t 
-#   define rpl__MB_CUR_MAX rpl_Perl_MB_CUR_MAX()
+#   define rpl__MB_CUR_MAX rpl_Perl_MB_CUR_MAX(aTHX)
 #   define rpl__MB_LEN_MAX UTF8_MAXBYTES
 #   define rpl__WEOF ((UV)-1)
 typedef enum {
@@ -1037,7 +1037,7 @@ re_string_wchar_at (pTHX_ const re_string_t *pstr, Idx idx)
 
 #ifndef _LIBC
 #ifdef _PERL_I18N
-size_t rpl_Perl_MB_CUR_MAX() {
+size_t rpl_Perl_MB_CUR_MAX(pTHX) {
   size_t rc;
 
   rc = rpl__MB_LEN_MAX;
@@ -1285,7 +1285,7 @@ size_t rpl_Perl_mbrtowc(pTHX_ U8 *restrict pwc, const char *restrict s, size_t n
   UV     ord;
   size_t rc;
 #ifndef NDEBUG
-  void octdump(void *mem, unsigned int len);
+  void octdump(pTHX_ void *mem, unsigned int len);
 #endif
 
   if (s == NULL) {
@@ -1295,7 +1295,7 @@ size_t rpl_Perl_mbrtowc(pTHX_ U8 *restrict pwc, const char *restrict s, size_t n
   }
 
 #ifndef NDEBUG
-  octdump(s, n);
+  octdump(aTHX_ s, n);
 #endif
 
   if (n == 0) {
@@ -1638,7 +1638,7 @@ re_string_elem_size_at (pTHX_ const re_string_t *pstr, Idx idx)
 #define OCTDUMP_COLS 8
 #endif
  
-void octdump(void *mem, unsigned int len)
+void octdump(pTHX_ void *mem, unsigned int len)
 {
   unsigned int i, j;
         
