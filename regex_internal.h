@@ -1590,23 +1590,6 @@ re_string_elem_size_at (pTHX_ const re_string_t *pstr, Idx idx)
       return p - pstr->mbs - idx;
     }
   else
-#  else
-#    ifdef _PERL_I18N
-    {
-      STRLEN len = pstr->len - idx;
-      U8* utf8 = bytes_to_utf8((U8 *)(pstr->mbs + idx), &len);
-      SV *sv_tmp = newSVpvn_utf8(utf8, len, 1);
-      I32 startOffset = 0;
-      I32 length = 1;
-
-      sv_pos_u2b(sv_tmp, &startOffset, &length);
-
-      Safefree(utf8);
-      SvREFCNT_dec(sv_tmp);
-
-      return length;
-    }
-#    endif
 #  endif /* _LIBC */
     return 1;
 }
