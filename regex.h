@@ -560,7 +560,7 @@ extern int re_compile_fastmap (pTHX_ struct re_pattern_buffer *__buffer);
    match, or -2 for an internal error.  Also return register
    information in REGS (if REGS and BUFFER->no_sub are nonzero).  */
 extern regoff_t re_search (pTHX_ struct re_pattern_buffer *__buffer,
-                           const char *__string, __re_idx_t __length,
+                           const char *__string, __re_idx_t __length, SV *sv,
 			   __re_idx_t __start, regoff_t __range,
 			   struct re_registers *__regs);
 
@@ -568,8 +568,8 @@ extern regoff_t re_search (pTHX_ struct re_pattern_buffer *__buffer,
 /* Like 're_search', but search in the concatenation of STRING1 and
    STRING2.  Also, stop searching at index START + STOP.  */
 extern regoff_t re_search_2 (pTHX_ struct re_pattern_buffer *__buffer,
-                             const char *__string1, __re_idx_t __length1,
-                             const char *__string2, __re_idx_t __length2,
+                             const char *__string1, __re_idx_t __length1, SV *sv1,
+                             const char *__string2, __re_idx_t __length2, SV *sv2,
 			     __re_idx_t __start, regoff_t __range,
 			     struct re_registers *__regs,
 			     __re_idx_t __stop);
@@ -578,14 +578,14 @@ extern regoff_t re_search_2 (pTHX_ struct re_pattern_buffer *__buffer,
 /* Like 're_search', but return how many characters in STRING the regexp
    in BUFFER matched, starting at position START.  */
 extern regoff_t re_match (pTHX_ struct re_pattern_buffer *__buffer,
-                          const char *__string, __re_idx_t __length,
+                          const char *__string, __re_idx_t __length, SV *sv,
 			  __re_idx_t __start, struct re_registers *__regs);
 
 
 /* Relates to 're_match' as 're_search_2' relates to 're_search'.  */
 extern regoff_t re_match_2 (pTHX_ struct re_pattern_buffer *__buffer,
-                            const char *__string1, __re_idx_t __length1,
-                            const char *__string2, __re_idx_t __length2,
+                            const char *__string1, __re_idx_t __length1, SV *sv1,
+                            const char *__string2, __re_idx_t __length2, SV *sv2,
 			    __re_idx_t __start, struct re_registers *__regs,
 			    __re_idx_t __stop);
 
@@ -650,7 +650,7 @@ extern int regcomp (pTHX_ regex_t *_Restrict_ __preg,
 		    int __cflags, SV *sv_lock, bool is_utf8);
 
 extern int regexec (pTHX_ const regex_t *_Restrict_ __preg,
-		    const char *_Restrict_ __string, size_t __nmatch,
+		    const char *_Restrict_ __string, SV *sv, size_t __nmatch,
 		    regmatch_t __pmatch[_Restrict_arr_],
 		    int __eflags);
 

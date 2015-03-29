@@ -838,6 +838,9 @@ typedef struct
   Idx nsub_tops;
   Idx asub_tops;
   re_sub_match_top_t **sub_tops;
+#ifdef _PERL_I18N
+  SV *sv;
+#endif
 } re_match_context_t;
 
 typedef struct
@@ -1285,7 +1288,7 @@ size_t rpl_Perl_mbrtowc(pTHX_ U8 *restrict pwc, const char *restrict s, size_t n
   UV     ord;
   size_t rc;
 #ifndef NDEBUG
-  void octdump(pTHX_ void *mem, unsigned int len);
+  void octdump(pTHX_ const void *mem, unsigned int len);
 #endif
 
   if (s == NULL) {
@@ -1570,7 +1573,7 @@ rpl__wint_t rpl_Perl_towupper(pTHX_ rpl__wint_t wc) {
 # ifndef NOT_IN_libc
 static int
 internal_function __attribute__ ((pure, unused))
-re_string_elem_size_at (pTHX_ const re_string_t *pstr, Idx idx)
+re_string_elem_size_at (pTHX_ const re_string_t *pstr, SV *sv, Idx idx)
 {
 #  ifdef _LIBC
   const unsigned char *p, *extra;
@@ -1590,8 +1593,31 @@ re_string_elem_size_at (pTHX_ const re_string_t *pstr, Idx idx)
       return p - pstr->mbs - idx;
     }
   else
-#  endif /* _LIBC */
+#  else
+#    ifdef _PERL_I18N
+    {
+      if (! DO_UTF8(sv)) {
+        /* Perl def perl's non UTF-8 is one byte */
+#ifndef NDEBUG
+        fprintf(stderr, "re_string_elem_size_at(.., Idx=%d) => 1\n", (int) idx);
+#endif
+        return 1;
+      } else {
+        const unsigned char *p = pstr->mbs + idx;
+        I32 offset = (I32) p;
+        I32 len = 1;
+        sv_pos_u2b(sv, &offset, &len);
+#ifndef NDEBUG
+        fprintf(stderr, "re_string_elem_size_at(.., Idx=%d) => 1\n", (int) len);
+#endif
+        return (int) len;
+      }
+      
+    }
+#    else
     return 1;
+#    endif  
+#  endif /* _LIBC */
 }
 # endif
 #endif /* RE_ENABLE_I18N */
@@ -1621,7 +1647,7 @@ re_string_elem_size_at (pTHX_ const re_string_t *pstr, Idx idx)
 #define OCTDUMP_COLS 8
 #endif
  
-void octdump(pTHX_ void *mem, unsigned int len)
+void octdump(pTHX_ const void *mem, unsigned int len)
 {
   unsigned int i, j;
         

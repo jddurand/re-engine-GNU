@@ -36,18 +36,18 @@ static void sift_ctx_init (pTHX_ re_sift_context_t *sctx, re_dfastate_t **sifted
 			   Idx last_str_idx)
      internal_function;
 static reg_errcode_t re_search_internal (pTHX_ const regex_t *preg,
-					 const char *string, Idx length,
+					 const char *string, Idx length, SV *sv,
 					 Idx start, Idx last_start, Idx stop,
 					 size_t nmatch, regmatch_t pmatch[],
 					 int eflags) internal_function;
 static regoff_t re_search_2_stub (pTHX_ struct re_pattern_buffer *bufp,
-				  const char *string1, Idx length1,
-				  const char *string2, Idx length2,
+				  const char *string1, Idx length1, SV *sv1,
+				  const char *string2, Idx length2, SV *sv2,
 				  Idx start, regoff_t range,
 				  struct re_registers *regs,
 				  Idx stop, bool ret_len) internal_function;
 static regoff_t re_search_stub (pTHX_ struct re_pattern_buffer *bufp,
-				const char *string, Idx length, Idx start,
+				const char *string, Idx length, SV *sv, Idx start,
 				regoff_t range, Idx stop,
 				struct re_registers *regs,
 				bool ret_len) internal_function;
@@ -184,7 +184,7 @@ static bool build_trtable (pTHX_ const re_dfa_t *dfa,
 			   re_dfastate_t *state) internal_function;
 #ifdef RE_ENABLE_I18N
 static int check_node_accept_bytes (pTHX_ const re_dfa_t *dfa, Idx node_idx,
-				    const re_string_t *input, Idx idx)
+				    const re_string_t *input, SV *sv, Idx idx)
      internal_function;
 # ifdef _LIBC
 static unsigned int find_collation_sequence_value (pTHX_ const unsigned char *mbs,
@@ -219,7 +219,7 @@ static reg_errcode_t extend_buffers (pTHX_ re_match_context_t *mctx, Idx min_len
    We return 0 if we find a match and REG_NOMATCH if not.  */
 
 int
-regexec (pTHX_ const regex_t *_Restrict_ preg, const char *_Restrict_ string, size_t nmatch, regmatch_t pmatch[_Restrict_arr_], int eflags)
+regexec (pTHX_ const regex_t *_Restrict_ preg, const char *_Restrict_ string, SV *sv, size_t nmatch, regmatch_t pmatch[_Restrict_arr_], int eflags)
 {
   reg_errcode_t err;
   Idx start, length;
@@ -241,10 +241,10 @@ regexec (pTHX_ const regex_t *_Restrict_ preg, const char *_Restrict_ string, si
 
   lock_lock (dfa->lock);
   if (preg->no_sub)
-    err = re_search_internal (aTHX_ preg, string, length, start, length,
+    err = re_search_internal (aTHX_ preg, string, length, sv, start, length,
 			      length, 0, NULL, eflags);
   else
-    err = re_search_internal (aTHX_ preg, string, length, start, length,
+    err = re_search_internal (aTHX_ preg, string, length, sv, start, length,
 			      length, nmatch, pmatch, eflags);
   lock_unlock (dfa->lock);
   return err != REG_NOERROR;
@@ -300,18 +300,18 @@ compat_symbol (libc, __compat_regexec, regexec, GLIBC_2_0);
    match was found and -2 indicates an internal error.  */
 
 regoff_t
-re_match (pTHX_ struct re_pattern_buffer *bufp, const char *string, Idx length, Idx start, struct re_registers *regs)
+re_match (pTHX_ struct re_pattern_buffer *bufp, const char *string, Idx length, SV *sv, Idx start, struct re_registers *regs)
 {
-  return re_search_stub (aTHX_ bufp, string, length, start, 0, length, regs, true);
+  return re_search_stub (aTHX_ bufp, string, length, sv, start, 0, length, regs, true);
 }
 #ifdef _LIBC
 weak_alias (__re_match, re_match)
 #endif
 
 regoff_t
-re_search (pTHX_ struct re_pattern_buffer *bufp, const char *string, Idx length, Idx start, regoff_t range, struct re_registers *regs)
+re_search (pTHX_ struct re_pattern_buffer *bufp, const char *string, Idx length, SV *sv, Idx start, regoff_t range, struct re_registers *regs)
 {
-  return re_search_stub (aTHX_ bufp, string, length, start, range, length, regs,
+  return re_search_stub (aTHX_ bufp, string, length, sv, start, range, length, regs,
 			 false);
 }
 #ifdef _LIBC
@@ -319,9 +319,9 @@ weak_alias (__re_search, re_search)
 #endif
 
 regoff_t
-re_match_2 (pTHX_ struct re_pattern_buffer *bufp, const char *string1, Idx length1, const char *string2, Idx length2, Idx start, struct re_registers *regs, Idx stop)
+re_match_2 (pTHX_ struct re_pattern_buffer *bufp, const char *string1, Idx length1, SV *sv1, const char *string2, Idx length2, SV *sv2, Idx start, struct re_registers *regs, Idx stop)
 {
-  return re_search_2_stub (aTHX_ bufp, string1, length1, string2, length2,
+  return re_search_2_stub (aTHX_ bufp, string1, length1, sv1, string2, length2, sv2,
 			   start, 0, regs, stop, true);
 }
 #ifdef _LIBC
@@ -329,9 +329,9 @@ weak_alias (__re_match_2, re_match_2)
 #endif
 
 regoff_t
-re_search_2 (pTHX_ struct re_pattern_buffer *bufp, const char *string1, Idx length1, const char *string2, Idx length2, Idx start, regoff_t range, struct re_registers *regs, Idx stop)
+re_search_2 (pTHX_ struct re_pattern_buffer *bufp, const char *string1, Idx length1, SV *sv1, const char *string2, Idx length2, SV *sv2, Idx start, regoff_t range, struct re_registers *regs, Idx stop)
 {
-  return re_search_2_stub (aTHX_ bufp, string1, length1, string2, length2,
+  return re_search_2_stub (aTHX_ bufp, string1, length1, sv1, string2, length2, sv2,
 			   start, range, regs, stop, false);
 }
 #ifdef _LIBC
@@ -340,8 +340,8 @@ weak_alias (__re_search_2, re_search_2)
 
 static regoff_t
 re_search_2_stub (pTHX_ struct re_pattern_buffer *bufp,
-		  const char *string1, Idx length1,
-		  const char *string2, Idx length2,
+		  const char *string1, Idx length1, SV *sv1,
+		  const char *string2, Idx length2, SV *sv2,
 		  Idx start, regoff_t range, struct re_registers *regs,
 		  Idx stop, bool ret_len)
 {
@@ -350,7 +350,9 @@ re_search_2_stub (pTHX_ struct re_pattern_buffer *bufp,
   Idx len = length1 + length2;
   char *s = NULL;
 
-  if (BE (length1 < 0 || length2 < 0 || stop < 0 || len < length1, 0))
+  /* Although this is an extension from us, never used, we say that utf8 behaviour of the two strings
+     must be the same */
+  if (BE (length1 < 0 || length2 < 0 || stop < 0 || len < length1 || DO_UTF8(sv1) != DO_UTF8(sv2), 0))
     return -2;
 
   /* Concatenate the strings.  */
@@ -371,8 +373,13 @@ re_search_2_stub (pTHX_ struct re_pattern_buffer *bufp,
   else
     str = string1;
 
-  rval = re_search_stub (aTHX_ bufp, str, len, start, range, stop, regs,
-			 ret_len);
+  {
+    SV *sv_tmp = newSVsv(sv1);
+    sv_catsv_mg(sv_tmp, sv2);
+    rval = re_search_stub (aTHX_ bufp, str, len, sv_tmp, start, range, stop, regs,
+                           ret_len);
+    SvREFCNT_dec(sv_tmp);
+  }
   re_free (s);
   return rval;
 }
@@ -384,7 +391,7 @@ re_search_2_stub (pTHX_ struct re_pattern_buffer *bufp,
 
 static regoff_t
 re_search_stub (pTHX_ struct re_pattern_buffer *bufp,
-		const char *string, Idx length,
+		const char *string, Idx length, SV *sv,
 		Idx start, regoff_t range, Idx stop, struct re_registers *regs,
 		bool ret_len)
 {
@@ -434,7 +441,7 @@ re_search_stub (pTHX_ struct re_pattern_buffer *bufp,
     nregs = bufp->re_nsub + 1;
 
   re_malloc (pmatch, regmatch_t, nregs);
-  result = re_search_internal (aTHX_ bufp, string, length, start, last_start, stop,
+  result = re_search_internal (aTHX_ bufp, string, length, sv, start, last_start, stop,
 			       nregs, pmatch, eflags);
 
   rval = 0;
@@ -578,7 +585,7 @@ re_exec (s)
 static reg_errcode_t
 __attribute_warn_unused_result__
 re_search_internal (pTHX_ const regex_t *preg,
-		    const char *string, Idx length,
+		    const char *string, Idx length, SV *sv,
 		    Idx start, Idx last_start, Idx stop,
 		    size_t nmatch, regmatch_t pmatch[],
 		    int eflags)
@@ -607,6 +614,9 @@ re_search_internal (pTHX_ const regex_t *preg,
 #if !(defined _LIBC || (defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L))
   memset (&mctx, '\0', sizeof (re_match_context_t));
   mctx.dfa = dfa;
+#endif
+#ifdef _PERL_I18N
+  mctx.sv = sv;
 #endif
 
   extra_nmatch = (nmatch > preg->re_nsub) ? nmatch - (preg->re_nsub + 1) : 0;
@@ -1261,7 +1271,7 @@ proceed_next_node (pTHX_ const re_match_context_t *mctx, Idx nregs, regmatch_t *
 
 #ifdef RE_ENABLE_I18N
       if (dfa->nodes[node].accept_mb)
-	naccepted = check_node_accept_bytes (aTHX_ dfa, node, &mctx->input, *pidx);
+	naccepted = check_node_accept_bytes (aTHX_ dfa, node, &mctx->input, mctx->sv, *pidx);
       else
 #endif /* RE_ENABLE_I18N */
       if (type == OP_BACK_REF)
@@ -2183,7 +2193,7 @@ sift_states_iter_mb (pTHX_ const re_match_context_t *mctx, re_sift_context_t *sc
   const re_dfa_t *const dfa = mctx->dfa;
   int naccepted;
   /* Check the node can accept "multi byte".  */
-  naccepted = check_node_accept_bytes (aTHX_ dfa, node_idx, &mctx->input, str_idx);
+  naccepted = check_node_accept_bytes (aTHX_ dfa, node_idx, &mctx->input, mctx->sv, str_idx);
   if (naccepted > 0 && str_idx + naccepted <= max_str_idx &&
       !STATE_NODE_CONTAINS (sctx->sifted_states[str_idx + naccepted],
 			    dfa->nexts[node_idx]))
@@ -2477,7 +2487,7 @@ transit_state_mb (pTHX_ re_match_context_t *mctx, re_dfastate_t *pstate)
 	}
 
       /* How many bytes the node can accept?  */
-      naccepted = check_node_accept_bytes (aTHX_ dfa, cur_node_idx, &mctx->input,
+      naccepted = check_node_accept_bytes (aTHX_ dfa, cur_node_idx, &mctx->input, mctx->sv,
 					   re_string_cur_idx (&mctx->input));
       if (naccepted == 0)
 	continue;
@@ -3015,7 +3025,7 @@ check_arrival_add_next_nodes (pTHX_ re_match_context_t *mctx, Idx str_idx,
       /* If the node may accept "multi byte".  */
       if (dfa->nodes[cur_node].accept_mb)
 	{
-	  naccepted = check_node_accept_bytes (aTHX_ dfa, cur_node, &mctx->input,
+	  naccepted = check_node_accept_bytes (aTHX_ dfa, cur_node, &mctx->input, mctx->sv,
 					       str_idx);
 	  if (naccepted > 1)
 	    {
@@ -3686,7 +3696,7 @@ group_nodes_into_DFAstates (pTHX_ const re_dfa_t *dfa, const re_dfastate_t *stat
 static int
 internal_function
 check_node_accept_bytes (pTHX_ const re_dfa_t *dfa, Idx node_idx,
-			 const re_string_t *input, Idx str_idx)
+			 const re_string_t *input, SV *sv, Idx str_idx)
 {
   const re_token_t *node = dfa->nodes + node_idx;
   int char_len, elem_len;
@@ -3759,7 +3769,7 @@ check_node_accept_bytes (pTHX_ const re_dfa_t *dfa, Idx node_idx,
       return char_len;
     }
 
-  elem_len = re_string_elem_size_at (aTHX_ input, str_idx);
+  elem_len = re_string_elem_size_at (aTHX_ input, sv, str_idx);
   if ((elem_len <= 1 && char_len <= 1) || char_len == 0)
     return 0;
 
