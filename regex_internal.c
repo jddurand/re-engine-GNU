@@ -189,15 +189,15 @@ static void
 internal_function
 build_wcs_buffer (pTHX_ re_string_t *pstr)
 {
+  rpl__mbstate_t prev_st;
+  Idx byte_idx, end_idx, remain_len;
+  size_t mbclen;
 #if (defined(_LIBC) || defined(_PERL_I18N))
   unsigned char buf[MB_LEN_MAX];
   assert (MB_LEN_MAX >= pstr->mb_cur_max);
 #else
   unsigned char buf[64];
 #endif
-  rpl__mbstate_t prev_st;
-  Idx byte_idx, end_idx, remain_len;
-  size_t mbclen;
 
   /* Build the buffers from pstr->valid_len to either pstr->len or
      pstr->bufs_len.  */

@@ -1373,7 +1373,7 @@ rpl__wint_t rpl_Perl_btowc (pTHX_ int c) {
   return rc;
 }
 
-int rpl_Perl_iswctype(pTHX_ rpl__wint_t wi, wctype_t wt) {
+int rpl_Perl_iswctype(pTHX_ rpl__wint_t wi, rpl__wctype_t wt) {
   int rc;
 
   if (wi == rpl__WEOF) {
