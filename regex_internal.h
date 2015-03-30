@@ -243,6 +243,8 @@ typedef unsigned char bool;
 #   define rpl__wcrtomb(s, wc, ps) wcrtomb(s, wc, ps)
 #   define rpl__towlower(wc) towlower(wc)
 #   define rpl__towupper(wc) towupper(wc)
+#   define rpl__tolower(wc) tolower(wc)
+#   define rpl__toupper(wc) toupper(wc)
 #   define rpl__mbstate_t mbstate_t 
 #   define rpl__MB_CUR_MAX MB_CUR_MAX
 #   define rpl__MB_LEN_MAX MB_LEN_MAX
@@ -274,6 +276,8 @@ typedef unsigned char bool;
 #   define rpl__wcrtomb(s, wc, ps) rpl_Perl_wcrtomb(aTHX_ s, wc, ps)
 #   define rpl__towlower(wc) rpl_Perl_towlower(aTHX_ wc)
 #   define rpl__towupper(wc) rpl_Perl_towupper(aTHX_ wc)
+#   define rpl__tolower(wc) rpl_Perl_tolower(aTHX_ wc)
+#   define rpl__toupper(wc) rpl_Perl_toupper(aTHX_ wc)
 #   define rpl__mbstate_t rpl_Perl_mbstate_t 
 #   define rpl__MB_CUR_MAX rpl_Perl_MB_CUR_MAX(aTHX)
 #   define rpl__MB_LEN_MAX UTF8_MAXBYTES
@@ -1561,6 +1565,32 @@ rpl__wint_t rpl_Perl_towupper(pTHX_ rpl__wint_t wc) {
 
 #ifndef NDEBUG
   fprintf(stderr, "rpl_Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc);
+#endif
+
+  return rc;
+
+}
+
+rpl__wint_t rpl_Perl_tolower(pTHX_ rpl__wint_t c) {
+  rpl__wint_t rc;
+
+  rc = toLOWER((U8) c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_tolower(%d) ==> %d\n", (int) c, (int) rc);
+#endif
+
+  return rc;
+
+}
+
+rpl__wint_t rpl_Perl_toupper(pTHX_ rpl__wint_t c) {
+  rpl__wint_t rc;
+
+  rc = toUPPER((U8) c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_toupper(%d) ==> %d\n", (int) c, (int) rc);
 #endif
 
   return rc;

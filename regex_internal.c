@@ -263,7 +263,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
   rpl__mbstate_t prev_st;
   Idx src_idx, byte_idx, end_idx, remain_len;
   size_t mbclen;
-#ifdef _LIBC
+#if (defined(_LIBC) || defined(_PERL_I18N))
   char buf[rpl__MB_LEN_MAX];
   assert (rpl__MB_LEN_MAX >= pstr->mb_cur_max);
 #else
@@ -286,7 +286,7 @@ build_wcs_upper_buffer (pTHX_ re_string_t *pstr)
 	    {
 	      /* In case of a singlebyte character.  */
 	      pstr->mbs[byte_idx]
-		= toupper (pstr->raw_mbs[pstr->raw_mbs_idx + byte_idx]);
+		= rpl__toupper (pstr->raw_mbs[pstr->raw_mbs_idx + byte_idx]);
 	      /* The next step uses the assumption that rpl__wchar_t is encoded
 		 ASCII-safe: all ASCII values can be converted like this.  */
 	      pstr->wcs[byte_idx] = (rpl__wchar_t) pstr->mbs[byte_idx];
@@ -525,7 +525,7 @@ build_upper_buffer (pTHX_ re_string_t *pstr)
       if (BE (pstr->trans != NULL, 0))
 	ch = pstr->trans[ch];
       if (rpl__islower (ch))
-	pstr->mbs[char_idx] = toupper (ch);
+	pstr->mbs[char_idx] = rpl__toupper (ch);
       else
 	pstr->mbs[char_idx] = ch;
     }
@@ -701,7 +701,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 		  if (end < pstr->raw_mbs)
 		    end = pstr->raw_mbs;
 		  p = raw + offset - 1;
-#ifdef _LIBC
+#if (defined(_LIBC) || defined(_PERL_I18N))
 		  /* We know the rpl__wchar_t encoding is UCS4, so for the simple
 		     case, ASCII characters, skip the conversion step.  */
 		  if (rpl__isascii (*p) && BE (pstr->trans == NULL, 1))
