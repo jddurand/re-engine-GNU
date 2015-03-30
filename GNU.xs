@@ -528,18 +528,18 @@ GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
       REGEXP_SUBOFFSET_SET(r, 0);
       REGEXP_SUBCOFFSET_SET(r, 0);
       if (isDebug) {
-        fprintf(stderr, "%s: ... "
+        fprintf(stderr, "%s: ..."
 #if REGEXP_SUBBEG_CAN
-                "subbeg=%p, "
+                " subbeg=%p "
 #endif
 #if REGEXP_SUBLEN_CAN
-                "sublen=%d, "
+                " sublen=%d "
 #endif
 #if REGEXP_SUBOFFSET_CAN
-                "suboffset=%d, "
+                " suboffset=%d "
 #endif
 #if REGEXP_SUBCOFFSET_CAN
-                "subcoffset=%d"
+                " subcoffset=%d"
 #endif
                 "\n", logHeader
 #if REGEXP_SUBBEG_CAN
@@ -635,18 +635,18 @@ GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
         REGEXP_SUBLEN_SET(r, sublen);
         RX_MATCH_COPIED_on(rx);
         if (isDebug) {
-          fprintf(stderr, "%s: ... "
+          fprintf(stderr, "%s: ..."
 #if REGEXP_SUBBEG_CAN
-                  "subbeg=%p, "
+                  " subbeg=%p "
 #endif
 #if REGEXP_SUBLEN_CAN
-                  "sublen=%d, "
+                  " sublen=%d "
 #endif
 #if REGEXP_SUBOFFSET_CAN
-                  "suboffset=%d, "
+                  " suboffset=%d "
 #endif
 #if REGEXP_SUBCOFFSET_CAN
-                  "subcoffset=%d"
+                  " subcoffset=%d"
 #endif
                   "\n", logHeader
 #if REGEXP_SUBBEG_CAN

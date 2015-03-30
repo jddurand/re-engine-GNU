@@ -378,7 +378,7 @@ re_compile_fastmap_iter (pTHX_ regex_t *bufp, const re_dfastate_t *init_state,
 		      re_set_fastmap (aTHX_ fastmap, icase, i);
 		}
 # else
-
+              /* For _PERL_I18N we do not use the fastmap -; */
 # endif /* _LIBC */
 
 	  /* See if we have to start the match at all multibyte characters,
@@ -387,7 +387,7 @@ re_compile_fastmap_iter (pTHX_ regex_t *bufp, const re_dfastate_t *init_state,
 	     sets, the SIMPLE_BRACKET again suffices.  */
 	  if (dfa->mb_cur_max > 1
 	      && (cset->nchar_classes || cset->non_match || cset->nranges
-# ifdef _LIBC
+# if (defined(_LIBC) || defined(_PERL_I18N))
 		  || cset->nequiv_classes
 # endif /* _LIBC */
 		 ))
@@ -853,7 +853,7 @@ init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock, bool is_utf8)
 {
   __re_size_t table_size;
 #ifndef _LIBC
-#if 0
+#ifndef _PERL_I18N
   const char *codeset_name;
 #endif
 #endif
@@ -902,7 +902,8 @@ init_dfa (pTHX_ re_dfa_t *dfa, size_t pat_len, SV *sv_lock, bool is_utf8)
   dfa->map_notascii = (_NL_CURRENT_WORD (LC_CTYPE, _NL_CTYPE_MAP_TO_NONASCII)
 		       != 0);
 #else
-/* We require that input coming from perl will always be utf-8 */
+  /* We require that input coming from perl will say if it Perl's utf-8 or not */
+  /* Note that perl's utf-8 is not official UTF-8, but a superset of the latest */
 #ifndef _PERL_I18N
   codeset_name = nl_langinfo (CODESET);
   if ((codeset_name[0] == 'U' || codeset_name[0] == 'u')
@@ -2675,7 +2676,7 @@ parse_dup_op (pTHX_ bin_tree_t *elem, re_string_t *regexp, re_dfa_t *dfa,
    I'm not sure, but maybe enough.  */
 #define BRACKET_NAME_BUF_SIZE 32
 
-#ifndef _LIBC
+#if !((defined(_LIBC) || defined(_PERL_I18N))
   /* Local function for parse_bracket_exp only used in case of NOT _LIBC.
      Build the range expression which starts from START_ELEM, and ends
      at END_ELEM.  The result are written to MBCSET and SBCSET.

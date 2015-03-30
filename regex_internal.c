@@ -202,8 +202,8 @@ build_wcs_buffer (pTHX_ re_string_t *pstr)
   /* Build the buffers from pstr->valid_len to either pstr->len or
      pstr->bufs_len.  */
   /* Bug ? end_idx = (pstr->bufs_len > pstr->len) ? pstr->len : pstr->bufs_len; */
-  end_idx = (pstr->bufs_len > pstr->len) ? pstr->bufs_len : pstr->len;
-  /* end_idx = (pstr->bufs_len > pstr->len) ? pstr->len : pstr->bufs_len; */
+  /* end_idx = (pstr->bufs_len > pstr->len) ? pstr->bufs_len : pstr->len; */
+  end_idx = (pstr->bufs_len > pstr->len) ? pstr->len : pstr->bufs_len;
   for (byte_idx = pstr->valid_len; byte_idx < end_idx;)
     {
       rpl__wchar_t wc;
@@ -702,8 +702,7 @@ re_string_reconstruct (pTHX_ re_string_t *pstr, Idx idx, int eflags)
 		    end = pstr->raw_mbs;
 		  p = raw + offset - 1;
 #if (defined(_LIBC) || defined(_PERL_I18N))
-		  /* We know the rpl__wchar_t encoding is UCS4, so for the simple
-		     case, ASCII characters, skip the conversion step.  */
+		  /* For the simple case, ASCII characters, skip the conversion step.  */
 		  if (rpl__isascii (*p) && BE (pstr->trans == NULL, 1))
 		    {
 		      memset (&pstr->cur_state, '\0', sizeof (rpl__mbstate_t));

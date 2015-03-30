@@ -193,6 +193,7 @@ typedef unsigned char bool;
 #undef rpl__wctype
 #undef rpl__isascii
 #undef rpl__isalnum
+#undef rpl__iswalnum
 #undef rpl__iscntrl
 #undef rpl__islower
 #undef rpl__isspace
@@ -224,6 +225,7 @@ typedef unsigned char bool;
 #   define rpl__wctype(c) wctype(c)
 #   define rpl__isascii(c) isascii(c)
 #   define rpl__isalnum(c) isalnum(c)
+#   define rpl__iswalnum(c) iswalnum(c)
 #   define rpl__iscntrl(c) iscntrl(c)
 #   define rpl__islower(c) islower(c)
 #   define rpl__isspace(c) isspace(c)
@@ -251,12 +253,13 @@ typedef unsigned char bool;
 #   define rpl__WEOF WEOF
 # else
 #   define rpl__wint_t UV
-#   define rpl__wchar_t U8
+#   define rpl__wchar_t UV
 #   define rpl__mbsinit rpl_Perl_mbsinit
 #   define rpl__wctype_t rpl_Perl_wctype_t
 #   define rpl__wctype(property) rpl_Perl_wctype(aTHX_ property)
 #   define rpl__isascii(c) rpl_Perl_isascii(aTHX_ c)
 #   define rpl__isalnum(c) rpl_Perl_isalnum(aTHX_ c)
+#   define rpl__iswalnum(c) rpl_Perl_iswalnum(aTHX_ c)
 #   define rpl__iscntrl(c) rpl_Perl_iscntrl(aTHX_ c)
 #   define rpl__islower(c) rpl_Perl_islower(aTHX_ c)
 #   define rpl__isspace(c) rpl_Perl_isspace(aTHX_ c)
@@ -307,7 +310,7 @@ typedef struct {
 # define attribute_hidden
 #endif /* not _LIBC */
 
-#if (defined MB_CUR_MAX && HAVE_WCTYPE_H && HAVE_ISWCTYPE) || _LIBC
+#if (defined MB_CUR_MAX && HAVE_WCTYPE_H && HAVE_ISWCTYPE) || _LIBC || defined(_PERL_I18N)
 # define RE_ENABLE_I18N
 #endif
 
@@ -478,13 +481,21 @@ typedef struct
   rpl__wchar_t *mbchars;
 
   /* Collating symbols.  */
-# ifdef _LIBC
+# if (defined(_LIBC) || defined(_PERL_I18N))
+#   ifdef _LIBC
   int32_t *coll_syms;
+#   else
+  UV *coll_syms;
+#   endif
 # endif
 
   /* Equivalence classes. */
-# ifdef _LIBC
+# if (defined(_LIBC) || defined(_PERL_I18N))
+#   ifdef _LIBC
   int32_t *equiv_classes;
+#   else
+  UV *equiv_classes;
+#   endif
 # endif
 
   /* Range expressions. */
@@ -732,7 +743,7 @@ typedef struct bin_tree_storage_t bin_tree_storage_t;
 
 #define IS_WORD_CHAR(ch) (rpl__isalnum (ch) || (ch) == '_')
 #define IS_NEWLINE(ch) ((ch) == NEWLINE_CHAR)
-#define IS_WIDE_WORD_CHAR(ch) (iswalnum (ch) || (ch) == L'_')
+#define IS_WIDE_WORD_CHAR(ch) (rpl__iswalnum (ch) || (ch) == L'_')
 #define IS_WIDE_NEWLINE(ch) ((ch) == WIDE_NEWLINE_CHAR)
 
 #define NOT_SATISFY_PREV_CONSTRAINT(constraint,context) \
@@ -1089,6 +1100,23 @@ int rpl_Perl_isalnum(pTHX_ UV c) {
   return rc;
 }
 
+int rpl_Perl_iswalnum(pTHX_ UV c) {
+  int rc;
+#ifndef isALNUM_LC_uvchr
+#define isALNUM_LC_uvchr isALNUM_LC
+#ifndef isALNUM_LC
+#define isALNUM_LC isALNUM
+#endif
+#endif
+  rc = isALNUM_LC_uvchr(c);
+
+#ifndef NDEBUG
+  fprintf(stderr, "rpl_Perl_iswalnum(%d) ==> %d\n", (int) c, rc);
+#endif
+
+  return rc;
+}
+
 int rpl_Perl_iscntrl(pTHX_ UV c) {
   int rc;
 #ifndef isCNTRL_LC_uvchr
@@ -1287,7 +1315,7 @@ int rpl_Perl_iswlower(pTHX_ UV wc) {
 }
 
 /* Our mb implementations are all stateless */
-size_t rpl_Perl_mbrtowc(pTHX_ U8 *restrict pwc, const char *restrict s, size_t n, void *restrict ps) {
+size_t rpl_Perl_mbrtowc(pTHX_ UV *restrict pwc, const char *restrict s, size_t n, void *restrict ps) {
   STRLEN ch_len;
   UV     ord;
   size_t rc;
@@ -1312,7 +1340,7 @@ size_t rpl_Perl_mbrtowc(pTHX_ U8 *restrict pwc, const char *restrict s, size_t n
     ord = utf8n_to_uvchr((U8 *) s, n, &ch_len, UTF8_CHECK_ONLY);
     if (ord > 0 || *s == 0) {
       if (pwc != NULL) {
-        Copy (s, pwc, ch_len, U8);
+        *pwc = ord;
       }
       rc = (ord == 0) ? 0 : ch_len;
     } else {
@@ -1330,7 +1358,7 @@ size_t rpl_Perl_mbrtowc(pTHX_ U8 *restrict pwc, const char *restrict s, size_t n
   return rc;
 }
 
-int rpl_Perl_mbtowc(pTHX_ rpl__wchar_t *restrict pwc, const char *restrict s, size_t n) {
+int rpl_Perl_mbtowc(pTHX_ UV *restrict pwc, const char *restrict s, size_t n) {
   int rc;
 
   static rpl_Perl_mbstate_t state;
@@ -1369,7 +1397,7 @@ rpl__wint_t rpl_Perl_btowc (pTHX_ int c) {
 
     buf[0] = (U8)c;
     if (rpl_Perl_mbtowc(aTHX_ &wc, buf, 1) >= 0) {
-      rc = wc;
+      rc = (rpl__wint_t) wc;
     }
   }
 
@@ -1541,12 +1569,12 @@ size_t rpl_Perl_wcrtomb (pTHX_ char *s, rpl__wchar_t wc, rpl__mbstate_t *ps) {
     }
 }
 
-rpl__wint_t rpl_Perl_towlower(pTHX_ rpl__wint_t wc) {
+rpl__wint_t rpl_Perl_towlower(pTHX_ UV wc) {
   U8     s[UTF8_MAXBYTES_CASE+1];
   rpl__wint_t rc;
   STRLEN len;
 
-  rc = toLOWER_uni((UV) wc, s, &len);
+  rc = toLOWER_uni(wc, s, &len);
 
 #ifndef NDEBUG
   fprintf(stderr, "rpl_Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc);
@@ -1556,12 +1584,12 @@ rpl__wint_t rpl_Perl_towlower(pTHX_ rpl__wint_t wc) {
 
 }
 
-rpl__wint_t rpl_Perl_towupper(pTHX_ rpl__wint_t wc) {
+rpl__wint_t rpl_Perl_towupper(pTHX_ UV wc) {
   U8     s[UTF8_MAXBYTES_CASE+1];
   rpl__wint_t rc;
   STRLEN len;
 
-  rc = toUPPER_uni((UV) wc, s, &len);
+  rc = toUPPER_uni(wc, s, &len);
 
 #ifndef NDEBUG
   fprintf(stderr, "rpl_Perl_towlower(%d) ==> %d\n", (int) wc, (int) rc);
@@ -1571,9 +1599,10 @@ rpl__wint_t rpl_Perl_towupper(pTHX_ rpl__wint_t wc) {
 
 }
 
-rpl__wint_t rpl_Perl_tolower(pTHX_ rpl__wint_t c) {
+rpl__wint_t rpl_Perl_tolower(pTHX_ UV c) {
   rpl__wint_t rc;
 
+  /* The caller made sure that it fits in 8 bytes */
   rc = toLOWER((U8) c);
 
 #ifndef NDEBUG
@@ -1584,9 +1613,10 @@ rpl__wint_t rpl_Perl_tolower(pTHX_ rpl__wint_t c) {
 
 }
 
-rpl__wint_t rpl_Perl_toupper(pTHX_ rpl__wint_t c) {
+rpl__wint_t rpl_Perl_toupper(pTHX_ UV c) {
   rpl__wint_t rc;
 
+  /* The caller made sure that it fits in 8 bytes */
   rc = toUPPER((U8) c);
 
 #ifndef NDEBUG
@@ -1627,7 +1657,7 @@ re_string_elem_size_at (pTHX_ const re_string_t *pstr, SV *sv, Idx idx)
 #    ifdef _PERL_I18N
     {
       if (! DO_UTF8(sv)) {
-        /* Perl def perl's non UTF-8 is one byte */
+        /* Per def perl's non UTF-8 is one byte */
 #ifndef NDEBUG
         fprintf(stderr, "re_string_elem_size_at(.., Idx=%d) => 1\n", (int) idx);
 #endif

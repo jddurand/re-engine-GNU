@@ -50,7 +50,6 @@ sub do_config_GNU {
     $ac->check_decl('isblank', { action_on_true => sub { $ac->define_var('HAVE_DECL_ISBLANK', 1) }, prologue => '#include <ctype.h>' });
     $ac->define_var('_REGEX_INCLUDE_LIMITS_H', 1);
     $ac->define_var('_REGEX_LARGE_OFFSETS', 1);
-    $ac->define_var('RE_ENABLE_I18N', 1);
     $ac->define_var('_PERL_I18N', 1);
     $ac->define_var('re_syntax_options', 'rpl_re_syntax_options');
     $ac->define_var('re_set_syntax', 'rpl_re_set_syntax');
