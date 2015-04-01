@@ -2676,7 +2676,7 @@ parse_dup_op (pTHX_ bin_tree_t *elem, re_string_t *regexp, re_dfa_t *dfa,
    I'm not sure, but maybe enough.  */
 #define BRACKET_NAME_BUF_SIZE 32
 
-#if !((defined(_LIBC) || defined(_PERL_I18N))
+#ifndef _LIBC
   /* Local function for parse_bracket_exp only used in case of NOT _LIBC.
      Build the range expression which starts from START_ELEM, and ends
      at END_ELEM.  The result are written to MBCSET and SBCSET.

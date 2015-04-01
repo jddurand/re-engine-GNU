@@ -947,7 +947,7 @@ prune_impossible_nodes (pTHX_ re_match_context_t *mctx)
 	  sift_ctx_init (aTHX_ &sctx, sifted_states, lim_states, halt_node,
 			 match_last);
 	  ret = sift_states_backward (aTHX_ mctx, &sctx);
-	  re_node_set_free (aTHX_ &sctx.limits);
+	  re_node_set_free (&sctx.limits);
 	  if (BE (ret != REG_NOERROR, 0))
 	      goto free_return;
 	  if (sifted_states[0] != NULL || lim_states[0] != NULL)
@@ -977,7 +977,7 @@ prune_impossible_nodes (pTHX_ re_match_context_t *mctx)
     {
       sift_ctx_init (aTHX_ &sctx, sifted_states, lim_states, halt_node, match_last);
       ret = sift_states_backward (aTHX_ mctx, &sctx);
-      re_node_set_free (aTHX_ &sctx.limits);
+      re_node_set_free (&sctx.limits);
       if (BE (ret != REG_NOERROR, 0))
 	goto free_return;
       if (sifted_states[0] == NULL)
@@ -1350,7 +1350,7 @@ pop_fail_stack (pTHX_ struct re_fail_stack_t *fs, Idx *pidx, Idx nregs,
   assert (REG_VALID_INDEX (num));
   *pidx = fs->stack[num].idx;
   Copy (fs->stack[num].regs, regs, nregs, regmatch_t);
-  re_node_set_free (aTHX_ eps_via_nodes);
+  re_node_set_free (eps_via_nodes);
   re_free (fs->stack[num].regs);
   *eps_via_nodes = fs->stack[num].eps_via_nodes;
   return fs->stack[num].node;
@@ -1412,7 +1412,7 @@ set_regs (pTHX_ const regex_t *preg, const re_match_context_t *mctx, size_t nmat
 		  break;
 	      if (reg_idx == nmatch)
 		{
-		  re_node_set_free (aTHX_ &eps_via_nodes);
+		  re_node_set_free (&eps_via_nodes);
 		  if (prev_idx_match_malloced)
 		    re_free (prev_idx_match);
 		  return free_fail_stack_return (aTHX_ fs);
@@ -1422,7 +1422,7 @@ set_regs (pTHX_ const regex_t *preg, const re_match_context_t *mctx, size_t nmat
 	    }
 	  else
 	    {
-	      re_node_set_free (aTHX_ &eps_via_nodes);
+	      re_node_set_free (&eps_via_nodes);
 	      if (prev_idx_match_malloced)
 		re_free (prev_idx_match);
 	      return REG_NOERROR;
@@ -1437,7 +1437,7 @@ set_regs (pTHX_ const regex_t *preg, const re_match_context_t *mctx, size_t nmat
 	{
 	  if (BE (cur_node == REG_ERROR, 0))
 	    {
-	      re_node_set_free (aTHX_ &eps_via_nodes);
+	      re_node_set_free (&eps_via_nodes);
 	      if (prev_idx_match_malloced)
 		re_free (prev_idx_match);
 	      free_fail_stack_return (aTHX_ fs);
@@ -1448,14 +1448,14 @@ set_regs (pTHX_ const regex_t *preg, const re_match_context_t *mctx, size_t nmat
 				       &eps_via_nodes);
 	  else
 	    {
-	      re_node_set_free (aTHX_ &eps_via_nodes);
+	      re_node_set_free (&eps_via_nodes);
 	      if (prev_idx_match_malloced)
 		re_free (prev_idx_match);
 	      return REG_NOMATCH;
 	    }
 	}
     }
-  re_node_set_free (aTHX_ &eps_via_nodes);
+  re_node_set_free (&eps_via_nodes);
   if (prev_idx_match_malloced)
     re_free (prev_idx_match);
   return free_fail_stack_return (aTHX_ fs);
@@ -1470,7 +1470,7 @@ free_fail_stack_return (pTHX_ struct re_fail_stack_t *fs)
       Idx fs_idx;
       for (fs_idx = 0; fs_idx < fs->num; ++fs_idx)
 	{
-	  re_node_set_free (aTHX_ &fs->stack[fs_idx].eps_via_nodes);
+	  re_node_set_free (&fs->stack[fs_idx].eps_via_nodes);
 	  re_free (fs->stack[fs_idx].regs);
 	}
       re_free (fs->stack);
@@ -1581,7 +1581,7 @@ sift_states_backward (pTHX_ const re_match_context_t *mctx, re_sift_context_t *s
 	{
 	  memset (sctx->sifted_states, '\0',
 		  sizeof (re_dfastate_t *) * str_idx);
-	  re_node_set_free (aTHX_ &cur_dest);
+	  re_node_set_free (&cur_dest);
 	  return REG_NOERROR;
 	}
       re_node_set_empty (aTHX_ &cur_dest);
@@ -1604,7 +1604,7 @@ sift_states_backward (pTHX_ const re_match_context_t *mctx, re_sift_context_t *s
     }
   err = REG_NOERROR;
  free_return:
-  re_node_set_free (aTHX_ &cur_dest);
+  re_node_set_free (&cur_dest);
   return err;
 }
 
@@ -1715,7 +1715,7 @@ merge_state_array (pTHX_ const re_dfa_t *dfa, re_dfastate_t **dst,
 	  if (BE (err != REG_NOERROR, 0))
 	    return err;
 	  dst[st_idx] = re_acquire_state (aTHX_ &err, dfa, &merged_set);
-	  re_node_set_free (aTHX_ &merged_set);
+	  re_node_set_free (&merged_set);
 	  if (BE (err != REG_NOERROR, 0))
 	    return err;
 	}
@@ -1830,7 +1830,7 @@ sub_epsilon_src_nodes (pTHX_ const re_dfa_t *dfa, Idx node, re_node_set *dest_no
 						 dfa->inveclosures + cur_node);
 		if (BE (err != REG_NOERROR, 0))
 		  {
-		    re_node_set_free (aTHX_ &except_nodes);
+		    re_node_set_free (&except_nodes);
 		    return err;
 		  }
 	      }
@@ -1845,7 +1845,7 @@ sub_epsilon_src_nodes (pTHX_ const re_dfa_t *dfa, Idx node, re_node_set *dest_no
 	    re_node_set_remove_at (aTHX_ dest_nodes, idx);
 	  }
       }
-    re_node_set_free (aTHX_ &except_nodes);
+    re_node_set_free (&except_nodes);
     return REG_NOERROR;
 }
 
@@ -2177,7 +2177,7 @@ sift_states_bkref (pTHX_ const re_match_context_t *mctx, re_sift_context_t *sctx
  free_return:
   if (local_sctx.sifted_states != NULL)
     {
-      re_node_set_free (aTHX_ &local_sctx.limits);
+      re_node_set_free (&local_sctx.limits);
     }
 
   return err;
@@ -2323,7 +2323,7 @@ merge_state_with_log (pTHX_ reg_errcode_t *err, re_match_context_t *mctx,
 	 this function is next_state and ERR is already set.  */
 
       if (table_nodes != NULL)
-	re_node_set_free (aTHX_ &next_nodes);
+	re_node_set_free (&next_nodes);
     }
 
   if (BE (dfa->nbackref, 0) && next_state != NULL)
@@ -2439,7 +2439,7 @@ transit_state_sb (pTHX_ reg_errcode_t *err, re_match_context_t *mctx,
 				    dfa->eclosures + dfa->nexts[cur_node]);
 	  if (BE (*err != REG_NOERROR, 0))
 	    {
-	      re_node_set_free (aTHX_ &next_nodes);
+	      re_node_set_free (&next_nodes);
 	      return NULL;
 	    }
 	}
@@ -2449,7 +2449,7 @@ transit_state_sb (pTHX_ reg_errcode_t *err, re_match_context_t *mctx,
   /* We don't need to check errors here, since the return value of
      this function is next_state and ERR is already set.  */
 
-  re_node_set_free (aTHX_ &next_nodes);
+  re_node_set_free (&next_nodes);
   re_string_skip_bytes (aTHX_ &mctx->input, 1);
   return next_state;
 }
@@ -2519,7 +2519,7 @@ transit_state_mb (pTHX_ re_match_context_t *mctx, re_dfastate_t *pstate)
       mctx->state_log[dest_idx]
 	= re_acquire_state_context (aTHX_ &err, dfa, &dest_nodes, context);
       if (dest_state != NULL)
-	re_node_set_free (aTHX_ &dest_nodes);
+	re_node_set_free (&dest_nodes);
       if (BE (mctx->state_log[dest_idx] == NULL && err != REG_NOERROR, 0))
 	return err;
     }
@@ -2605,12 +2605,12 @@ transit_state_bkref (pTHX_ re_match_context_t *mctx, const re_node_set *nodes)
 					    new_dest_nodes);
 	      if (BE (err != REG_NOERROR, 0))
 		{
-		  re_node_set_free (aTHX_ &dest_nodes);
+		  re_node_set_free (&dest_nodes);
 		  goto free_return;
 		}
 	      mctx->state_log[dest_str_idx]
 		= re_acquire_state_context (aTHX_ &err, dfa, &dest_nodes, context);
-	      re_node_set_free (aTHX_ &dest_nodes);
+	      re_node_set_free (&dest_nodes);
 	      if (BE (mctx->state_log[dest_str_idx] == NULL
 		      && err != REG_NOERROR, 0))
 		goto free_return;
@@ -2888,7 +2888,7 @@ check_arrival (pTHX_ re_match_context_t *mctx, state_array_t *path, Idx top_node
       err = check_arrival_expand_ecl (aTHX_ dfa, &next_nodes, subexp_num, type);
       if (BE (err != REG_NOERROR, 0))
 	{
-	  re_node_set_free (aTHX_ &next_nodes);
+	  re_node_set_free (&next_nodes);
 	  return err;
 	}
     }
@@ -2912,14 +2912,14 @@ check_arrival (pTHX_ re_match_context_t *mctx, state_array_t *path, Idx top_node
 				    subexp_num, type);
 	  if (BE (err != REG_NOERROR, 0))
 	    {
-	      re_node_set_free (aTHX_ &next_nodes);
+	      re_node_set_free (&next_nodes);
 	      return err;
 	    }
 	}
       cur_state = re_acquire_state_context (aTHX_ &err, dfa, &next_nodes, context);
       if (BE (cur_state == NULL && err != REG_NOERROR, 0))
 	{
-	  re_node_set_free (aTHX_ &next_nodes);
+	  re_node_set_free (&next_nodes);
 	  return err;
 	}
       mctx->state_log[str_idx] = cur_state;
@@ -2934,7 +2934,7 @@ check_arrival (pTHX_ re_match_context_t *mctx, state_array_t *path, Idx top_node
 				   &mctx->state_log[str_idx + 1]->nodes);
 	  if (BE (err != REG_NOERROR, 0))
 	    {
-	      re_node_set_free (aTHX_ &next_nodes);
+	      re_node_set_free (&next_nodes);
 	      return err;
 	    }
 	}
@@ -2945,7 +2945,7 @@ check_arrival (pTHX_ re_match_context_t *mctx, state_array_t *path, Idx top_node
 					      &next_nodes);
 	  if (BE (err != REG_NOERROR, 0))
 	    {
-	      re_node_set_free (aTHX_ &next_nodes);
+	      re_node_set_free (&next_nodes);
 	      return err;
 	    }
 	}
@@ -2955,14 +2955,14 @@ check_arrival (pTHX_ re_match_context_t *mctx, state_array_t *path, Idx top_node
 	  err = check_arrival_expand_ecl (aTHX_ dfa, &next_nodes, subexp_num, type);
 	  if (BE (err != REG_NOERROR, 0))
 	    {
-	      re_node_set_free (aTHX_ &next_nodes);
+	      re_node_set_free (&next_nodes);
 	      return err;
 	    }
 	  err = expand_bkref_cache (aTHX_ mctx, &next_nodes, str_idx,
 				    subexp_num, type);
 	  if (BE (err != REG_NOERROR, 0))
 	    {
-	      re_node_set_free (aTHX_ &next_nodes);
+	      re_node_set_free (&next_nodes);
 	      return err;
 	    }
 	}
@@ -2970,13 +2970,13 @@ check_arrival (pTHX_ re_match_context_t *mctx, state_array_t *path, Idx top_node
       cur_state = re_acquire_state_context (aTHX_ &err, dfa, &next_nodes, context);
       if (BE (cur_state == NULL && err != REG_NOERROR, 0))
 	{
-	  re_node_set_free (aTHX_ &next_nodes);
+	  re_node_set_free (&next_nodes);
 	  return err;
 	}
       mctx->state_log[str_idx] = cur_state;
       null_cnt = cur_state == NULL ? null_cnt + 1 : 0;
     }
-  re_node_set_free (aTHX_ &next_nodes);
+  re_node_set_free (&next_nodes);
   cur_nodes = (mctx->state_log[last_str] == NULL ? NULL
 	       : &mctx->state_log[last_str]->nodes);
   path->next_idx = str_idx;
@@ -3039,14 +3039,14 @@ check_arrival_add_next_nodes (pTHX_ re_match_context_t *mctx, Idx str_idx,
 		  err = re_node_set_merge (aTHX_ &union_set, &dest_state->nodes);
 		  if (BE (err != REG_NOERROR, 0))
 		    {
-		      re_node_set_free (aTHX_ &union_set);
+		      re_node_set_free (&union_set);
 		      return err;
 		    }
 		}
 	      ok = re_node_set_insert (aTHX_ &union_set, next_node);
 	      if (BE (! ok, 0))
 		{
-		  re_node_set_free (aTHX_ &union_set);
+		  re_node_set_free (&union_set);
 		  return REG_ESPACE;
 		}
 	      mctx->state_log[next_idx] = re_acquire_state (aTHX_ &err, dfa,
@@ -3054,7 +3054,7 @@ check_arrival_add_next_nodes (pTHX_ re_match_context_t *mctx, Idx str_idx,
 	      if (BE (mctx->state_log[next_idx] == NULL
 		      && err != REG_NOERROR, 0))
 		{
-		  re_node_set_free (aTHX_ &union_set);
+		  re_node_set_free (&union_set);
 		  return err;
 		}
 	    }
@@ -3066,12 +3066,12 @@ check_arrival_add_next_nodes (pTHX_ re_match_context_t *mctx, Idx str_idx,
 	  ok = re_node_set_insert (aTHX_ next_nodes, dfa->nexts[cur_node]);
 	  if (BE (! ok, 0))
 	    {
-	      re_node_set_free (aTHX_ &union_set);
+	      re_node_set_free (&union_set);
 	      return REG_ESPACE;
 	    }
 	}
     }
-  re_node_set_free (aTHX_ &union_set);
+  re_node_set_free (&union_set);
   return REG_NOERROR;
 }
 
@@ -3109,7 +3109,7 @@ check_arrival_expand_ecl (pTHX_ const re_dfa_t *dfa, re_node_set *cur_nodes,
 	  err = re_node_set_merge (aTHX_ &new_nodes, eclosure);
 	  if (BE (err != REG_NOERROR, 0))
 	    {
-	      re_node_set_free (aTHX_ &new_nodes);
+	      re_node_set_free (&new_nodes);
 	      return err;
 	    }
 	}
@@ -3120,12 +3120,12 @@ check_arrival_expand_ecl (pTHX_ const re_dfa_t *dfa, re_node_set *cur_nodes,
 					      ex_subexp, type);
 	  if (BE (err != REG_NOERROR, 0))
 	    {
-	      re_node_set_free (aTHX_ &new_nodes);
+	      re_node_set_free (&new_nodes);
 	      return err;
 	    }
 	}
     }
-  re_node_set_free (aTHX_ cur_nodes);
+  re_node_set_free (cur_nodes);
   *cur_nodes = new_nodes;
   return REG_NOERROR;
 }
@@ -3217,7 +3217,7 @@ expand_bkref_cache (pTHX_ re_match_context_t *mctx, re_node_set *cur_nodes,
 	  err = re_node_set_init_1 (aTHX_ &new_dests, next_node);
 	  err2 = check_arrival_expand_ecl (aTHX_ dfa, &new_dests, subexp_num, type);
 	  err3 = re_node_set_merge (aTHX_ cur_nodes, &new_dests);
-	  re_node_set_free (aTHX_ &new_dests);
+	  re_node_set_free (&new_dests);
 	  if (BE (err != REG_NOERROR || err2 != REG_NOERROR
 		  || err3 != REG_NOERROR, 0))
 	    {
@@ -3243,7 +3243,7 @@ expand_bkref_cache (pTHX_ re_match_context_t *mctx, re_node_set *cur_nodes,
 	      ok = re_node_set_insert (aTHX_ &union_set, next_node);
 	      if (BE (err != REG_NOERROR || ! ok, 0))
 		{
-		  re_node_set_free (aTHX_ &union_set);
+		  re_node_set_free (&union_set);
 		  err = err != REG_NOERROR ? err : REG_ESPACE;
 		  return err;
 		}
@@ -3255,7 +3255,7 @@ expand_bkref_cache (pTHX_ re_match_context_t *mctx, re_node_set *cur_nodes,
 		return err;
 	    }
 	  mctx->state_log[to_idx] = re_acquire_state (aTHX_ &err, dfa, &union_set);
-	  re_node_set_free (aTHX_ &union_set);
+	  re_node_set_free (&union_set);
 	  if (BE (mctx->state_log[to_idx] == NULL
 		  && err != REG_NOERROR, 0))
 	    return err;
@@ -3352,9 +3352,9 @@ build_trtable (pTHX_ const re_dfa_t *dfa, re_dfastate_t *state)
 out_free:
 	  if (dest_states_malloced)
 	    re_free (dest_states);
-	  re_node_set_free (aTHX_ &follows);
+	  re_node_set_free (&follows);
 	  for (i = 0; i < ndests; ++i)
-	    re_node_set_free (aTHX_ dests_node + i);
+	    re_node_set_free (dests_node + i);
 	  if (dests_node_malloced)
 	    re_free (dests_alloc);
 	  return false;
@@ -3485,9 +3485,9 @@ out_free:
   if (dest_states_malloced)
     re_free (dest_states);
 
-  re_node_set_free (aTHX_ &follows);
+  re_node_set_free (&follows);
   for (i = 0; i < ndests; ++i)
-    re_node_set_free (aTHX_ dests_node + i);
+    re_node_set_free (dests_node + i);
 
   if (dests_node_malloced)
     re_free (dests_alloc);
@@ -3680,7 +3680,7 @@ group_nodes_into_DFAstates (pTHX_ const re_dfa_t *dfa, const re_dfastate_t *stat
   return ndests;
  error_return:
   for (j = 0; j < ndests; ++j)
-    re_node_set_free (aTHX_ dests_node + j);
+    re_node_set_free (dests_node + j);
   return REG_MISSING;
 }
 
