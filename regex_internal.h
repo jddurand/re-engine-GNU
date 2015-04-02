@@ -129,10 +129,17 @@ typedef unsigned char bool;
 #else
 # define lock_define(name) SV *name;
 /* GNU regex expect lock_init(lock) to return 0 if success */
+/* Break on win32 ? */
+/*
 # define lock_init(lock) (SvSHARE(lock), 0)
-# define lock_fini(lock) /* There is no SvUNSHARE */
+# define lock_fini(lock)
 # define lock_lock(lock) SvLOCK(lock)
 # define lock_unlock(lock) SvUNLOCK(lock)
+*/
+# define lock_init(lock) 0
+# define lock_fini(lock)
+# define lock_lock(lock)
+# define lock_unlock(lock)
 #endif
 
 /* In case that the system doesn't have isblank().  */
@@ -702,7 +709,7 @@ static unsigned int re_string_context_at (pTHX_ const re_string_t *input, Idx id
 
 /*  free(p) <==> Safefree(p) */
 /* #define re_free(p) free (p) */
-#define re_free(p) Safefree (p)
+#define re_free(p) do { if (p != NULL) { Safefree (p); } p = NULL; } while (0)
 
 struct bin_tree_t
 {
@@ -1517,7 +1524,6 @@ int Perl_wctomb(pTHX_ char *restrict s, rpl__wchar_t wc) {
   bool   is_utf8 = 1;
   U8    *bytes;
   STRLEN len;
-  char *p;
 
   if (s == NULL) {
     return 0;

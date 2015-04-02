@@ -545,7 +545,7 @@ extern reg_syntax_t re_set_syntax (pTHX_ reg_syntax_t __syntax);
    'regcomp', with a malloc'ed value, or set to NULL before calling
    'regfree'.  */
 extern const char *re_compile_pattern (pTHX_ const char *__pattern, size_t __length,
-				       struct re_pattern_buffer *__buffer, SV *sv_lock, bool is_utf8);
+				       struct re_pattern_buffer *__buffer, bool is_utf8);
 
 
 /* Compile a fastmap for the compiled pattern in BUFFER; used to
@@ -611,7 +611,7 @@ extern void re_set_registers (pTHX_ struct re_pattern_buffer *__buffer,
 #if defined _REGEX_RE_COMP || (defined _LIBC && defined __USE_BSD)
 # ifndef _CRAY
 /* 4.2 bsd compatibility.  */
-extern char *re_comp (pTHX_ const char *, SV *sv_lock);
+extern char *re_comp (pTHX_ const char *);
 extern int re_exec (pTHX_ const char *);
 # endif
 #endif
@@ -647,7 +647,7 @@ extern int re_exec (pTHX_ const char *);
 /* POSIX compatibility.  */
 extern int regcomp (pTHX_ regex_t *_Restrict_ __preg,
 		    const char *_Restrict_ __pattern,
-		    int __cflags, SV *sv_lock, bool is_utf8);
+		    int __cflags, bool is_utf8);
 
 extern int regexec (pTHX_ const regex_t *_Restrict_ __preg,
 		    const char *_Restrict_ __string, SV *sv, size_t __nmatch,
@@ -664,7 +664,7 @@ extern void regfree (pTHX_ regex_t *__preg);
 /* I do not want that, so I force externalization of               */
 /* the internal implementation - this has another                  */
 /* advantage: getting rid of the global variable re_syntax_options */
-  extern reg_errcode_t re_compile_internal (pTHX_ regex_t *preg, const char * pattern, size_t length, reg_syntax_t syntax, SV *sv_lock, bool is_utf8);
+  extern reg_errcode_t re_compile_internal (pTHX_ regex_t *preg, const char * pattern, size_t length, reg_syntax_t syntax, bool is_utf8);
 
 #ifdef __cplusplus
 }

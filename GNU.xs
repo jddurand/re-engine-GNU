@@ -34,7 +34,9 @@
 static regexp_engine engine_GNU;
 
 typedef struct GNU_private {
-  SV     *sv_lock;
+  SV     *sv_pattern;
+  SV     *sv_syntax;
+  bool    is_utf8;
   int     isDebug;
   regex_t regex;
 } GNU_private_t;
@@ -167,7 +169,7 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     SV *sv_syntax = NULL;
 
     reg_errcode_t ret;
-    SV * sv_lock; /* For stringification and lock */
+    SV * sv_stringification;
 
     if (isDebug) {
       fprintf(stderr, "%s: pattern=%p flags=0x%lx\n", logHeader, pattern, (unsigned long) flags);
@@ -290,6 +292,9 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 #endif
     }
 
+    ri->sv_pattern             = sv_pattern;
+    ri->sv_syntax              = sv_syntax;
+    ri->is_utf8                = is_utf8;
     ri->isDebug                = isDebug;
     ri->regex.buffer           = NULL;
     ri->regex.allocated        = 0;
@@ -391,50 +396,45 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     if (isDebug) {
       fprintf(stderr, "%s: ... allocating wrapped\n", logHeader);
     }
-    sv_lock = newSVpvn("(?", 2);
+    sv_stringification = newSVpvn("(?", 2);
 
     if (ri->regex.newline_anchor == 1) {
-        sv_catpvn(sv_lock, "m", 1);
+        sv_catpvn(sv_stringification, "m", 1);
     }
     if ((ri->regex.syntax & RE_DOT_NEWLINE) == RE_DOT_NEWLINE) {
-        sv_catpvn(sv_lock, "s", 1);
+        sv_catpvn(sv_stringification, "s", 1);
     }
     if ((ri->regex.syntax & RE_ICASE) == RE_ICASE) {
-        sv_catpvn(sv_lock, "i", 1);
+        sv_catpvn(sv_stringification, "i", 1);
     }
-    sv_catpvn(sv_lock, ":", 1);
-    sv_catpvn(sv_lock, "(?#re::engine::GNU", 18);
+    sv_catpvn(sv_stringification, ":", 1);
+    sv_catpvn(sv_stringification, "(?#re::engine::GNU", 18);
     {
       char tmp[50];
 
       sprintf(tmp, "%d", defaultSyntax);
-      sv_catpvn(sv_lock, "/syntax=", 8);
-      sv_catpvn(sv_lock, tmp, strlen(tmp));
+      sv_catpvn(sv_stringification, "/syntax=", 8);
+      sv_catpvn(sv_stringification, tmp, strlen(tmp));
     }
-    sv_catpvn(sv_lock, ")", 1);
+    sv_catpvn(sv_stringification, ")", 1);
 
-    sv_catpvn(sv_lock, exp, plen);
-    sv_catpvn(sv_lock, ")", 1);
+    sv_catpvn(sv_stringification, exp, plen);
+    sv_catpvn(sv_stringification, ")", 1);
     /* We add \0 only for convenience because this will be used in debug statements */
     /* that are using %s format string */
-    sv_catpvn(sv_lock, "\0", 1);
-    RX_WRAPPED(rx) = savepvn(SvPVX(sv_lock), SvCUR(sv_lock));
-    RX_WRAPLEN(rx) = SvCUR(sv_lock);
+    sv_catpvn(sv_stringification, "\0", 1);
+    RX_WRAPPED(rx) = savepvn(SvPVX(sv_stringification), SvCUR(sv_stringification));
+    RX_WRAPLEN(rx) = SvCUR(sv_stringification);
     if (isDebug) {
-      fprintf(stderr, "%s: ... stringification to sv_lock=%p: %s\n", logHeader, sv_lock, RX_WRAPPED(rx));
+      fprintf(stderr, "%s: ... stringification to %s\n", logHeader, RX_WRAPPED(rx));
     }
-    ri->sv_lock = sv_lock;
+    SvREFCNT_dec(sv_stringification);
 
     if (isDebug) {
-      fprintf(stderr, "%s: ... re_compile_internal(preg=%p, pattern=\"%s\", length=%ld, syntax=0x%lx, sv_lock=%p, is_utf8=%d)\n", logHeader, &(ri->regex), exp, (unsigned long) plen, (unsigned long) ri->regex.syntax, sv_lock, (int) is_utf8);
+      fprintf(stderr, "%s: ... re_compile_internal(preg=%p, pattern=\"%s\", length=%ld, syntax=0x%lx, is_utf8=%d)\n", logHeader, &(ri->regex), exp, (unsigned long) plen, (unsigned long) ri->regex.syntax, (int) ri->is_utf8);
     }
 
-    ret = re_compile_internal (aTHX_ &(ri->regex), exp, plen, ri->regex.syntax, sv_lock, is_utf8);
-
-    SvREFCNT_dec(sv_pattern);
-    if (sv_syntax != NULL) {
-      SvREFCNT_dec(sv_syntax);
-    }
+    ret = re_compile_internal (aTHX_ &(ri->regex), exp, plen, ri->regex.syntax, ri->is_utf8);
 
     if (ret != _REG_NOERROR) {
       extern const char __re_error_msgid[];
@@ -902,33 +902,32 @@ GNU_free(pTHX_ REGEXP * const rx)
   GNU_private_t *ri = REGEXP_PPRIVATE_GET(r);
   int            isDebug = ri->isDebug;
   char          *logHeader = "[re::engine::GNU] GNU_free";
-  short          globalFree = 0;
 
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p\n", logHeader, rx);
     fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
   }
 
-  if (SvREFCNT(ri->sv_lock) == 1) {
-    globalFree = 1;
+  if (isDebug) {
+    fprintf(stderr, "%s: ... SvREFCNT_dec(ri->sv_pattern=%p)\n", logHeader, ri->sv_pattern);
+  }
+  SvREFCNT_dec(ri->sv_pattern);
+  if (ri->sv_syntax != NULL) {
+    if (isDebug) {
+      fprintf(stderr, "%s: ... SvREFCNT_dec(ri->sv_syntax=%p)\n", logHeader, ri->sv_syntax);
+    }
+    SvREFCNT_dec(ri->sv_syntax);
   }
 
   if (isDebug) {
-    fprintf(stderr, "%s: ... SvREFCNT_dec(ri->sv_lock=%p)\n", logHeader, ri->sv_lock);
+    fprintf(stderr, "%s: ... regfree(preg=%p)\n", logHeader, &(ri->regex));
   }
-  SvREFCNT_dec(ri->sv_lock);
+  regfree(aTHX_ &(ri->regex));
 
-  if (globalFree != 0) {
-    if (isDebug) {
-      fprintf(stderr, "%s: ... regfree(preg=%p)\n", logHeader, &(ri->regex));
-    }
-    regfree(aTHX_ &(ri->regex));
-
-    if (isDebug) {
-      fprintf(stderr, "%s: ... Safefree(ri=%p)\n", logHeader, ri);
-    }
-    Safefree(ri);
+  if (isDebug) {
+    fprintf(stderr, "%s: ... Safefree(ri=%p)\n", logHeader, ri);
   }
+  Safefree(ri);
 
   if (isDebug) {
     fprintf(stderr, "%s: return void\n", logHeader);
@@ -973,20 +972,57 @@ GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
 {
   char          *logHeader = "[re::engine::GNU] GNU_dupe";
   struct regexp *r = _RegSV(rx);
-  GNU_private_t *ri = REGEXP_PPRIVATE_GET(r);
-  int            isDebug = ri->isDebug;
+  GNU_private_t *oldri = REGEXP_PPRIVATE_GET(r);
+  int            isDebug = oldri->isDebug;
+  GNU_private_t *ri;
+  STRLEN         plen;
+  char          *exp;
+  reg_errcode_t  ret;
 
   PERL_UNUSED_ARG(param);
+
+  Newxz(ri, 1, GNU_private_t);
+  if (isDebug) {
+    fprintf(stderr, "%s: ... allocated private structure ri=%p\n", logHeader, ri);
+  }
 
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p, param=%p\n", logHeader, rx, param);
     fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
   }
 
+  ri->sv_pattern             = newSVsv(oldri->sv_pattern);
+  ri->sv_syntax              = oldri->sv_syntax != NULL ? newSVsv(oldri->sv_syntax) : NULL;
+  ri->isDebug                = oldri->isDebug;
+  ri->is_utf8                = oldri->is_utf8;
+  ri->regex.buffer           = NULL;
+  ri->regex.allocated        = 0;
+  ri->regex.used             = 0;
+  ri->regex.syntax           = oldri->regex.syntax;
+  ri->regex.fastmap          = NULL;
+  ri->regex.translate        = NULL;
+  ri->regex.re_nsub          = 0;
+  ri->regex.can_be_null      = 0;
+  ri->regex.regs_allocated   = 0;
+  ri->regex.fastmap_accurate = 0;
+  ri->regex.no_sub           = 0;
+  ri->regex.not_bol          = 0;
+  ri->regex.not_eol          = 0;
+  ri->regex.newline_anchor   = 0;
+
+  exp = SvPV(ri->sv_pattern, plen);
+
   if (isDebug) {
-    fprintf(stderr, "%s: ... SvREFCNT_inc(ri->sv_lock=%p)\n", logHeader, ri->sv_lock);
+    fprintf(stderr, "%s: ... re_compile_internal(preg=%p, pattern=\"%s\", length=%ld, syntax=0x%lx, is_utf8=%d)\n", logHeader, &(ri->regex), exp, (unsigned long) plen, (unsigned long) ri->regex.syntax, (int) ri->is_utf8);
   }
-  SvREFCNT_inc(ri->sv_lock);
+
+  ret = re_compile_internal (aTHX_ &(ri->regex), exp, plen, ri->regex.syntax, ri->is_utf8);
+
+  if (ret != _REG_NOERROR) {
+    extern const char __re_error_msgid[];
+    extern const size_t __re_error_msgid_idx[];
+    croak("%s: %s", logHeader, __re_error_msgid + __re_error_msgid_idx[(int) ret]);
+  }
 
   if (isDebug) {
     fprintf(stderr, "%s: return %p\n", logHeader, ri);
