@@ -1669,7 +1669,8 @@ re_string_elem_size_at (pTHX_ const re_string_t *pstr, SV *sv, Idx idx)
 #endif
         return 1;
       } else {
-        I32 offset = idx;
+        /* We know that pstr->mbs is at offset raw_mbs_idx v.s. original string */
+        I32 offset = pstr->raw_mbs_idx + idx;
         I32 len = 1;
 
         sv_pos_b2u(sv, &offset);
