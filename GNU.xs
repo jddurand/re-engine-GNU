@@ -490,14 +490,14 @@ GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
   }
 
   if ((flags & REXEC_COPY_STR) == REXEC_COPY_STR) {
+    /* It is perl that decides if this version is COW enabled or not */
+    /* From our point of view, it is equivalent to test if saved_copy */
+    /* is available */
 #if REGEXP_SAVED_COPY_CAN
     short canCow = 1;
 #else
     short canCow = 0;
 #endif
-    /* It is perl that decides if this version is COW enabled or not */
-    /* From our point of view, it is equivalent to test is saved_copy */
-    /* is available */
     if (canCow != 0) {
 #if REGEXP_SAVED_COPY_CAN
       if ((REGEXP_SAVED_COPY_GET(r) != NULL
@@ -530,13 +530,13 @@ GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
       if (isDebug) {
         fprintf(stderr, "%s: ..."
 #if REGEXP_SUBBEG_CAN
-                " subbeg=%p "
+                " subbeg=%p"
 #endif
 #if REGEXP_SUBLEN_CAN
-                " sublen=%d "
+                " sublen=%d"
 #endif
 #if REGEXP_SUBOFFSET_CAN
-                " suboffset=%d "
+                " suboffset=%d"
 #endif
 #if REGEXP_SUBCOFFSET_CAN
                 " subcoffset=%d"
@@ -637,13 +637,13 @@ GNU_exec_set_capture_string(pTHX_ REGEXP * const rx,
         if (isDebug) {
           fprintf(stderr, "%s: ..."
 #if REGEXP_SUBBEG_CAN
-                  " subbeg=%p "
+                  " subbeg=%p"
 #endif
 #if REGEXP_SUBLEN_CAN
-                  " sublen=%d "
+                  " sublen=%d"
 #endif
 #if REGEXP_SUBOFFSET_CAN
-                  " suboffset=%d "
+                  " suboffset=%d"
 #endif
 #if REGEXP_SUBCOFFSET_CAN
                   " subcoffset=%d"
