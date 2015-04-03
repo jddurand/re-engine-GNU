@@ -4,6 +4,12 @@
 #include "XSUB.h"
 
 #include "ppport.h"
+#ifndef newSVpvs
+#define newSVpvs(s) newSVpvn(""s"", sizeof(s)-1)
+#endif
+#ifndef newSVpvs_share
+#define newSVpvs_share(s) Perl_newSVpvn_share(aTHX_ STR_WITH_LEN(s), 0U)
+#endif
 
 #include "config_REGEXP.h"
 #include "regex.c"
