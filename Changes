@@ -1,6 +1,24 @@
 Changelog for re-engine-GNU
 
-0.014 2015-03-28T08:00:49
+0.015 2015-04-03T04:00:25
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - GNU.pm: a note about "[.something.]" and "[=something=]
+ - regex_internal.c: looks like a bug in original implementation -;
+ - GNU.xs: cosmetic changes
+ - remove threads::shared, not needed anymore
+ - re_string_elem_size_at fix
+ - almost working version -;
+ - dev+
+ - tolower/toupper
+ - re_string_elem_size_at: dev+
+ - Propagate SV as a helper
+ - regex_internal.h: removed (wrong) code
+ - regex_internal.c: fix MB_LEN_MAX
+ - regex_internal.h: fix octdump prototype
+ - portability compiler issues
+ - use Config::AutoConf 0.311
+
+0.014 2015-03-28T08:00:49Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - In theory no need anymore for msvcprt.lib
  - Perl portability issues

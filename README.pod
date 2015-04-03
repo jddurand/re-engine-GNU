@@ -8,7 +8,7 @@ re::engine::GNU - GNU Regular Expression Engine
 
 =head1 VERSION
 
-version 0.014
+version 0.015
 
 =head1 SYNOPSIS
 
@@ -246,6 +246,10 @@ re::engine::GNU - Perl extension for GNU regular expressions
 =item I18N
 
 This is using the perl semantics with which this library is compiled.
+
+=item Collation
+
+Collating symbols and Equivalence classes are not (yet supported).
 
 =item Execution and compilation semantics
 
