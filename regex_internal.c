@@ -202,8 +202,8 @@ build_wcs_buffer (pTHX_ re_string_t *pstr)
   /* Build the buffers from pstr->valid_len to either pstr->len or
      pstr->bufs_len.  */
   /* Bug ? end_idx = (pstr->bufs_len > pstr->len) ? pstr->len : pstr->bufs_len; */
-  /* end_idx = (pstr->bufs_len > pstr->len) ? pstr->bufs_len : pstr->len; */
-  end_idx = (pstr->bufs_len > pstr->len) ? pstr->len : pstr->bufs_len;
+  end_idx = (pstr->bufs_len > pstr->len) ? pstr->bufs_len : pstr->len;
+  /* end_idx = (pstr->bufs_len > pstr->len) ? pstr->len : pstr->bufs_len; */
   for (byte_idx = pstr->valid_len; byte_idx < end_idx;)
     {
       rpl__wchar_t wc;
