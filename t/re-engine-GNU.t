@@ -1,5 +1,5 @@
 use strict;
-use warnings;
+use warnings FATAL => 'all';
 use IO::Handle;
 
 use Test::More tests => 60;

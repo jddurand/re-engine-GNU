@@ -11,7 +11,6 @@ use File::Spec;
 #
 do_config_GNU();
 
-
 exit(EXIT_SUCCESS);
 
 sub do_config_GNU {
