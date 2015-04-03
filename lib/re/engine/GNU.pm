@@ -329,6 +329,10 @@ None by default.
 
 This is using the perl semantics with which this library is compiled.
 
+=item Collation
+
+Collating symbols and Equivalence classes are not (yet supported).
+
 =item Execution and compilation semantics
 
 The //msip perl semantics are applied at compile-time. Perl's localization if any always apply. The GNU regex semantic is in effect for the rest; for instance, there is no "last successful match" perl semantic in here.
