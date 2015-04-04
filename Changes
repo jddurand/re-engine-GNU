@@ -1,6 +1,13 @@
 Changelog for re-engine-GNU
 
-0.015 2015-04-03T04:00:25
+0.016 2015-04-04T05:32:04
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - mbrtowc: make sure that wcs buffer is always large enough
+ - More kWalitee and fix Config::AutoConf hardcoded version dependency
+ - Revert "perl-5.10 portability and newSVpvs"
+ - perl-5.10 portability and newSVpvs
+
+0.015 2015-04-03T04:00:25Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - GNU.pm: a note about "[.something.]" and "[=something=]
  - regex_internal.c: looks like a bug in original implementation -;
