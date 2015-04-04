@@ -1,6 +1,10 @@
 Changelog for re-engine-GNU
 
-0.016 2015-04-04T05:32:04
+0.017 2015-04-04T08:05:24
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - GNU.xs: removed the hardcoded NULL character in stringification
+
+0.016 2015-04-04T05:32:04Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - mbrtowc: make sure that wcs buffer is always large enough
  - More kWalitee and fix Config::AutoConf hardcoded version dependency
