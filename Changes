@@ -1,6 +1,11 @@
 Changelog for re-engine-GNU
 
-0.017 2015-04-04T08:05:24
+0.018 2015-04-04T08:49:04
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - GNU.xs: fixed last parameter (range is a number of characters, bytes I
+   believe)
+
+0.017 2015-04-04T08:05:24Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - GNU.xs: removed the hardcoded NULL character in stringification
 
