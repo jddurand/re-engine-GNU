@@ -58,11 +58,16 @@ typedef struct GNU_private {
 #define HANDLE    (GLOB | GLOBREF)
 #define BOOLEAN   (SCALAR | UNDEF)
 
-#ifdef PERL_STATIC_INLINE
-PERL_STATIC_INLINE
-#else
-static
-#endif
+GNU_STATIC
+void GNU_dump_pattern(pTHX_ char *logHeader, REGEXP *rx)
+{
+  SV *sv_stringification = newSVpvn_utf8(RX_WRAPPED(rx), RX_WRAPLEN(rx), 1);
+  fprintf(stderr, "%s: ... pattern:\n", logHeader);
+  sv_dump(sv_stringification);
+  SvREFCNT_dec(sv_stringification);
+}
+
+GNU_STATIC
 IV
 get_type(pTHX_ SV* sv) {
   IV type = 0;
@@ -420,13 +425,10 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
 
     sv_catpvn(sv_stringification, exp, plen);
     sv_catpvn(sv_stringification, ")", 1);
-    /* We add \0 only for convenience because this will be used in debug statements */
-    /* that are using %s format string */
-    sv_catpvn(sv_stringification, "\0", 1);
     RX_WRAPPED(rx) = savepvn(SvPVX(sv_stringification), SvCUR(sv_stringification));
     RX_WRAPLEN(rx) = SvCUR(sv_stringification);
     if (isDebug) {
-      fprintf(stderr, "%s: ... stringification to %s\n", logHeader, RX_WRAPPED(rx));
+      GNU_dump_pattern(aTHX_ logHeader, rx);
     }
     SvREFCNT_dec(sv_stringification);
 
@@ -734,7 +736,7 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 
     if (isDebug) {
       fprintf(stderr, "%s: rx=%p, stringarg=%p, strend=%p, strbeg=%p, minend=%d, sv=%p, data=%p, flags=0x%lx\n", logHeader, rx, stringarg, strend, strbeg, (int) minend, sv, data, (unsigned long) flags);
-      fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
+      GNU_dump_pattern(aTHX_ logHeader, rx);
     }
 
     /* Take care: strend points to the character following the end of the physical string */
@@ -863,7 +865,7 @@ GNU_intuit(pTHX_ REGEXP * const rx, SV * sv, char *strpos, char *strend, U32 fla
 
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p, sv=%p, strpos=%p, strend=%p, flags=0x%lx, data=%p\n", logHeader, rx, sv, strpos, strend, (unsigned long) flags, data);
-    fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
+    GNU_dump_pattern(aTHX_ logHeader, rx);
     fprintf(stderr, "%s: return NULL\n", logHeader);
   }
 
@@ -885,7 +887,7 @@ GNU_checkstr(pTHX_ REGEXP * const rx)
 
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p\n", logHeader, rx);
-    fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
+    GNU_dump_pattern(aTHX_ logHeader, rx);
     fprintf(stderr, "%s: return NULL\n", logHeader);
   }
 
@@ -905,7 +907,7 @@ GNU_free(pTHX_ REGEXP * const rx)
 
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p\n", logHeader, rx);
-    fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
+    GNU_dump_pattern(aTHX_ logHeader, rx);
   }
 
   if (isDebug) {
@@ -951,7 +953,7 @@ GNU_qr_package(pTHX_ REGEXP * const rx)
 
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p\n", logHeader, rx);
-    fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
+    GNU_dump_pattern(aTHX_ logHeader, rx);
   }
 
   rc = newSVpvs("re::engine::GNU");
@@ -988,7 +990,7 @@ GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
 
   if (isDebug) {
     fprintf(stderr, "%s: rx=%p, param=%p\n", logHeader, rx, param);
-    fprintf(stderr, "%s: ... pattern=%s\n", logHeader, RX_WRAPPED(rx));
+    GNU_dump_pattern(aTHX_ logHeader, rx);
   }
 
   ri->sv_pattern             = newSVsv(oldri->sv_pattern);
