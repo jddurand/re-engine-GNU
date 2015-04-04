@@ -741,9 +741,9 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
 
     /* Take care: strend points to the character following the end of the physical string */
     if (isDebug) {
-      fprintf(stderr, "%s: ... re_search(bufp=%p, string=%p, length=%d, sv=%p, start=%d, range=%d, regs=%p)\n", logHeader, &(ri->regex), strbeg, (int) (strend - strbeg), sv, (int) (stringarg - strbeg), (int) (strend - stringarg - 1), &regs);
+      fprintf(stderr, "%s: ... re_search(bufp=%p, string=%p, length=%d, sv=%p, start=%d, range=%d, regs=%p)\n", logHeader, &(ri->regex), strbeg, (int) (strend - strbeg), sv, (int) (stringarg - strbeg), (int) (strend - stringarg), &regs);
     }
-    rc = re_search(aTHX_ &(ri->regex), strbeg, strend - strbeg, sv, stringarg - strbeg, strend - stringarg - 1, &regs);
+    rc = re_search(aTHX_ &(ri->regex), strbeg, strend - strbeg, sv, stringarg - strbeg, strend - stringarg, &regs);
 
     if (rc <= -2) {
       croak("%s: Internal error in re_search()", logHeader);
