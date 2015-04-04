@@ -1344,6 +1344,14 @@ size_t rpl_Perl_mbrtowc(pTHX_ UV *restrict pwc, const char *restrict s, size_t n
     rc = (size_t)(-2);
   }
   else {
+    /* In here you find the reason why the buffers allocated at the */
+    /* very beginning are already the full buffers: I do not want */
+    /* Perl to raise a warning if the buffer is not enough. So I */
+    /* should not use UTF8_CHECK_ONLY. But the only way to NOT raise */
+    /* a warning is to use UTF8_CHECK_ONLY -; */
+    /* This is why in this case we do never return -2: we made sure */
+    /* at the very beginning that the buffer will always be large enough */
+
     ord = utf8n_to_uvchr((U8 *) s, n, &ch_len, UTF8_CHECK_ONLY);
     if (ord > 0 || *s == 0) {
       if (pwc != NULL) {

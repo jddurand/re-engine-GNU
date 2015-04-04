@@ -649,7 +649,7 @@ re_search_internal (pTHX_ const regex_t *preg,
   /* We must check the longest matching, if nmatch > 0.  */
   fl_longest_match = (nmatch != 0 || dfa->nbackref);
 
-  err = re_string_allocate (aTHX_ &mctx.input, string, length, dfa->nodes_len + 1,
+  err = re_string_allocate (aTHX_ &mctx.input, string, length, /* c.f. comment in mbrtowc */ /* dfa->nodes_len + 1 */ length + 1,
 			    preg->translate, (preg->syntax & RE_ICASE) != 0,
 			    dfa);
   if (BE (err != REG_NOERROR, 0))
