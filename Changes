@@ -1,6 +1,12 @@
 Changelog for re-engine-GNU
 
-0.018 2015-04-04T08:49:04
+0.019 2015-04-12T11:36:39
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - dist.ini: the correct fix for newSVpvn_flags
+ - Revert "GNU.xs: perl-5.10.0 newSVpvn_flags"
+ - GNU.xs: perl-5.10.0 newSVpvn_flags
+
+0.018 2015-04-04T08:49:04Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - GNU.xs: fixed last parameter (range is a number of characters, bytes I
    believe)
