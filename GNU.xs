@@ -29,14 +29,6 @@
 #  endif
 #endif
 
-/* For perl-5.10.0 */
-SV *DPPP_my_newSVpvn_flags(pTHX_ const char *s, STRLEN len, U32 flags)
-{
-  SV *sv = newSVpvn(s, len);
-  SvFLAGS(sv) |= (flags & SVf_UTF8);
-  return (flags & SVs_TEMP) ? sv_2mortal(sv) : sv;
-}
-
 /* #define PERL_5_10_METHOD */
 
 static regexp_engine engine_GNU;
