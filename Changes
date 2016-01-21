@@ -1,6 +1,10 @@
 Changelog for re-engine-GNU
 
-0.019 2015-04-12T11:36:39
+0.020 2016-01-21T21:46:00
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - regex_engine.rxfree instead of regex_engine.free - RT111311: Closes #3
+
+0.019 2015-04-12T11:36:39Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - dist.ini: the correct fix for newSVpvn_flags
  - Revert "GNU.xs: perl-5.10.0 newSVpvn_flags"
@@ -192,4 +196,3 @@ Changelog for re-engine-GNU
  - GNU_exec: free regs
  - GNU_exec: dev+
  - GNU_exec
-
