@@ -1010,7 +1010,7 @@ GNU_dupe(pTHX_ REGEXP * const rx, CLONE_PARAMS *param)
   ri->regex.no_sub           = 0;
   ri->regex.not_bol          = 0;
   ri->regex.not_eol          = 0;
-  ri->regex.newline_anchor   = 0;
+  ri->regex.newline_anchor   = oldri->regex.newline_anchor;
 
   exp = SvPV(ri->sv_pattern, plen);
 
