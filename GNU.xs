@@ -895,7 +895,7 @@ GNU_checkstr(pTHX_ REGEXP * const rx)
 }
 #endif
 
-#ifdef HAVE_REGEXP_ENGINE_FREE
+#if (defined(HAVE_REGEXP_ENGINE_FREE) || defined(HAVE_REGEXP_ENGINE_RXFREE))
 GNU_STATIC
 void
 GNU_free(pTHX_ REGEXP * const rx)
@@ -1059,9 +1059,12 @@ BOOT:
 #  endif
 #  undef free
   engine_GNU.free = GNU_free;
-#ifdef _PREVIOUS_FREE_MACRO
-#  define free _PREVIOUS_FREE_MACRO
+#  ifdef _PREVIOUS_FREE_MACRO
+#    define free _PREVIOUS_FREE_MACRO
+#  endif
 #endif
+#ifdef HAVE_REGEXP_ENGINE_RXFREE
+  engine_GNU.rxfree = GNU_free;
 #endif
 #ifdef HAVE_REGEXP_ENGINE_NUMBERED_BUFF_FETCH
 #ifdef HAVE_PERL_REG_NUMBERED_BUFF_FETCH
