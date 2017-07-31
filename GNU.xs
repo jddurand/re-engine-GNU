@@ -782,12 +782,12 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
       const I32 length = strend - strbeg;
 #if REGEXP_SAVED_COPY_CAN
       short canCow = 1;
-      short doCow = canCow ? (REGEXP_SAVED_COPY_GET(r) != NULL
+      short doCow = canCow ? ((REGEXP_SAVED_COPY_GET(r) != NULL)
                               && SvIsCOW(REGEXP_SAVED_COPY_GET(r))
                               && SvPOKp(REGEXP_SAVED_COPY_GET(r))
                               && SvIsCOW(sv)
                               && SvPOKp(sv)
-                              && SvPVX(sv) == SvPVX(REGEXP_SAVED_COPY_GET(r))) : 0;
+                              && (SvPVX(sv) == SvPVX(REGEXP_SAVED_COPY_GET(r)))) : 0;
 #else
       short canCow = 0;
       short doCow = 0;
@@ -795,7 +795,7 @@ GNU_exec(pTHX_ REGEXP * const rx, char *stringarg, char *strend, char *strbeg, I
       RX_MATCH_COPY_FREE(rx);
       if ((flags & REXEC_COPY_STR) == REXEC_COPY_STR) {
         /* Adapted from perl-5.10. Not performant, I know */
-        if (canCow != 0 && doCow != 0) {
+        if ((canCow != 0) && (doCow != 0)) {
 #if REGEXP_SAVED_COPY_CAN
           if (isDebug) {
             fprintf(stderr, "%s: ... reusing save_copy SV\n", logHeader);
