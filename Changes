@@ -1,6 +1,6 @@
 Changelog for re-engine-GNU
 
-0.024 2017-08-01T12:49:20
+0.024 2017-08-01T12:49:20Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - Use SvCANCOW() - fixes #5
 
