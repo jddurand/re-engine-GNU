@@ -17,7 +17,7 @@ BEGIN {
 }
 
 {
-    no strict 'subs';
+    no strict 'subs';                     ## no critic
     our $RE_SYNTAX_AWK                    = RE_SYNTAX_AWK;
     our $RE_SYNTAX_ED                     = RE_SYNTAX_ED;
     our $RE_SYNTAX_EGREP                  = RE_SYNTAX_EGREP;
