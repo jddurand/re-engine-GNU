@@ -448,9 +448,8 @@ REGEXP * GNU_comp(pTHX_ SV * const pattern, const U32 flags)
     REGEXP_LASTPAREN_SET(r, 0);
     REGEXP_LASTCLOSEPAREN_SET(r, 0);
     REGEXP_NPARENS_SET(r, (U32)ri->regex.re_nsub); /* cast from size_t */
-#ifdef REGEXP_LOGICAL_NPARENS_SET
     REGEXP_LOGICAL_NPARENS_SET(r, (U32)ri->regex.re_nsub);
-#endif
+
     if (isDebug) {
       fprintf(stderr, "%s: ... %d () detected\n", logHeader, (int) ri->regex.re_nsub);
     }
