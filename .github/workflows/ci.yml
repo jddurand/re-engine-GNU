@@ -35,8 +35,8 @@ jobs:
         echo password WellWellComeOn >> .pause
     - name: Set git identity
       run: |
-        git config user.name jddurand
-        git config user.email notthatimportant@example.com
+        git config --global user.name jddurand
+        git config --global user.email notthatimportant@example.com
     - name: Ensure cpanm is installed
       run: cpan App::cpanminus
     - name: Install configure dependencies using cpanfile
