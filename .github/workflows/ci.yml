@@ -33,12 +33,10 @@ jobs:
         pushd ~
         echo user JDDPAUSE > .pause
         echo password WellWellComeOn >> .pause
-    - name: Set git identity
-      run: |
-        git config --global user.name jddurand
-        git config --global user.email notthatimportant@example.com
     - name: Ensure cpanm is installed
       run: cpan App::cpanminus
+    - name: cpanm bug ? On MacOS it bails on Test::Perl::Critic not beeing installed
+      run: cpanm --notest Test::Perl::Critic
     - name: Install configure dependencies using cpanfile
       run: cpanm --cpanfile cpanfile --installdeps --with-configure --notest .
     - name: Install develop dependencies using cpanfile
