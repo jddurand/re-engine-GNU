@@ -50,4 +50,4 @@ jobs:
         make test
     - name: Test using dzil
       run: |
-        dzil test
+        dzil test --verbose
