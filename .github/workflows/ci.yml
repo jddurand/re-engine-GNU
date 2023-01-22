@@ -21,11 +21,15 @@ jobs:
     - uses: shogo82148/actions-setup-perl@v1
     - name: Log perl version
       run: perl -V
-    - name: Create a ~/.pause file containing only user
+    - name: Set PAUSE identity
       run: |
         pushd ~
         echo user JDDPAUSE > .pause
         echo password WellWellComeOn >> .pause
+    - name: Set git identity
+      run: |
+        git config user.name jddurand
+        git config user.email notthatimportant@example.com
     - name: Ensure cpanm is installed
       run: cpan App::cpanminus
     - name: Install configure dependencies using cpanfile
