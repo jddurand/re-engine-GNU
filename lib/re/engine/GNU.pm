@@ -16,7 +16,7 @@ BEGIN {
     #
     # Note that $VERSION is always defined when you use a distributed CPAN package.
     #
-    my $version = eval q{$VERSION};
+    my $version = eval q{$VERSION}; ## no critic
     defined($version) ? XSLoader::load(__PACKAGE__, $version) : XSLoader::load();
 }
 
