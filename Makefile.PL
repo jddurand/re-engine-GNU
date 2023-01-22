@@ -13,14 +13,15 @@ use File::Spec;
 my %WriteMakefileArgs = (
   "ABSTRACT" => "GNU Regular Expression Engine",
   "AUTHOR" => "Jean-Damien Durand <jeandamiendurand\@free.fr>",
-  "BUILD_REQUIRES" => {
+  "CONFIGURE_REQUIRES" => {
     "Capture::Tiny" => 0,
     "Config::AutoConf" => "0.311",
+    "ExtUtils::MakeMaker" => 0,
     "File::Spec" => 0,
-    "File::Temp" => 0
-  },
-  "CONFIGURE_REQUIRES" => {
-    "ExtUtils::MakeMaker" => 0
+    "File::Temp" => 0,
+    "POSIX" => 0,
+    "diagnostics" => 0,
+    "strict" => 0
   },
   "DISTNAME" => "re-engine-GNU",
   "LICENSE" => "perl",
@@ -54,11 +55,8 @@ my %WriteMakefileArgs = (
 );
 
 my %FallbackPrereqs = (
-  "Capture::Tiny" => 0,
-  "Config::AutoConf" => "0.311",
   "ExtUtils::MakeMaker" => 0,
   "File::Spec" => 0,
-  "File::Temp" => 0,
   "IO::Handle" => 0,
   "IPC::Open3" => 0,
   "Test::More" => 0,

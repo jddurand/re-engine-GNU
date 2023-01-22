@@ -1,6 +1,6 @@
 Changelog for re-engine-GNU
 
-0.025 2023-01-19T18:30:45
+0.025 2023-01-19T18:30:45Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - engine/GNU.pm: =for Pod::Coverage
  - dist.ini: Remove Test::Vars (unmaintained?), Test::DistManifest (not ok
