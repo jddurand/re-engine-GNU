@@ -8,7 +8,8 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        # os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [windows-latest]
     runs-on: ${{matrix.os}}
     name: ${{matrix.os}}
     steps:
@@ -45,4 +46,5 @@ jobs:
         EXTENDED_TESTING: 1
         RELEASE_TESTING: 1
       run: |
-        perl -MDist::Zilla::App -e "Dist::Zilla::App->run" -- test --verbose
+        dzil commands
+        dzil test --verbose
