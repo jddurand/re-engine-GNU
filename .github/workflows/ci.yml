@@ -21,11 +21,11 @@ jobs:
       with:
         fetch-depth: 0
     - uses: shogo82148/actions-setup-perl@v1
-    - name: Git fetch unshallow
-      run: |
-        git fetch --unshallow
-        git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
-        git fetch origin
+    # - name: Git fetch unshallow
+    #   run: |
+    #     git fetch --unshallow
+    #     git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+    #    git fetch origin
     - name: Log perl version
       run: perl -V
     - name: Set PAUSE identity
