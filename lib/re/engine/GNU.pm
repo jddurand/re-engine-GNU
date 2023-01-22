@@ -13,7 +13,11 @@ our @ISA = 'Regexp';
 
 BEGIN {
     # VERSION
-    XSLoader::load __PACKAGE__, $VERSION;
+    #
+    # Note that $VERSION is always defined when you use a distributed CPAN package.
+    #
+    my $version = eval q{$VERSION};
+    defined($version) ? XSLoader::load(__PACKAGE__, $version) : XSLoader::load();
 }
 
 {
