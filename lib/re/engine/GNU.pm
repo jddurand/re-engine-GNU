@@ -12,6 +12,7 @@ use XSLoader ();
 our @ISA = 'Regexp';
 
 BEGIN {
+    #
     # VERSION
     #
     # Note that $VERSION is always defined when you use a distributed CPAN package.
