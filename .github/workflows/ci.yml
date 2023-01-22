@@ -3,7 +3,7 @@ name: CI of re-engine-GNU
 on:
   push:
   pull_request:
- 
+
 jobs:
   windows:
     name: Windows cl
