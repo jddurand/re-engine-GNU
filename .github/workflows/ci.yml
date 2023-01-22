@@ -4,54 +4,34 @@ on:
   push:
   pull_request:
 
+env:
+  AUTHOR_TESTING: 1
+  EXTENDED_TESTING: 1
+  RELEASE_TESTING: 1
+
 jobs:
-  windows:
-    name: Windows cl
-    runs-on: windows-latest
+  build:
     strategy:
       matrix:
-        arch:
-          - amd64
-          - amd64_x86
-          - amd64_arm64
-    steps:
-    - uses: actions/checkout@v2
-    - uses: ilammy/msvc-dev-cmd@v1.4.1
-      with:
-        arch: ${{ matrix.arch }}
-    - name: Use Makefile.PL
-      run: |
-        perl -V
-        cpan App::cpanminus
-        cpanm --cpanfile cpanfile --installdeps --with-configure .
-        perl Makefile.PL
-        make
-        make test
-    - name: Use dzil
-      run: |
-        perl -V
-        cpan App::cpanminus
-        cpanm --cpanfile cpanfile --installdeps --with-develop .
-        dzil test
-  unix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{matrix.os}}
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest]
     name: ${{matrix.os}}
     steps:
-    - uses: actions/checkout@v2
-    - name: Use Makefile.PL
+    - uses: actions/checkout@v3
+    - uses: shogo82148/actions-setup-perl@v1
+    - name: Log perl version
+      run: perl -V
+    - name: Ensure cpanm is installed
+      run: cpan App::cpanminus
+    - name: Install configure dependencies using cpanfile
+      run: cpanm --cpanfile cpanfile --installdeps --with-configure --notest .
+    - name: Install develop dependencies using cpanfile
+      run: cpanm --cpanfile cpanfile --installdeps --with-develop --notest .
+    - name: Test using Makefile.PL
       run: |
-        perl -V
-        cpan App::cpanminus
-        cpanm --cpanfile cpanfile --installdeps --with-configure .
         perl Makefile.PL
         make
         make test
-    - name: Use dzil
+    - name: Test using dzil
       run: |
-        perl -V
-        cpan App::cpanminus
-        cpanm --cpanfile cpanfile --installdeps --with-develop .
         dzil test
