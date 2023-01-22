@@ -35,6 +35,8 @@ jobs:
         echo password WellWellComeOn >> .pause
     - name: Ensure cpanm is installed
       run: cpan App::cpanminus
+    - name: Use cpan to see why List::SomeUtils::XS fails
+      run: cpan List::SomeUtils::XS
     - name: cpanm bug ? On MacOS it bails on Test::Perl::Critic not beeing installed
       run: cpanm --notest Test::Perl::Critic
     - name: Install configure dependencies using cpanfile
