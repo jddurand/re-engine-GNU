@@ -22,9 +22,8 @@ jobs:
     - name: Log perl version
       run: perl -V
     - name: Create a ~/.pause file containing only user
-      with:
-        path: '~'
       run: |
+        pushd ~
         echo user JDDPAUSE > .pause
         echo password WellWellComeOn >> .pause
     - name: Ensure cpanm is installed
