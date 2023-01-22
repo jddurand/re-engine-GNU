@@ -46,3 +46,4 @@ jobs:
         RELEASE_TESTING: 1
       run: |
         dzil test --verbose
+        perl -MDist::Zilla::App -e "Dist::Zilla::App->run" -- test --verbose
