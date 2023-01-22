@@ -4,11 +4,6 @@ on:
   push:
   pull_request:
 
-env:
-  AUTHOR_TESTING: 1
-  EXTENDED_TESTING: 1
-  RELEASE_TESTING: 1
-
 jobs:
   build:
     strategy:
@@ -35,10 +30,6 @@ jobs:
         echo password WellWellComeOn >> .pause
     - name: Ensure cpanm is installed
       run: cpan App::cpanminus
-    - name: Use cpan to see why List::SomeUtils::XS fails
-      run: cpan List::SomeUtils::XS
-    - name: cpanm bug ? On MacOS it bails on Test::Perl::Critic not beeing installed
-      run: cpanm --notest Test::Perl::Critic
     - name: Install configure dependencies using cpanfile
       run: cpanm --cpanfile cpanfile --installdeps --with-configure --notest .
     - name: Install develop dependencies using cpanfile
@@ -49,5 +40,9 @@ jobs:
         make
         make test
     - name: Test using dzil
+      env:
+        AUTHOR_TESTING: 1
+        EXTENDED_TESTING: 1
+        RELEASE_TESTING: 1
       run: |
         dzil test --verbose
