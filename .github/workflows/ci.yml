@@ -21,6 +21,8 @@ jobs:
     - uses: shogo82148/actions-setup-perl@v1
     - name: Log perl version
       run: perl -V
+    - name: Create a .pause file containing only user
+      run: echo user JDDPAUSE > .pause
     - name: Ensure cpanm is installed
       run: cpan App::cpanminus
     - name: Install configure dependencies using cpanfile
