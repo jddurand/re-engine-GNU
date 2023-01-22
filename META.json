@@ -44,6 +44,7 @@
             "Dist::Zilla::Plugin::AutoMetaResources" : "0",
             "Dist::Zilla::Plugin::AutoPrereqs" : "0",
             "Dist::Zilla::Plugin::CPANFile" : "0",
+            "Dist::Zilla::Plugin::ChangelogFromGit::CPAN::Changes" : "0",
             "Dist::Zilla::Plugin::DynamicPrereqs" : "0",
             "Dist::Zilla::Plugin::FileFinder::ByName" : "0",
             "Dist::Zilla::Plugin::Git::Contributors" : "0",

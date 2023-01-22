@@ -1,6 +1,6 @@
 Changelog for re-engine-GNU
 
-0.026 2023-01-22T10:08:26
+0.026 2023-01-22T10:08:26Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - workflows/ci.yml: Run dzil test with --verbose option
  - workflows/ci.yml: Try to fix git identity

@@ -38,6 +38,7 @@ on 'develop' => sub {
   requires "Dist::Zilla::Plugin::AutoMetaResources" => "0";
   requires "Dist::Zilla::Plugin::AutoPrereqs" => "0";
   requires "Dist::Zilla::Plugin::CPANFile" => "0";
+  requires "Dist::Zilla::Plugin::ChangelogFromGit::CPAN::Changes" => "0";
   requires "Dist::Zilla::Plugin::DynamicPrereqs" => "0";
   requires "Dist::Zilla::Plugin::FileFinder::ByName" => "0";
   requires "Dist::Zilla::Plugin::Git::Contributors" => "0";
