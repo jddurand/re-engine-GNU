@@ -45,14 +45,10 @@ jobs:
           name: build_dir
           path: build_dir
 
-  list:
-    needs:
-      - build-job
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    name: list available perl versions on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+  list-ubuntu-latest:
+    needs: build-job
+    name: list available perl versions on ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: shogo82148/actions-setup-perl@v1
       - id: set-matrix
@@ -62,12 +58,11 @@ jobs:
           use Actions::Core;
           set_output(matrix => {perl => [perl_versions()]});
     outputs:
-      matrix-${{ matrix.os }}: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
 
   run-ubuntu-latest:
     runs-on: ubuntu-latest
-    needs:
-      - list
+    needs: list-ubuntu-latest
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.list-ubuntu-latest.outputs.matrix)}}
@@ -94,11 +89,24 @@ jobs:
           AUTHOR_TESTING: 1
           RELEASE_TESTING: 1
 
+  list-macos-latest:
+    needs: build-job
+    name: list available perl versions on macos-latest
+    runs-on: macos-latest
+    steps:
+      - uses: shogo82148/actions-setup-perl@v1
+      - id: set-matrix
+        name: list available perl versions
+        shell: perl {0}
+        run: |
+          use Actions::Core;
+          set_output(matrix => {perl => [perl_versions()]});
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
   run-macos-latest:
     runs-on: macos-latest
-    needs:
-      - list
-      - build-job
+    needs: list-macos-latest
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.list-macos-latest.outputs.matrix)}}
@@ -125,11 +133,24 @@ jobs:
           AUTHOR_TESTING: 1
           RELEASE_TESTING: 1
 
+  list-windows-latest:
+    needs: build-job
+    name: list available perl versions on windows-latest
+    runs-on: windows-latest
+    steps:
+      - uses: shogo82148/actions-setup-perl@v1
+      - id: set-matrix
+        name: list available perl versions
+        shell: perl {0}
+        run: |
+          use Actions::Core;
+          set_output(matrix => {perl => [perl_versions()]});
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
   run-windows-latest:
     runs-on: windows-latest
-    needs:
-      - list
-      - build-job
+    needs: list-windows-latest
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.list-windows-latest.outputs.matrix)}}
