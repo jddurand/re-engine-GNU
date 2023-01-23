@@ -82,7 +82,7 @@ jobs:
         uses: perl-actions/install-with-cpm@v1
         with:
           cpanfile: "cpanfile"
-          args: "--with-suggests --with-recommends --with-test"
+          args: "--with-suggests --with-configure --with-recommends --with-test"
       - run: |
           perl Makefile.PL
           make
