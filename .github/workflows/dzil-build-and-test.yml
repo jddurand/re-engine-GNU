@@ -60,9 +60,9 @@ jobs:
       - uses: shogo82148/actions-setup-perl@v1
       - name: Install Sort::Versions
         run: |
-          cpm Sort::Versions
+          cpm install Sort::Versions
       - id: set-matrix
-        name: list perl versions >= ${{needs.build-job.outputs.perl-minimum-version}}
+        name: List perl versions >= ${{needs.build-job.outputs.perl-minimum-version}}
         shell: perl {0}
         run: |
           use Sort::Versions qw/versioncmp/;
@@ -103,12 +103,16 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: shogo82148/actions-setup-perl@v1
+      - name: Install Sort::Versions
+        run: |
+          cpm install Sort::Versions
       - id: set-matrix
-        name: list available perl versions
+        name: List perl versions >= ${{needs.build-job.outputs.perl-minimum-version}}
         shell: perl {0}
         run: |
+          use Sort::Versions qw/versioncmp/;
           use Actions::Core;
-          set_output(matrix => {perl => [perl_versions()]});
+          set_output(matrix => {perl => [grep { versioncmp($_, "${{needs.build-job.outputs.perl-minimum-version}}") >= 0 } perl_versions()]});
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
@@ -144,12 +148,16 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: shogo82148/actions-setup-perl@v1
+      - name: Install Sort::Versions
+        run: |
+          cpm install Sort::Versions
       - id: set-matrix
-        name: list available perl versions
+        name: List perl versions >= ${{needs.build-job.outputs.perl-minimum-version}}
         shell: perl {0}
         run: |
+          use Sort::Versions qw/versioncmp/;
           use Actions::Core;
-          set_output(matrix => {perl => [perl_versions()]});
+          set_output(matrix => {perl => [grep { versioncmp($_, "${{needs.build-job.outputs.perl-minimum-version}}") >= 0 } perl_versions()]});
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
