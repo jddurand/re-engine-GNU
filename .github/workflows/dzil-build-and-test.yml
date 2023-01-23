@@ -45,6 +45,57 @@ jobs:
           name: build_dir
           path: build_dir
 
+  list:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    name: list available perl versions on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: shogo82148/actions-setup-perl@v1
+      - id: set-matrix
+        name: list available perl versions
+        shell: perl {0}
+        run: |
+          use Actions::Core;
+          set_output(matrix => {perl => [perl_versions()]});
+    outputs:
+      matrix-${{ matrix.os }}: ${{ steps.set-matrix.outputs.matrix }}
+
+  run:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    needs:
+      - list
+      - build-job
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.list-${{ matrix.os }}.outputs.matrix)}}
+    steps:
+      - name: Set Up Perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl-version }}
+          distribution: strawberry # this option only used on Windows
+      - uses: actions/download-artifact@master
+        with:
+          name: build_dir
+          path: .
+      - name: install deps using cpm
+        uses: perl-actions/install-with-cpm@v1
+        with:
+          cpanfile: "cpanfile"
+          args: "--with-suggests --with-configure --with-recommends --with-test"
+      - run: |
+          perl Makefile.PL
+          make
+          make test
+        env:
+          AUTHOR_TESTING: 1
+          RELEASE_TESTING: 1
+
   list-ubuntu-latest:
     name: list available perl versions on ubuntu-latest
     runs-on: ubuntu-latest
