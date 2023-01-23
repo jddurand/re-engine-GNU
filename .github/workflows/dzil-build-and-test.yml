@@ -39,6 +39,7 @@ jobs:
           perl Makefile.PL
           make
           prove -br t xt
+          make clean
       - uses: actions/upload-artifact@master
         with:
           name: build_dir
@@ -85,7 +86,6 @@ jobs:
           args: "--with-suggests --with-configure --with-recommends --with-test"
       - run: |
           perl Makefile.PL
-          make clean
           make
           make test
         env:
