@@ -66,7 +66,7 @@ jobs:
       - build-job
     strategy:
       fail-fast: false
-      matrix: ${{fromJson(needs.list.outputs.matrix)}}
+      matrix: ${{fromJson(needs.list-ubuntu-latest.outputs.matrix)}}
     steps:
       - name: Set Up Perl
         uses: shogo82148/actions-setup-perl@v1
