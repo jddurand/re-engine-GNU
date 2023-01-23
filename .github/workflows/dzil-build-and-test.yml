@@ -20,6 +20,11 @@ jobs:
       image: perldocker/perl-tester:5.36
     steps:
       - uses: actions/checkout@v2
+      - name: Set PAUSE identity
+        run: |
+          pushd ~
+          echo user JDDPAUSE > .pause
+          echo password WellWellComeOn >> .pause
       - name: Run Tests
         env:
           AUTHOR_TESTING: 1
