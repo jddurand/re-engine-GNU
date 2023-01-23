@@ -85,6 +85,7 @@ jobs:
           args: "--with-suggests --with-configure --with-recommends --with-test"
       - run: |
           perl Makefile.PL
+          make clean
           make
           make test
         env:
