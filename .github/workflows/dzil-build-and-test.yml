@@ -30,7 +30,15 @@ jobs:
           AUTOMATED_TESTING: 1
           EXTENDED_TESTING: 1
           RELEASE_TESTING: 1
-        run: upgrade-perl-helpers && auto-build-and-test-dist
+        run: |
+          upgrade-perl-helpers
+          cpan-install-build-deps
+          build-dist
+          cd build_dir
+          cpan-install-dist-deps --with-develop
+          perl Makefile.PL
+          make
+          prove -br t xt
       - uses: actions/upload-artifact@master
         with:
           name: build_dir
