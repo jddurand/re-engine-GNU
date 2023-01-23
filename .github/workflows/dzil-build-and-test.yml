@@ -16,6 +16,8 @@ jobs:
   build-job:
     name: Build distribution
     runs-on: ubuntu-latest
+    outputs:
+      perl-minimum-version: ${{ steps.perl-minimum-version.outputs.version }}
     container:
       image: perldocker/perl-tester:5.36
     steps:
@@ -24,6 +26,11 @@ jobs:
         run: |
           echo user JDDPAUSE > ~/.pause
           echo password WellWellComeOn >> ~/.pause
+      - name: Recuperate minimum perl version
+        id: perl-minimum-version
+        run: |
+          cpm install JSON::MaybeXS
+          perl -MJSON::MaybeXS -e 'print "version=" . decode_json(do { local $/; <STDIN> })->{prereqs}{configure}{requires}{perl} . "\n";" < META.json >> $GITHUB_OUTPUT
       - name: Run Tests
         env:
           AUTHOR_TESTING: 1
@@ -47,16 +54,20 @@ jobs:
 
   list-ubuntu-latest:
     needs: build-job
-    name: list available perl versions on ubuntu-latest
+    name: Get perl versions on ubuntu-latest
     runs-on: ubuntu-latest
     steps:
       - uses: shogo82148/actions-setup-perl@v1
+      - name: Install Sort::Versions
+        run: |
+          cpm Sort::Versions
       - id: set-matrix
-        name: list available perl versions
+        name: list perl versions >= ${{needs.build-job.outputs.perl-minimum-version}}
         shell: perl {0}
         run: |
+          use Sort::Versions qw/versioncmp/;
           use Actions::Core;
-          set_output(matrix => {perl => [perl_versions()]});
+          set_output(matrix => {perl => [grep { versioncmp($_, "${{needs.build-job.outputs.perl-minimum-version}}") >= 0 } perl_versions()]});
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
@@ -88,7 +99,7 @@ jobs:
 
   list-macos-latest:
     needs: build-job
-    name: list available perl versions on macos-latest
+    name: Get perl versions on macos-latest
     runs-on: macos-latest
     steps:
       - uses: shogo82148/actions-setup-perl@v1
@@ -129,7 +140,7 @@ jobs:
 
   list-windows-latest:
     needs: build-job
-    name: list available perl versions on windows-latest
+    name: Get perl versions on windows-latest
     runs-on: windows-latest
     steps:
       - uses: shogo82148/actions-setup-perl@v1
