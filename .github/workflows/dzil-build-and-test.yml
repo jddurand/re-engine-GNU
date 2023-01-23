@@ -22,9 +22,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Set PAUSE identity
         run: |
-          pushd ~
-          echo user JDDPAUSE > .pause
-          echo password WellWellComeOn >> .pause
+          echo user JDDPAUSE > ~/.pause
+          echo password WellWellComeOn >> ~/.pause
       - name: Run Tests
         env:
           AUTHOR_TESTING: 1
