@@ -46,6 +46,8 @@ jobs:
           path: build_dir
 
   list:
+    needs:
+      - build-job
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -66,7 +68,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - list
-      - build-job
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.list-ubuntu-latest.outputs.matrix)}}
