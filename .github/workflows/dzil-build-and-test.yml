@@ -30,7 +30,7 @@ jobs:
         id: perl-minimum-version
         run: |
           cpm install JSON::MaybeXS
-          perl -MJSON::MaybeXS -e 'print "version=" . decode_json(do { local $/; <STDIN> })->{prereqs}{configure}{requires}{perl} . "\n";" < META.json >> $GITHUB_OUTPUT
+          perl -MJSON::MaybeXS -e 'print "version=" . decode_json(do { local $/; <STDIN> })->{prereqs}{configure}{requires}{perl} . "\n";' < META.json >> $GITHUB_OUTPUT
       - name: Run Tests
         env:
           AUTHOR_TESTING: 1
