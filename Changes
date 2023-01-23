@@ -1,10 +1,18 @@
 Changelog for re-engine-GNU
 
-0.026 2023-01-22T12:22:04
+0.026 2023-01-23T20:51:40
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
- - engine/GNU.pm: Add a section HOW TO CONTRIBUTE
+ - workflows/dzil-build-and-test.yml: dev+
+ - workflows/dzil-build-and-test.yml: Remove AUTHOR_TESTING and
+   RELEASE_TESTING when testing the distribution
+ - workflows/dzil-build-and-test.yml: Set PAUSE identity bis
+ - workflows/dzil-build-and-test.yml: Set PAUSE identity
+ - workflows/ci.yml -> workflows/dzil-build-and-test.yml
+ - workflows/ci.yml: Trying to understand why dzil test --verbose does not
+   work on windows workflow...
  - workflows/ci.yml: use perl -MDist::Zilla::App instead of dzil directly
    for windows workflow
+ - engine/GNU.pm: Add a section HOW TO CONTRIBUTE
  - dist.ini: Move AUTHOR_TESTING=1 EXTENDED_TESTING=1 RELEASE_TESTING=1 to
    the run instead of the full workflow - this is causing
    List::SomeUtils::XS to fail because AUTHOR_TESTING sets -Werror

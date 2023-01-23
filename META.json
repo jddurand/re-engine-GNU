@@ -120,7 +120,7 @@
          "version" : "0.026"
       }
    },
-   "release_status" : "stable",
+   "release_status" : "testing",
    "resources" : {
       "bugtracker" : {
          "web" : "https://github.com/jddurand/re-engine-GNU/issues"
