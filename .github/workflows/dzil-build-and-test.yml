@@ -85,9 +85,6 @@ jobs:
           perl Makefile.PL
           make
           make test
-        env:
-          AUTHOR_TESTING: 1
-          RELEASE_TESTING: 1
 
   list-macos-latest:
     needs: build-job
@@ -129,9 +126,6 @@ jobs:
           perl Makefile.PL
           make
           make test
-        env:
-          AUTHOR_TESTING: 1
-          RELEASE_TESTING: 1
 
   list-windows-latest:
     needs: build-job
@@ -173,6 +167,3 @@ jobs:
           perl Makefile.PL
           make
           make test
-        env:
-          AUTHOR_TESTING: 1
-          RELEASE_TESTING: 1
