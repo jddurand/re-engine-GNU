@@ -35,7 +35,7 @@ jobs:
           cpan-install-build-deps
           build-dist
           cd build_dir
-          cpan-install-dist-deps --with-develop
+          cpan-install-dist-deps --with-configure --with-develop
           perl Makefile.PL
           make
           prove -br t xt
