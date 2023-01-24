@@ -1,8 +1,8 @@
-=pod
-
 =encoding UTF-8
 
 =for html <img alt="GitHub Workflow Status (with branch)" src="https://img.shields.io/github/actions/workflow/status/jddurand/re-engine-GNU/dzil-build-and-test.yml"> <img alt="GitHub issues" src="https://img.shields.io/github/issues/jddurand/re-engine-GNU"> <img alt="CPAN" src="https://img.shields.io/cpan/l/re-engine-GNU"> <img alt="CPAN" src="https://img.shields.io/cpan/v/re-engine-GNU"> <img alt="GitHub tag (latest by date)" src="https://img.shields.io/github/v/tag/jddurand/re-engine-GNU">
+
+=pod
 
 =head1 NAME
 
