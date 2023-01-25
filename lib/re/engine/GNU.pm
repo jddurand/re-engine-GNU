@@ -16,8 +16,16 @@ BEGIN {
     # VERSION
     #
     # Note that $VERSION is always defined when you use a distributed CPAN package.
+    # With old versions of perl, only the XSLoader::load(__PACKAGE__, $version) works.
+    # E.g. with perl-5.10, doing directly:
+    # make test
+    # within the repository may yell like this:
+    # Error:  XSLoader::load('Your::Module', $Your::Module::VERSION)
+    # In this case, you can put the module version in the RE_ENGINE_GNU_VERSION
+    # environment variable, e.g.:
+    # RE_ENGINE_GNU_VERSION=0.026 make test
     #
-    my $version = eval q{$VERSION}; ## no critic
+    my $version = eval q{$VERSION} // $ENV{RE_ENGINE_GNU_VERSION}; ## no critic
     defined($version) ? XSLoader::load(__PACKAGE__, $version) : XSLoader::load();
 }
 
