@@ -38,7 +38,7 @@ jobs:
           EXTENDED_TESTING: 1
           RELEASE_TESTING: 1
         run: |
-          git config --global github.user ${{ env.GITHUB_USER }}
+          git config user.name "$GITHUB_ACTOR"
           upgrade-perl-helpers
           cpan-install-build-deps
           build-dist
