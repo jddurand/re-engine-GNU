@@ -38,7 +38,9 @@ jobs:
           EXTENDED_TESTING: 1
           RELEASE_TESTING: 1
         run: |
-          git config user.name "$GITHUB_ACTOR"
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git config --global github.user "$GITHUB_ACTOR"
           upgrade-perl-helpers
           cpan-install-build-deps
           build-dist
