@@ -22,8 +22,6 @@ jobs:
       image: perldocker/perl-tester:5.36
     steps:
       - uses: actions/checkout@v2
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set PAUSE identity
         run: |
           echo user JDDPAUSE > ~/.pause
@@ -40,6 +38,7 @@ jobs:
           EXTENDED_TESTING: 1
           RELEASE_TESTING: 1
         run: |
+          git config --global github.user ${{ env.GITHUB_USER }}
           upgrade-perl-helpers
           cpan-install-build-deps
           build-dist
