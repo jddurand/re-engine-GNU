@@ -70,7 +70,7 @@ jobs:
         run: |
           use CPAN::Version;
           use Actions::Core;
-          set_output(matrix => {perl => ['devel', grep { CPAN::Version->vcmp($_, "${{needs.build-job.outputs.perl-minimum-version}}") >= 0 } perl_versions()]});
+          set_output(matrix => {perl => [grep { CPAN::Version->vcmp($_, "${{needs.build-job.outputs.perl-minimum-version}}") >= 0 } perl_versions()]});
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
