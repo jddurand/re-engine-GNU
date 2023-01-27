@@ -70,7 +70,7 @@ jobs:
         run: |
           use CPAN::Version;
           use Actions::Core;
-          set_output(matrix => {perl => [grep { $_ eq 'devel' || CPAN::Version->vcmp($_, "${{needs.build-job.outputs.perl-minimum-version}}") >= 0 } perl_versions()]});
+          set_output(matrix => {perl => ['devel', grep { CPAN::Version->vcmp($_, "${{needs.build-job.outputs.perl-minimum-version}}") >= 0 } perl_versions()]});
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
@@ -91,7 +91,7 @@ jobs:
           name: build_dir
           path: .
       - name: install deps using cpm
-        uses: perl-actions/install-with-cpm@v1
+        uses: perl-actions/install-with-cpm@stable
         with:
           cpanfile: "cpanfile"
           args: "--with-suggests --with-configure --with-recommends --with-test"
@@ -136,7 +136,7 @@ jobs:
           name: build_dir
           path: .
       - name: install deps using cpm
-        uses: perl-actions/install-with-cpm@v1
+        uses: perl-actions/install-with-cpm@stable
         with:
           cpanfile: "cpanfile"
           args: "--with-suggests --with-configure --with-recommends --with-test"
@@ -181,7 +181,7 @@ jobs:
           name: build_dir
           path: .
       - name: install deps using cpm
-        uses: perl-actions/install-with-cpm@v1
+        uses: perl-actions/install-with-cpm@stable
         with:
           cpanfile: "cpanfile"
           args: "--with-suggests --with-configure --with-recommends --with-test"
