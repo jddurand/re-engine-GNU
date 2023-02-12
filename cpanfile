@@ -12,6 +12,7 @@ on 'test' => sub {
   requires "IO::Handle" => "0";
   requires "IPC::Open3" => "0";
   requires "Test::More" => "0";
+  requires "Test::More::UTF8" => "0";
   requires "Thread" => "0";
   requires "perl" => "5.010000";
 };

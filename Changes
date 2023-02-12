@@ -1,6 +1,24 @@
 Changelog for re-engine-GNU
 
-0.026 2023-01-23T20:51:40
+0.027 2023-02-12T04:11:43
+ [Jean-Damien Durand <jeandamiendurand@free.fr>]
+ - use Test::More::UTF8 instead of hacking on io layer on stdout/stderr
+ - workflows/dzil-build-and-test.yml: Remove devel until this will be
+   meaninful (currently devel uses 5.36 !?)
+ - workflows/dzil-build-and-test.yml: Use
+   perl-actions/install-with-cpm@stable instead of
+   perl-actions/install-with-cpm@v1, set_output matrix change to have devel
+   version
+ - workflows/dzil-build-and-test.yml: Add devel version
+ - workflows/dzil-build-and-test.yml: Try setting git config --global
+   github.user
+ - workflows/dzil-build-and-test.yml: Add repo-token
+ - Environment variable RE_ENGINE_GNU_VERSION support for those doing make
+   test directly on this repo with an old perl
+ - README.pod: dev+ [ci skip]
+ - README.pod: Add some badges [ci skip]
+
+0.026 2023-01-23T20:51:40Z
  [Jean-Damien Durand <jeandamiendurand@free.fr>]
  - workflows/dzil-build-and-test.yml: dev+
  - workflows/dzil-build-and-test.yml: Remove AUTHOR_TESTING and
