@@ -3,10 +3,11 @@ use warnings FATAL => 'all';
 use IO::Handle;
 
 use Test::More tests => 60;
-BEGIN { require_ok('re::engine::GNU') };
+use Test::More::UTF8;
 
-binmode STDOUT, ':utf8';
-binmode STDERR, ':utf8';
+BEGIN {
+    require_ok('re::engine::GNU')
+};
 
 #########################
 
